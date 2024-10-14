@@ -19,3 +19,6 @@ def drop1(request):
 
 def chart(request):
     return render(request,'app1/chart.html')
+
+def data(request):
+    return render(request,'app1/data.html')
