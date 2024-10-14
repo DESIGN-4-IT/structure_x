@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            display: flex;
+            flex-direction: column;
+            min-height: 150vh;
+        }
+
+        header, footer {
+            background-color: #5e99f5;
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        header {
+            top: 0;
+        }
+
+        footer {
+            bottom: 0;
+            text-align: center;
+            padding:15px;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+            margin-left:50px;
+        }
+
+        .menu a {
+            margin: 0 15px;
+            color: white;
+            text-decoration: none;
+            padding: 30px;
+        }
+
+        .search input {
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            margin-right:50px;
+        }
+
+        .breadcrumb {
+            padding: 10px 20px;
+            background-color: #fff;
+            font-size: 14px;
+            margin-top: 70px; /* To prevent content from being overlapped by the fixed header */
+        }
+
+        .breadcrumb a {
+            color: #333;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+
+        .main-content {  
+            padding: 20px;  
+            background-color: #f8f8f8;  
+          }  
+            
+          .breadcrumb {  
+            padding: 10px 20px;  
+            background-color: #fff;  
+            font-size: 14px;  
+            margin-top: 70px; /* To prevent content from being overlapped by the fixed header */  
+          }  
+            
+          .breadcrumb a {  
+            color: #333;  
+            text-decoration: none;  
+            margin-right: 5px;  
+          }  
+            
+          .faq-container {  
+            padding: 20px;  
+            background-color: #fff;  
+            border: 1px solid #ddd;  
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);  
+          }  
+            
+          .faq-question {  
+            padding: 10px;  
+            border-bottom: 1px solid #ddd;  
+            cursor: pointer;  
+          }  
+            
+          .faq-question span {  
+            font-size: 16px;  
+            font-weight: bold;  
+          }  
+            
+          .faq-question i {  
+            font-size: 18px;  
+            margin-left: 10px;  
+            color: #666;  
+          }  
+            
+          .faq-question:hover {  
+            background-color: #f2f2f2;  
+          }
+          
+
+        footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        h2{
+            text-align:center;
+        }
+        
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="#">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+    <!-- Breadcrumb Section -->
+    <div class="breadcrumb">
+        <a href="#">Back</a> / <a href="#">Home</a> / <a href="#">Help</a>
+    </div>
+    
+    <div class="main-content">    
+        <h2>Frequently Ask Questions</h2>  
+        <div class="faq-container">  
+
+         <div class="faq-question">  
+           <span>What standards are followed in the design of transmission towers?</span>  
+           <i class="fas fa-angle-down"></i>  
+         </div> 
+
+         <div class="faq-question">  
+          <span>How are transmission towers designed to withstand weather conditions?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>Can transmission towers be customized?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>How do I select the right type of tower for my project?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>What factors influence the design of a transmission tower?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>How long does it take to design and install a transmission tower?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+        </div>  
+      </div>
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  

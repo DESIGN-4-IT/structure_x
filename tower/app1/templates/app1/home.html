@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header, footer {
+            background-color: #5e99f5;
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        header {
+            top: 0;
+        }
+
+        footer {
+            bottom: 0;
+            text-align: center;
+            padding:15px;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+            margin-left:50px;
+        }
+
+        .menu a {
+            margin: 0 15px;
+            color: white;
+            text-decoration: none;
+            padding: 30px;
+        }
+
+        .search input {
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            margin-right:50px;
+        }
+
+        .breadcrumb {
+            padding: 10px 20px;
+            background-color: #fff;
+            font-size: 14px;
+            margin-top: 70px; /* To prevent content from being overlapped by the fixed header */
+        }
+
+        .breadcrumb a {
+            color: #333;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+
+        .content {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            flex-grow: 1; /* Ensures content takes up remaining vertical space */
+            margin-bottom: 60px; /* Prevent content overlap with the fixed footer */
+        }
+
+        .panel {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            width: 45%;
+        }
+
+        .panel-header {
+            background-color: #b3d1ff;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .btn {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #006fe8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .structure-list div, .group-name {
+            background-color: #fffdd0;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #006fe8;
+            color:white;
+        }
+
+        option{
+            background-color: #fffa9b;
+            color:black;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .popup {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
+            text-align: center;
+            width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            position: relative;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Ensures content does not overflow */
+        }
+        
+        .popup .popup-header {
+            background-color: #ffec00;
+            color: black;
+            font-size: 12px;
+            padding: 10px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0px 0px 0 0;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: calc(100% + 40px);  /* Ensure it covers full width */
+            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
+            box-sizing: border-box;  /* Prevent overflow beyond the container */
+        }
+        
+        
+        .popup-close {
+            position: absolute;
+            top: 10%;
+            right: 1px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 30px;
+            color: black;
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup h3 {
+            margin: 20px 0;
+            font-size: 14px;
+            color: black;
+        }
+        
+        .popup .popup-btn {
+            padding: 10px 15px; /* Increase padding for better button size */
+            margin: 15px 30px;  /* Increase the margin between buttons */
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 20px;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        
+        .popup-btn.blue {
+            background-color: #007bff;
+        }
+        
+        .popup-btn.green {
+            background-color: green;
+        }
+        
+        .popup-btn.red {
+            background-color: red;
+        }
+        
+        .popup-btn.yellow {
+            background-color: yellow;
+            color: black;
+        }
+        
+        .popup-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .blur {
+            filter: blur(0.3spx);
+        }
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+    <!-- Breadcrumb Section -->
+    <div class="breadcrumb">
+        <a href="#">Back</a> / <a href="#">Home</a> / <a href="#">Structure</a>
+    </div>
+    
+    <!-- Main Content Section -->
+    <div class="content">
+        <div class="panel">
+            <div class="panel-header">List All Structures</div>
+            <button class="btn">Add Structure</button>
+            <div class="structure-list">
+                <div>XXXXXX</div>
+                <div>XXXXXX</div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Group Structures</div>
+            <button class="btn">Select Structures to Add</button>
+            <div class="group-name">GroupName_xyz</div>
+            
+            <select id="structure-select">
+                <option>Select Structure in GroupName_xyz</option>
+                <option value="towers">Towers</option>
+                <option value="hframes">H-Frames</option>
+                <option value="monopoles">Monopoles</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    <div class="popup-overlay" id="popup-overlay">
+        <!-- First Popup -->
+        <div class="popup" id="popup1">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>What are the majority of the attachment points on each structure in the group?</h3>
+            </div>
+            <button class="popup-btn blue" id="deadend-btn">Deadend</button>
+            <button class="popup-btn green" id="tangent-btn">Tangent</button>
+        </div>
+    
+        <!-- Second Popup -->
+        <div class="popup" id="popup2">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Does the structure have arms?</h3>
+            </div>
+            <button class="popup-btn blue" id="yes-btn">Yes</button>
+            <button class="popup-btn red" id="no-btn">No</button>
+        </div>
+    
+
+        <!-- Third Popup -->
+        <div class="popup" id="popup3">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Select Configuration</h3>
+            </div>
+            <button class="popup-btn blue">Vertical</button>
+            <button class="popup-btn green">Delta</button>
+            <button class="popup-btn red">Horizontal</button>
+        </div>
+    
+        <!-- Fourth Popup -->
+        <div class="popup" id="popup4">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>is this an in-line deadend?</h3>
+            </div>
+            <button class="popup-btn blue" id="yes-btn">Yes</button>
+            <button class="popup-btn red" id="no-btn">No</button>
+        </div>
+
+        
+        <div class="popup" id="popup5">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Deadend monopole structure without arms is an in-line deadend. If this is not the intended structure type, select from the below options to restart analysis. Switch to:</h3>
+            </div>
+            <button class="popup-btn blue">Monopole</button>
+            <button class="popup-btn yellow">Tower</button>
+            <button class="popup-btn green">H-Frame</button>
+        </div>
+    </div>
+
+    <!-- Monopole Popup -->
+<div class="popup-overlay" id="monopole-popup-overlay">
+    <!-- Monopole First Popup -->
+    <div class="popup" id="monopole-popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>What are the majority of the attachment points on each structure in the group?</h3>
+        </div>
+        <button class="popup-btn blue" id="monopole-deadend-btn">Deadend</button>
+        <button class="popup-btn green" id="monopole-tangent-btn">Tangent</button>
+    </div>
+
+    <!-- Monopole Second Popup -->
+    <div class="popup" id="monopole-popup2">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Does the structure have arms?</h3>
+        </div>
+        <button class="popup-btn blue" id="monopole-yes-btn">Yes</button>
+        <button class="popup-btn red" id="monopole-no-btn">No</button>
+    </div>
+
+    <!-- Third Popup -->
+    <div class="popup" id="monopole-popup3">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Configuration</h3>
+        </div>
+        <button class="popup-btn blue" id="monopole-vertical-btn">Vertical</button>
+        <button class="popup-btn green" id="monopole-delta-btn">Delta</button>
+        <button class="popup-btn red" id="monopole-horizontal-btn">Horizontal</button>
+    </div>
+
+    <!-- Fourth Popup -->
+<div class="popup" id="monopole-popup4">
+    <div class="popup-header">
+        <span class="popup-close">&times;</span>
+        <h3>Is this an in-line deadend?</h3>
+    </div>
+    <button class="popup-btn blue" id="monopole-inline-yes-btn">Yes</button>
+    <button class="popup-btn red" id="monopole-inline-no-btn">No</button>
+</div>
+
+<div class="popup" id="monopole-popup5">
+    <div class="popup-header">
+        <span class="popup-close">&times;</span>
+        <h3>Deadend monopole structure without arms is an in-line deadend. If this is not the intended structure type, select from the below options to restart analysis. Switch to:</h3>
+    </div>
+    <button class="popup-btn blue">Monopole</button>
+    <button class="popup-btn yellow">Tower</button>
+    <button class="popup-btn green">H-Frame</button>
+</div>
+</div>
+
+<!-- H-Frame Popup -->
+<div class="popup-overlay" id="hframe-popup-overlay">
+    <!-- H-Frame First Popup -->
+    <div class="popup" id="hframe-popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>What is the configuration of the H-Frame structure?</h3>
+        </div>
+        <button class="popup-btn blue" id="hframe-deadend-btn">Deadend</button>
+        <button class="popup-btn green" id="hframe-tangent-btn">Tangent</button>
+    </div>
+
+    <!-- H-Frame Second Popup -->
+    <div class="popup" id="hframe-popup2">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Does the H-Frame have any guy wires?</h3>
+        </div>
+        <button class="popup-btn blue" id="hframe-yes-btn">Yes</button>
+        <button class="popup-btn red" id="hframe-no-btn">No</button>
+    </div>
+
+    <!-- H-Frame Third Popup -->
+    <div class="popup" id="hframe-popup3">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Is this H-Frame in an extreme weather area?</h3>
+        </div>
+        <button class="popup-btn blue">Yes</button>
+        <button class="popup-btn red">No</button>
+    </div>
+</div>
+
+
+    <script>
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popups = document.querySelectorAll('.popup');
+        const mainContent = document.querySelector('.content');
+    
+        let popupStack = []; // To keep track of open popups
+    
+        // Open the first popup
+        const structureSelect = document.getElementById('structure-select');
+        structureSelect.addEventListener('change', function () {
+            if (structureSelect.value === 'towers') {
+                popupOverlay.style.display = 'flex';
+                popups.forEach((popup) => popup.style.display = 'none'); // Hide all popups
+                popups[0].style.display = 'block'; // Show the first popup
+                mainContent.classList.add('blur');
+                popupStack = [0]; // Reset the stack with the first popup index
+            } else {
+                popupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                popupStack = []; // Clear the stack
+            }
+        });
+    
+        // Close popup and show previous one if available
+        document.querySelectorAll('.popup-close').forEach((closeBtn, index) => {
+            closeBtn.addEventListener('click', function () {
+                popups[index].style.display = 'none';
+                popupStack.pop(); // Remove the current popup from the stack
+    
+                if (popupStack.length > 0) {
+                    const previousPopupIndex = popupStack[popupStack.length - 1];
+                    popups[previousPopupIndex].style.display = 'block'; // Show the previous popup
+                } else {
+                    popupOverlay.style.display = 'none'; // Hide the overlay if no more popups
+                    mainContent.classList.remove('blur');
+                }
+            });
+        });
+    
+        // Transition between popups
+        document.getElementById('deadend-btn').addEventListener('click', function () {
+            popups[0].style.display = 'none';
+            popups[1].style.display = 'block';
+            popupStack.push(1); // Add next popup to the stack
+        });
+    
+        document.getElementById('yes-btn').addEventListener('click', function () {
+            popups[1].style.display = 'none';
+            popups[2].style.display = 'block';
+            popupStack.push(2);
+        });
+    
+        document.getElementById('no-btn').addEventListener('click', function () {
+            popups[1].style.display = 'none';
+            popups[3].style.display = 'block';
+            popupStack.push(3);
+        });
+
+        document.querySelector('#popup4 .popup-btn.red').addEventListener('click', function () {
+            popups[3].style.display = 'none';
+            popups[4].style.display = 'block'; // Transition to popup5
+            popupStack.push(4);
+        });
+
+    </script>
+    
+    <script>
+        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
+        const monopolePopups = document.querySelectorAll('#monopole-popup-overlay .popup'); // Scope to monopole popups only
+        let monopolePopupStack = [];
+
+        document.getElementById('structure-select').addEventListener('change', function () {
+            if (this.value === 'monopoles') {
+                monopolePopupOverlay.style.display = 'flex';
+                monopolePopups.forEach((popup) => popup.style.display = 'none');
+                monopolePopups[0].style.display = 'block'; // Show the first monopole popup
+                mainContent.classList.add('blur');
+                monopolePopupStack = [0];
+            } else {
+                monopolePopupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                monopolePopupStack = [];
+            }
+        });
+
+        // Close button for each popup
+        document.querySelectorAll('#monopole-popup-overlay .popup-close').forEach((closeBtn, index) => {
+            closeBtn.addEventListener('click', function () {
+                document.getElementById(`monopole-popup${index + 1}`).style.display = 'none'; // Hide the current popup
+                monopolePopupStack.pop(); // Remove current popup from the stack
+                if (monopolePopupStack.length > 0) {
+                    document.getElementById(`monopole-popup${monopolePopupStack[monopolePopupStack.length - 1] + 1}`).style.display = 'block'; // Show the previous popup
+                } else {
+                    monopolePopupOverlay.style.display = 'none'; // Hide overlay if no popups left
+                    mainContent.classList.remove('blur'); // Remove blur from main content
+                }
+            });
+        });
+
+        // Event listener for the "Deadend" button in the first popup
+        document.getElementById('monopole-deadend-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup1').style.display = 'none'; // Hide the first popup
+            document.getElementById('monopole-popup2').style.display = 'block'; // Show the second popup
+            monopolePopupStack.push(1); // Add second popup to the stack
+        });
+
+        // Event listener for the "Yes" button in the second popup
+        document.getElementById('monopole-yes-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup2').style.display = 'none'; // Hide the second popup
+            document.getElementById('monopole-popup3').style.display = 'block'; // Show the third popup
+            monopolePopupStack.push(2); // Add third popup to the stack
+        });
+
+        // Event listener for the "No" button in the second popup
+        document.getElementById('monopole-no-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup2').style.display = 'none'; // Hide the second popup
+            document.getElementById('monopole-popup4').style.display = 'block'; // Show the fourth popup
+            monopolePopupStack.push(3); // Add fourth popup to the stack
+        });
+
+        // Event listener for the "Yes" button in the fourth popup
+        document.getElementById('monopole-inline-yes-btn').addEventListener('click', function () {
+            window.location.href = '/deadend/'; // Redirect to the specified URL
+        });
+
+        // Event listener for the "No" button in the fourth popup
+        document.getElementById('monopole-inline-no-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup4').style.display = 'none'; // Hide the fourth popup
+            document.getElementById('monopole-popup5').style.display = 'block'; // Show the fifth popup
+            monopolePopupStack.push(4); // Add fifth popup to the stack
+        });
+
+    </script>
+    
+    <script>
+const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
+const hframePopups = document.querySelectorAll('#hframe-popup-overlay .popup'); // Scope to h-frame popups only
+let hframePopupStack = [];
+
+document.getElementById('structure-select').addEventListener('change', function () {
+    if (this.value === 'hframes') {
+        hframePopupOverlay.style.display = 'flex';
+        hframePopups.forEach((popup) => popup.style.display = 'none');
+        hframePopups[0].style.display = 'block'; // Show the first h-frame popup
+        mainContent.classList.add('blur');
+        hframePopupStack = [0];
+    } else {
+        hframePopupOverlay.style.display = 'none';
+        mainContent.classList.remove('blur');
+        hframePopupStack = [];
+    }
+});
+
+document.querySelectorAll('#hframe-popup-overlay .popup-close').forEach((closeBtn, index) => {
+    closeBtn.addEventListener('click', function () {
+        hframePopups[index].style.display = 'none';
+        hframePopupStack.pop();
+        if (hframePopupStack.length > 0) {
+            hframePopups[hframePopupStack[hframePopupStack.length - 1]].style.display = 'block';
+        } else {
+            hframePopupOverlay.style.display = 'none';
+            mainContent.classList.remove('blur');
+        }
+    });
+});
+
+document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
+    hframePopups[0].style.display = 'none';
+    hframePopups[1].style.display = 'block';
+    hframePopupStack.push(1);
+});
+
+document.getElementById('hframe-yes-btn').addEventListener('click', function () {
+    hframePopups[1].style.display = 'none';
+    hframePopups[2].style.display = 'block';
+    hframePopupStack.push(2);
+});
+
+    </script>
+    
+    
+</body>
+</html>
