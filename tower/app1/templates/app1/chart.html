@@ -67,22 +67,11 @@
             margin-right:50px;
         }
 
-        .breadcrumb {
-            padding: 10px 20px;
-            background-color: #fff;
-            font-size: 14px;
-            margin-top: 70px; /* To prevent content from being overlapped by the fixed header */
-        }
-
-        .breadcrumb a {
-            color: #333;
-            text-decoration: none;
-            margin-right: 5px;
-        }
-
+       
         .chart-container {
             text-align: center;
             margin: 5px 0;
+            margin-top:90px;
         }
 
         .chart-image-wrapper {
@@ -229,9 +218,6 @@
         </div>
     </header>
 
-    <div class="breadcrumb">
-        <a href="#">Back</a> / <a href="#">Home</a> / <a href="#">Structure</a>
-    </div>
 
     <div class="chart-container">
         <div class="chart-image-wrapper">
@@ -275,37 +261,7 @@
     </div>
     
 
-    <header>
-        <div class="navbar">
-            <div class="logo">
-                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
-            </div>
-            <div class="menu">
-                <a href="#">About</a>
-                <a href="{% url 'home' %}">Services</a>
-                <a href="#">Contact Us</a>
-                <a href="{% url 'help' %}">Help</a>
-            </div>
-            <div class="search">
-                <input type="text" placeholder="Search">
-            </div>
-        </div>
-    </header>
-    
-    <div class="breadcrumb">
-        <a href="#">Back</a> / <a href="#">Home</a> / <a href="#">Structure</a>
-    </div>
-    
-    <div class="chart-container">
-        <div class="chart-image-wrapper">
-            <img src="{% static 'app1/images/chart.png' %}" alt="Chart" class="chart-image">
-        </div>
-    </div>
-    
-    <footer>
-        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
-    </footer>
-    
+
     <div class="popup-overlay" id="popup-overlay">
         <div class="popup" id="popup1">
             <div class="popup-header">
