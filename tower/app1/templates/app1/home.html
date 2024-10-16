@@ -438,37 +438,49 @@
 </div>
 
 <!-- H-Frame Popup -->
+<!-- H-Frame Popup -->
 <div class="popup-overlay" id="hframe-popup-overlay">
     <!-- H-Frame First Popup -->
     <div class="popup" id="hframe-popup1">
         <div class="popup-header">
             <span class="popup-close">&times;</span>
-            <h3>What is the configuration of the H-Frame structure?</h3>
+            <h3>What are the majority of the attachment points on each structure in the group?</h3>
         </div>
         <button class="popup-btn blue" id="hframe-deadend-btn">Deadend</button>
         <button class="popup-btn green" id="hframe-tangent-btn">Tangent</button>
     </div>
 
-    <!-- H-Frame Second Popup -->
-    <div class="popup" id="hframe-popup2">
+    <!-- H-Frame Second Popup for Insulator Type -->
+    <div class="popup" id="hframe-popup2" style="display: none;">
         <div class="popup-header">
             <span class="popup-close">&times;</span>
-            <h3>Does the H-Frame have any guy wires?</h3>
+            <h3>Select Insulator Type</h3>
         </div>
-        <button class="popup-btn blue" id="hframe-yes-btn">Yes</button>
-        <button class="popup-btn red" id="hframe-no-btn">No</button>
+        <button class="popup-btn blue" id="vertical-btn">Vertical</button>
+        <button class="popup-btn red" id="horizontal-btn">Horizontal</button>
     </div>
 
-    <!-- H-Frame Third Popup -->
-    <div class="popup" id="hframe-popup3">
+    <!-- H-Frame Third Popup for Configuration -->
+    <div class="popup" id="hframe-popup3" style="display: none;">
         <div class="popup-header">
             <span class="popup-close">&times;</span>
-            <h3>Is this H-Frame in an extreme weather area?</h3>
+            <h3>Select Configuration</h3>
         </div>
-        <button class="popup-btn blue">Yes</button>
-        <button class="popup-btn red">No</button>
+        <button class="popup-btn blue" id="configuration-vertical-btn">Vertical</button>
+        <button class="popup-btn red" id="configuration-horizontal-btn">Horizontal</button>
+    </div>
+
+    <!-- H-Frame Fourth Popup for Insulator Type -->
+    <div class="popup" id="hframe-popup4" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Insulator Type</h3>
+        </div>
+        <button class="popup-btn blue" id="post-insulator-btn">Post Insulator</button>
+        <button class="popup-btn red" id="v-string-btn">V-String</button>
     </div>
 </div>
+
 
 
     <script>
@@ -669,7 +681,7 @@
         const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
         const hframePopups = document.querySelectorAll('#hframe-popup-overlay .popup'); // Scope to h-frame popups only
         let hframePopupStack = [];
-
+    
         document.getElementById('structure-select').addEventListener('change', function () {
             if (this.value === 'hframes') {
                 hframePopupOverlay.style.display = 'flex';
@@ -683,7 +695,7 @@
                 hframePopupStack = [];
             }
         });
-
+    
         document.querySelectorAll('#hframe-popup-overlay .popup-close').forEach((closeBtn, index) => {
             closeBtn.addEventListener('click', function () {
                 hframePopups[index].style.display = 'none';
@@ -696,21 +708,68 @@
                 }
             });
         });
-
+    
+        // Functionality for the Deadend button
         document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
             hframePopups[0].style.display = 'none';
-            hframePopups[1].style.display = 'block';
+            hframePopups[1].style.display = 'block'; // Show the second popup for insulator type
             hframePopupStack.push(1);
         });
-
-        document.getElementById('hframe-yes-btn').addEventListener('click', function () {
-            hframePopups[1].style.display = 'none';
-            hframePopups[2].style.display = 'block';
+    
+        // Functionality for the Tangent button
+        document.getElementById('hframe-tangent-btn').addEventListener('click', function () {
+            hframePopups[0].style.display = 'none'; // Hide the first popup
+            hframePopups[2].style.display = 'block'; // Show the third popup for configuration
             hframePopupStack.push(2);
         });
-
+    
+        // Functionality for the Vertical button in the second popup
+        document.getElementById('vertical-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            // Redirect to the specified URL for deadend
+            window.location.href = '/hdeadend/'; // Change this URL to the destination page
+        });
+    
+        // Functionality for the Horizontal button in the second popup
+        document.getElementById('horizontal-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'block'; // Hide the insulator type popup
+            // Add redirection or any action needed for horizontal
+            
+        });
+    
+        // Functionality for the configuration buttons in the third popup
+        document.getElementById('configuration-vertical-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3); // Add the fourth popup to the stack
+        });
+    
+        document.getElementById('configuration-horizontal-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3);
+        });
+    
+        // Functionality for the Post Insulator button in the fourth popup
+        document.getElementById('post-insulator-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            // Handle post insulator action here
+            window.location.href = '/hdeadend/';
+            // Add any additional action or redirect if needed
+        });
+    
+        // Functionality for the V-String button in the fourth popup
+        document.getElementById('v-string-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'block'; // Hide the insulator type popup
+            // Handle V-String action here
+            console.log("Selected V-String");
+            // Add any additional action or redirect if needed
+        });
     </script>
     
+    
+    
+
     
 </body>
 </html>
