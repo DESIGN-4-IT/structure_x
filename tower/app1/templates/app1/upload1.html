@@ -156,6 +156,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-left:100px;
         }
 
         .attachments-button{
@@ -165,6 +166,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-right:100px;
         }
           
 
@@ -292,7 +294,7 @@
                 <a href="#">About</a>
                 <a href="{% url 'home' %}">Services</a>
                 <a href="#">Contact Us</a>
-                <a href="#">Help</a>
+                <a href="{% url 'help' %}">Help</a>
             </div>
             <div class="search">
                 <input type="text" placeholder="Search">
@@ -342,6 +344,7 @@
             </div>
                 <div class="buttons">
                     <button class="set-phase-button">Set / Phase</button>
+                    OR
                     <button class="attachments-button">Attachments Joint Labels</button>
                 </div>
             

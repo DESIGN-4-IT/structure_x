@@ -14,6 +14,9 @@ def deadend(request):
 def hdeadend(request):
     return render(request,'app1/hdeadend.html')
 
+def tdeadend(request):
+    return render(request,'app1/tdeadend.html')
+
 def upload1(request):
     return render(request,'app1/upload1.html')
 

@@ -482,72 +482,77 @@
 </div>
 
 
+                             {% comment %} tower  {% endcomment %}
+<script>
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popups = document.querySelectorAll('.popup');
+    const mainContent = document.querySelector('.content');
 
-    <script>
-        const popupOverlay = document.getElementById('popup-overlay');
-        const popups = document.querySelectorAll('.popup');
-        const mainContent = document.querySelector('.content');
-    
-        let popupStack = []; // To keep track of open popups
-    
-        // Open the first popup
-        const structureSelect = document.getElementById('structure-select');
-        structureSelect.addEventListener('change', function () {
-            if (structureSelect.value === 'towers') {
-                popupOverlay.style.display = 'flex';
-                popups.forEach((popup) => popup.style.display = 'none'); // Hide all popups
-                popups[0].style.display = 'block'; // Show the first popup
-                mainContent.classList.add('blur');
-                popupStack = [0]; // Reset the stack with the first popup index
+    let popupStack = []; // To keep track of open popups
+
+    // Open the first popup
+    const structureSelect = document.getElementById('structure-select');
+    structureSelect.addEventListener('change', function () {
+        if (structureSelect.value === 'towers') {
+            popupOverlay.style.display = 'flex';
+            popups.forEach((popup) => popup.style.display = 'none'); // Hide all popups
+            popups[0].style.display = 'block'; // Show the first popup
+            mainContent.classList.add('blur');
+            popupStack = [0]; // Reset the stack with the first popup index
+        } else {
+            popupOverlay.style.display = 'none';
+            mainContent.classList.remove('blur');
+            popupStack = []; // Clear the stack
+        }
+    });
+
+    // Close popup and show previous one if available
+    document.querySelectorAll('.popup-close').forEach((closeBtn, index) => {
+        closeBtn.addEventListener('click', function () {
+            popups[index].style.display = 'none';
+            popupStack.pop(); // Remove the current popup from the stack
+
+            if (popupStack.length > 0) {
+                const previousPopupIndex = popupStack[popupStack.length - 1];
+                popups[previousPopupIndex].style.display = 'block'; // Show the previous popup
             } else {
-                popupOverlay.style.display = 'none';
+                popupOverlay.style.display = 'none'; // Hide the overlay if no more popups
                 mainContent.classList.remove('blur');
-                popupStack = []; // Clear the stack
             }
         });
-    
-        // Close popup and show previous one if available
-        document.querySelectorAll('.popup-close').forEach((closeBtn, index) => {
-            closeBtn.addEventListener('click', function () {
-                popups[index].style.display = 'none';
-                popupStack.pop(); // Remove the current popup from the stack
-    
-                if (popupStack.length > 0) {
-                    const previousPopupIndex = popupStack[popupStack.length - 1];
-                    popups[previousPopupIndex].style.display = 'block'; // Show the previous popup
-                } else {
-                    popupOverlay.style.display = 'none'; // Hide the overlay if no more popups
-                    mainContent.classList.remove('blur');
-                }
-            });
-        });
-    
-        // Transition between popups
-        document.getElementById('deadend-btn').addEventListener('click', function () {
-            popups[0].style.display = 'none';
-            popups[1].style.display = 'block';
-            popupStack.push(1); // Add next popup to the stack
-        });
-    
-        document.getElementById('yes-btn').addEventListener('click', function () {
-            popups[1].style.display = 'none';
-            popups[2].style.display = 'block';
-            popupStack.push(2);
-        });
-    
-        document.getElementById('no-btn').addEventListener('click', function () {
-            popups[1].style.display = 'none';
-            popups[3].style.display = 'block';
-            popupStack.push(3);
-        });
+    });
 
-        document.querySelector('#popup4 .popup-btn.red').addEventListener('click', function () {
-            popups[3].style.display = 'none';
-            popups[4].style.display = 'block'; // Transition to popup5
-            popupStack.push(4);
-        });
+    // Transition between popups
+    document.getElementById('deadend-btn').addEventListener('click', function () {
+        popups[0].style.display = 'none';
+        popups[1].style.display = 'block';
+        popupStack.push(1); // Add next popup to the stack
+    });
 
-    </script>
+    document.getElementById('yes-btn').addEventListener('click', function () {
+        popups[1].style.display = 'none';
+        popups[2].style.display = 'block';
+        popupStack.push(2);
+    });
+
+    document.getElementById('no-btn').addEventListener('click', function () {
+        popups[1].style.display = 'none';
+        popups[3].style.display = 'block';
+        popupStack.push(3);
+    });
+
+    document.querySelector('#popup4 .popup-btn.red').addEventListener('click', function () {
+        popups[3].style.display = 'none';
+        popups[4].style.display = 'block'; // Transition to popup5
+        popupStack.push(4);
+    });
+
+    // Redirect when clicking 'Yes' on the fourth popup
+    document.querySelector('#popup4 #yes-btn').addEventListener('click', function () {
+        window.location.href = '/tdeadend/'; // Redirect to the specified URL
+    });
+</script>
+
     
     <script>
         const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');

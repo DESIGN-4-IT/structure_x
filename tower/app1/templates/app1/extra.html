@@ -1,18 +1,132 @@
-
-
-now when i click on this popup "<div class="popup" id="hframe-popup3" style="display: none;">
+when i click on this "<!-- Fourth Popup -->
+<div class="popup" id="popup4">
     <div class="popup-header">
         <span class="popup-close">&times;</span>
-        <h3>Select Configuration</h3>
+        <h3>is this an in-line deadend?</h3>
     </div>
-    <button class="popup-btn blue" id="configuration-vertical-btn">Vertical</button>
-    <button class="popup-btn red" id="configuration-horizontal-btn">Horizontal</button>
-</div>"
-vertical button then generate this popup "<div class="popup" id="hframe-popup3" style="display: none;">
-    <div class="popup-header">
-        <span class="popup-close">&times;</span>
-        <h3>Select Insulator Type</h3>
+    <button class="popup-btn blue" id="yes-btn">Yes</button>
+    <button class="popup-btn red" id="no-btn">No</button>
+</div>" popup yes button then redirect to this page window.location.href = '/tdeadend/'; // Redirect to the specified URL
+
+
+this is html "<div class="popup-overlay" id="popup-overlay">
+    <!-- First Popup -->
+    <div class="popup" id="popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>What are the majority of the attachment points on each structure in the group?</h3>
+        </div>
+        <button class="popup-btn blue" id="deadend-btn">Deadend</button>
+        <button class="popup-btn green" id="tangent-btn">Tangent</button>
     </div>
-    <button class="popup-btn blue" id="configuration-vertical-btn">Post Insulator</button>
-    <button class="popup-btn red" id="configuration-horizontal-btn">V-String</button>
-</div>"
+
+    <!-- Second Popup -->
+    <div class="popup" id="popup2">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Does the structure have arms?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn">Yes</button>
+        <button class="popup-btn red" id="no-btn">No</button>
+    </div>
+
+
+    <!-- Third Popup -->
+    <div class="popup" id="popup3">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Configuration</h3>
+        </div>
+        <button class="popup-btn blue">Vertical</button>
+        <button class="popup-btn green">Delta</button>
+        <button class="popup-btn red">Horizontal</button>
+    </div>
+
+    <!-- Fourth Popup -->
+    <div class="popup" id="popup4">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>is this an in-line deadend?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn">Yes</button>
+        <button class="popup-btn red" id="no-btn">No</button>
+    </div>
+
+    
+    <div class="popup" id="popup5">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Deadend monopole structure without arms is an in-line deadend. If this is not the intended structure type, select from the below options to restart analysis. Switch to:</h3>
+        </div>
+        <button class="popup-btn blue">Monopole</button>
+        <button class="popup-btn yellow">Tower</button>
+        <button class="popup-btn green">H-Frame</button>
+    </div>
+</div>
+"
+
+this is js "<script>
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popups = document.querySelectorAll('.popup');
+    const mainContent = document.querySelector('.content');
+
+    let popupStack = []; // To keep track of open popups
+
+    // Open the first popup
+    const structureSelect = document.getElementById('structure-select');
+    structureSelect.addEventListener('change', function () {
+        if (structureSelect.value === 'towers') {
+            popupOverlay.style.display = 'flex';
+            popups.forEach((popup) => popup.style.display = 'none'); // Hide all popups
+            popups[0].style.display = 'block'; // Show the first popup
+            mainContent.classList.add('blur');
+            popupStack = [0]; // Reset the stack with the first popup index
+        } else {
+            popupOverlay.style.display = 'none';
+            mainContent.classList.remove('blur');
+            popupStack = []; // Clear the stack
+        }
+    });
+
+    // Close popup and show previous one if available
+    document.querySelectorAll('.popup-close').forEach((closeBtn, index) => {
+        closeBtn.addEventListener('click', function () {
+            popups[index].style.display = 'none';
+            popupStack.pop(); // Remove the current popup from the stack
+
+            if (popupStack.length > 0) {
+                const previousPopupIndex = popupStack[popupStack.length - 1];
+                popups[previousPopupIndex].style.display = 'block'; // Show the previous popup
+            } else {
+                popupOverlay.style.display = 'none'; // Hide the overlay if no more popups
+                mainContent.classList.remove('blur');
+            }
+        });
+    });
+
+    // Transition between popups
+    document.getElementById('deadend-btn').addEventListener('click', function () {
+        popups[0].style.display = 'none';
+        popups[1].style.display = 'block';
+        popupStack.push(1); // Add next popup to the stack
+    });
+
+    document.getElementById('yes-btn').addEventListener('click', function () {
+        popups[1].style.display = 'none';
+        popups[2].style.display = 'block';
+        popupStack.push(2);
+    });
+
+    document.getElementById('no-btn').addEventListener('click', function () {
+        popups[1].style.display = 'none';
+        popups[3].style.display = 'block';
+        popupStack.push(3);
+    });
+
+    document.querySelector('#popup4 .popup-btn.red').addEventListener('click', function () {
+        popups[3].style.display = 'none';
+        popups[4].style.display = 'block'; // Transition to popup5
+        popupStack.push(4);
+    });
+
+</script>"
