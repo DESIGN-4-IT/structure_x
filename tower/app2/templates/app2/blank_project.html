@@ -1,8 +1,4 @@
-
-when i click on file then i want to show dropdown that dropdown contain New,Save,Save As,Create New Template
-,Create New Cover Sheet links and other all header links also contain dropdowns
-and don't change previouse code css 
-so modify this code <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -165,25 +161,6 @@ so modify this code <!DOCTYPE html>
         }
         
 
-        .content {
-            margin-left: 220px; /* Sidebar width + margin */
-            padding: 20px;
-        }
-        
-        .blank-page {
-            width: 20%;
-            max-width: 600px;
-            height: auto;
-            display: block;
-            margin: left;
-            cursor: pointer;
-            margin-top:70px;
-        }
-        
-        .blank-page:hover {
-            opacity: 0.8;
-        }
-
        
     </style>
 </head>
@@ -218,23 +195,19 @@ so modify this code <!DOCTYPE html>
             <a href="#">Blank Document</a>
             <a href="#">Create from Template</a>
         </div>
-        <button class="home-btn">
+        
+        <button class="home-btn" onclick="window.location.href='{% url 'home' %}';">
             <i class="fas fa-home"></i> Home
         </button>
+
         <!-- Sidebar Links -->
-        <a href="#">About</a>
-        <a href="#">Contact Us</a>
-        <a href="#">Help</a>
+        <a href="#"><i class="fas fa-info-circle"></i> About</a>
+        <a href="#"><i class="fas fa-envelope"></i> Contact Us</a>
+        <a href="#"><i class="fas fa-question-circle"></i> Help</a>
+
     </div>
 
 
-    <div class="content">
-        <a href="{% url 'blank_page' %}">
-            <img src="{% static 'app2/images/blank_page.png' %}" alt="Blank Page" class="blank-page">
-        </a>
-    </div>
-  
-    
     {% comment %} <!-- Footer Section -->
     <footer>
         <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>

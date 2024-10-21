@@ -297,6 +297,8 @@
         <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
     </footer>
 
+
+                      {% comment %} tower  {% endcomment %}
     <div class="popup-overlay" id="popup-overlay">
         <!-- First Popup -->
         <div class="popup" id="popup1">
@@ -350,6 +352,16 @@
             <button class="popup-btn yellow">Tower</button>
             <button class="popup-btn green">H-Frame</button>
         </div>
+
+        <div class="popup" id="popup6">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Select insulator type</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-post-btn">Post insulator</button>
+            <button class="popup-btn red" id="monopole-brace-btn">V-String</button>
+        </div>
+        
     </div>
 
     <!-- Monopole Popup -->
@@ -551,6 +563,27 @@
     document.querySelector('#popup4 #yes-btn').addEventListener('click', function () {
         window.location.href = '/tdeadend/'; // Redirect to the specified URL
     });
+
+
+    // Handle button clicks in Popup 3 to open Popup 6
+        document.querySelectorAll('#popup3 .popup-btn').forEach((button) => {
+            button.addEventListener('click', function () {
+                // Hide Popup 3 and open Popup 6
+                document.getElementById('popup3').style.display = 'none';
+                document.getElementById('popup6').style.display = 'block';
+                popupStack.push(5); // Keep track of Popup 6 in the stack
+            });
+        });
+
+        // Handle Post Insulator button click to redirect
+        document.getElementById('monopole-post-btn').addEventListener('click', function () {
+            window.location.href = '/tdeadend/'; // Redirect to the specified URL
+        });
+
+        // V-String button does nothing
+        document.getElementById('monopole-brace-btn').addEventListener('click', function () {
+            // Do nothing for now
+        });
 </script>
 
     
