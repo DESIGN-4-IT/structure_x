@@ -1,9 +1,5 @@
 from django.shortcuts import render,get_object_or_404
 
-# Create your views here.
-def home(request):
-    return render(request,'app1/home.html')
-
 
 def help(request):
     return render(request,'app1/help.html')
@@ -52,7 +48,7 @@ def add_structure(request):
         form = StructureForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('list_structures')
+            return redirect('home')
     else:
         form = StructureForm()
     return render(request, 'app1/add_structure.html', {'form': form})
@@ -61,4 +57,4 @@ def add_structure(request):
 def delete_structure(request, structure_id):
     structure = get_object_or_404(ListOfStructure, id=structure_id)
     structure.delete()
-    return redirect('list_structures')
+    return redirect('home')
