@@ -112,7 +112,7 @@
 
         .structure-list div, .group-name {
             background-color: #fffdd0;
-            padding: 10px;
+            padding: 5px;
             margin: 5px 0;
         }
 
@@ -239,6 +239,28 @@
             filter: blur(0.3spx);
         }
         
+        .structure-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #fff;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Style for the delete button */
+        .delete-btn {
+            color: #ff0000;
+            font-size: 18px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .delete-btn:hover {
+            color: #cc0000;
+        }
         
     </style>
 </head>
@@ -272,10 +294,18 @@
     <div class="content">
         <div class="panel">
             <div class="panel-header">List All Structures</div>
-            <button class="btn">Add Structure</button>
+            <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">Add Structure</button>
             <div class="structure-list">
-                <div>XXXXXX</div>
-                <div>XXXXXX</div>
+                {% for structure in structures %}
+                    <div class="structure-item">
+                        <div>{{ structure.structure }}</div>
+                        <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
+                            &#x2716;
+                        </a>
+                    </div>
+                {% empty %}
+                    <div>No structures found.</div>
+                {% endfor %}
             </div>
         </div>
         <div class="panel">
@@ -361,7 +391,34 @@
             <button class="popup-btn blue" id="monopole-post-btn">Post insulator</button>
             <button class="popup-btn red" id="monopole-brace-btn">V-String</button>
         </div>
+
+
+        <div class="popup" id="popup7">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Does the structure have arms?</h3>
+            </div>
+            <button class="popup-btn blue" id="yes-btn">Yes</button>
+            <button class="popup-btn red" id="no-btn">No</button>
+        </div>
         
+        <div class="popup" id="popup8">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Select insulator type</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-post-btn">I-String</button>
+            <button class="popup-btn red" id="monopole-brace-btn">V-String</button>
+        </div>
+
+        <div class="popup" id="popup9">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Select insulator type</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-post-btn">Post Insulator</button>
+            <button class="popup-btn red" id="monopole-brace-btn">Brace Post Insulator</button>
+        </div>
     </div>
 
     <!-- Monopole Popup -->
@@ -584,6 +641,45 @@
         document.getElementById('monopole-brace-btn').addEventListener('click', function () {
             // Do nothing for now
         });
+
+         {% comment %} Deadend button related {% endcomment %}
+
+        document.getElementById('tangent-btn').addEventListener('click', function () {
+            popups[0].style.display = 'none';
+            document.getElementById('popup7').style.display = 'block';
+            popupStack.push(7); // Add the new popup to the stack
+        });
+
+
+        // Handle Yes button click in popup7 to open popup8
+        document.querySelector('#popup7 #yes-btn').addEventListener('click', function () {
+            document.getElementById('popup7').style.display = 'none';  // Hide popup7
+            document.getElementById('popup8').style.display = 'block'; // Show popup8
+            popupStack.push(8);  // Add popup8 to the stack
+        });
+        
+
+        // Handle I-String button click in popup8 to open popup3
+        document.querySelector('#popup8 #monopole-post-btn').addEventListener('click', function () {
+            document.getElementById('popup8').style.display = 'none';  // Hide popup8
+            document.getElementById('popup3').style.display = 'block'; // Show popup3
+            popupStack.push(3);  // Add popup3 to the stack
+        });
+
+        // Handle No button click in popup7 to create and open popup9
+        document.querySelector('#popup7 #no-btn').addEventListener('click', function () {
+            document.getElementById('popup7').style.display = 'none';  // Hide popup7
+            document.getElementById('popup9').style.display = 'block'; // Show popup9
+            popupStack.push(9);  // Add popup9 to the stack
+        });
+
+        // Handle Post Insulator button click in popup9 to open popup3
+        document.querySelector('#popup9 #monopole-post-btn').addEventListener('click', function () {
+            document.getElementById('popup9').style.display = 'none';  // Hide popup9
+            document.getElementById('popup3').style.display = 'block'; // Show popup3
+            popupStack.push(3);  // Add popup3 to the stack
+        });
+
 </script>
 
     

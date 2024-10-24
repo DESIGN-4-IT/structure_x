@@ -13,5 +13,9 @@ urlpatterns = [
    path('hdrop/',views.hdrop,name='hdrop'),
    path('chart/',views.chart,name='chart'),
    path('data/',views.data,name='data'),
+   path('structures/', views.list_structures, name='list_structures'),
+   path('add_structures/', views.add_structure, name='add_structure'),
+   path('str_delete/<int:structure_id>/', views.delete_structure, name='delete_structure'),
+
    
 ]
