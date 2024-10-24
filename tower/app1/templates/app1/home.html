@@ -500,7 +500,7 @@
         <span class="popup-close">&times;</span>
         <h3>Select insulator type</h3>
     </div>
-    <button class="popup-btn blue" id="monopole-post-btn">Post insulator</button>
+    <button class="popup-btn blue" id="monopole-post-btnmm">Post insulator</button>
     <button class="popup-btn red" id="monopole-brace-btn">Brace Post insulator</button>
 </div>
 
@@ -793,8 +793,8 @@
         });
 
         // Event listener for the "Post insulator" button
-        document.getElementById('monopole-post-btn').addEventListener('click', function () {
-            document.getElementById('monopole-popup8').style.display = 'none'; // Hide the current popup
+        document.getElementById('monopole-post-btnmm').addEventListener('click', function () {
+            document.getElementById('monopole-popup8').style.display = 'none'; // Hide the "Select Insulator Type" popup
             document.getElementById('monopole-popup3').style.display = 'block'; // Show the "Select Configuration" popup
         });
 
