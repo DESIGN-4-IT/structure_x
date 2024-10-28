@@ -71,9 +71,9 @@
         .chart-container {
             text-align: center;
             margin: 5px 0;
-            margin-top:90px;
+            margin-top: 90px;
         }
-
+        
         .chart-image-wrapper {
             display: flex;
             justify-content: center;
@@ -85,15 +85,24 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
+        
         .chart-image {
-            width: 40%; /* Decrease the size to 50% of the container width */
-            height: auto; /* Keep the aspect ratio */
+            width: 40%; /* Base width for the left image */
+            height: auto;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin: 0 10px;
+            object-fit: cover;
         }
-
-
+        
+        /* Target the second image to make it smaller */
+        .chart-image-wrapper .chart-image:last-child {
+            width: 30%; /* Adjust this to make the right image smaller */
+        }
+        
+        
+        
+        
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -222,6 +231,7 @@
     <div class="chart-container">
         <div class="chart-image-wrapper">
             <img src="{% static 'app1/images/chart.png' %}" alt="Chart" class="chart-image">
+            <img src="{% static 'app1/images/second_image.jpeg' %}" alt="Right Chart" class="chart-image">
         </div>
     </div>
 
