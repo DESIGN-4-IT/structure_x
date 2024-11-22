@@ -48,6 +48,13 @@
             margin-left:50px;
         }
 
+        .header-title {
+            color: #ffcc00;
+            font-size: 22px;
+            margin: 0 5px 0 -50px; /* Controls space around title */
+            white-space: nowrap;
+        }
+
         .menu a {
             margin: 0 15px;
             color: white;
@@ -267,10 +274,12 @@
 <body>
     <!-- Header Section -->
     <header>
-        <div class="navbar">
+        <div class="navbar">      
             <div class="logo">
                 <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
             </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
             <div class="menu">
                 <a href="#">About</a>
                 <a href="{% url 'home' %}">Services</a>
@@ -507,7 +516,6 @@
 </div>
 
 <!-- H-Frame Popup -->
-<!-- H-Frame Popup -->
 <div class="popup-overlay" id="hframe-popup-overlay">
     <!-- H-Frame First Popup -->
     <div class="popup" id="hframe-popup1">
@@ -543,7 +551,7 @@
     <div class="popup" id="hframe-popup4" style="display: none;">
         <div class="popup-header">
             <span class="popup-close">&times;</span>
-            <h3>Select Insulator Type</h3>
+            <h3>Select Configuration</h3>
         </div>
         <button class="popup-btn blue" id="post-insulator-btn">Post Insulator</button>
         <button class="popup-btn red" id="v-string-btn">V-String</button>
@@ -637,7 +645,12 @@
             window.location.href = '/tdeadend/'; // Redirect to the specified URL
         });
 
-        // V-String button does nothing
+        // Handle Post Insulator button click to redirect
+        document.getElementById('monopole-brace-btn').addEventListener('click', function () {
+            window.location.href = '/tdeadend/'; // Redirect to the specified URL
+        });
+
+        // V-String button does nothing    
         document.getElementById('monopole-brace-btn').addEventListener('click', function () {
             // Do nothing for now
         });
@@ -666,6 +679,13 @@
             popupStack.push(3);  // Add popup3 to the stack
         });
 
+        // Handle V-String button click in popup8 to open popup3
+        document.querySelector('#popup8 #monopole-brace-btn').addEventListener('click', function () {
+            document.getElementById('popup8').style.display = 'none';  // Hide popup8
+            document.getElementById('popup3').style.display = 'block'; // Show popup3
+            popupStack.push(3);  // Add popup3 to the stack
+        });   
+
         // Handle No button click in popup7 to create and open popup9
         document.querySelector('#popup7 #no-btn').addEventListener('click', function () {
             document.getElementById('popup7').style.display = 'none';  // Hide popup7
@@ -678,8 +698,14 @@
             document.getElementById('popup9').style.display = 'none';  // Hide popup9
             document.getElementById('popup3').style.display = 'block'; // Show popup3
             popupStack.push(3);  // Add popup3 to the stack
-        });
+        });         
 
+        // Handle brace Post Insulator button click in popup9 to open popup3
+        document.querySelector('#popup9 #monopole-brace-btn').addEventListener('click', function () {
+            document.getElementById('popup9').style.display = 'none';  // Hide popup9
+            document.getElementById('popup3').style.display = 'block'; // Show popup3
+            popupStack.push(3);  // Add popup3 to the stack
+        });
 </script>
 
     

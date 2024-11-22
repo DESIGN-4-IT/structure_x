@@ -53,6 +53,13 @@
             margin-left:50px;
         }
 
+        .header-title {
+            color: #ffcc00;
+            font-size: 22px;
+            margin: 0 5px 0 -50px; /* Controls space around title */
+            white-space: nowrap;
+        }
+
         .menu a {
             margin: 0 15px;
             color: white;
@@ -161,6 +168,8 @@
             <div class="logo">
                 <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
             </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
             <div class="menu">
                 <a href="#">About</a>
                 <a href="{% url 'home' %}">Services</a>
