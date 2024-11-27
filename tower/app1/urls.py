@@ -5,8 +5,10 @@ urlpatterns = [
 
    path('help/',views.help,name='help'),
    path('deadend/',views.deadend,name='deadend'), 
+   path('mdeadend/',views.mdeadend,name='mdeadend'), 
    path('hdeadend/',views.hdeadend,name='hdeadend'), 
    path('tdeadend/',views.tdeadend,name='tdeadend'), 
+   path('tdeadend1/',views.tdeadend1,name='tdeadend1'),
    path('upload1/',views.upload1,name='upload1'), 
    path('hupload/',views.hupload,name='hupload'),
    path('drop1/',views.drop1,name='drop1'),

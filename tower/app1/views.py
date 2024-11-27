@@ -7,11 +7,17 @@ def help(request):
 def deadend(request):
     return render(request,'app1/deadend.html')
 
+def mdeadend(request):
+    return render(request,'app1/mdeadend.html')
+
 def hdeadend(request):
     return render(request,'app1/hdeadend.html')
 
 def tdeadend(request):
     return render(request,'app1/tdeadend.html')
+
+def tdeadend1(request):
+    return render(request,'app1/tdeadend1.html')
 
 def upload1(request):
     return render(request,'app1/upload1.html')

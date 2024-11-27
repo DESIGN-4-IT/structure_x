@@ -47,6 +47,7 @@
             width: auto;
             margin-left:50px;
         }
+
         .header-title {
             color: #ffcc00;
             font-size: 22px;
@@ -274,7 +275,6 @@
                     <option value="2">8</option>
                     <option value="1">9</option>
                     <option value="2">10</option>
-                    
                 </select>
             </div>
             <div class="form-group">
@@ -335,97 +335,17 @@
         <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
     </footer>
 
-    <!-- Popup Overlay -->
-    <div id="monopole-popup-overlay" class="popup-overlay" style="display: none;">
-        <div class="popup" id="monopole-popup1">
-            <div class="popup-header">
-                <span class="popup-close">&times;</span>
-                <h3>Is this a wye arm structure?</h3>
-            </div>
-            <button class="popup-btn blue" id="monopole-yes-btn-1">Yes</button>
-            <button class="popup-btn red" id="monopole-no-btn-1">No</button>
-        </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const saveButton = document.querySelector(".save-button");
     
-        <div class="popup" id="monopole-popup2" style="display: none;">
-            <div class="popup-header">
-                <span class="popup-close">&times;</span>
-                <h3>Is this a riser/terminal structure?</h3>
-            </div>
-            <button class="popup-btn blue" id="monopole-yes-btn-2">Yes</button>
-            <button class="popup-btn red" id="monopole-no-btn-2">No</button>
-        </div>
-    
-        <div class="popup" id="monopole-popup3" style="display: none;">
-            <div class="popup-header">
-                <span class="popup-close">&times;</span>
-                <h3>Switch to tangent Structure</h3>
-            </div>
-            <button class="popup-btn blue" id="monopole-yes-btn-3">Yes</button>
-            <button class="popup-btn red" id="monopole-no-btn-3">Cancel</button>
-        </div>
-    </div>
-    
-
-    <script>
-        // Get the popup overlay and the popups
-        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
-        const monopolePopup1 = document.getElementById('monopole-popup1');
-        const monopolePopup2 = document.getElementById('monopole-popup2');
-        const monopolePopup3 = document.getElementById('monopole-popup3');
-    
-        // Add event listener to the Save button
-        document.querySelector('.save-button').addEventListener('click', function () {
-            monopolePopupOverlay.style.display = 'flex'; // Show the popup overlay
-            monopolePopup1.style.display = 'block'; // Show the first popup
+        saveButton.addEventListener("click", function() {
+            // Redirect to the upload1 page
+            window.location.href = '/hupload/';
         });
-    
-        // Close button for the current popup
-        function closePopup() {
-            monopolePopupOverlay.style.display = 'none'; // Hide the popup overlay when any popup is closed
-            monopolePopup1.style.display = 'none'; // Hide the first popup
-            monopolePopup2.style.display = 'none'; // Hide the second popup
-            monopolePopup3.style.display = 'none'; // Hide the third popup
-        }
-    
-        // Attach close button event listener to all popup close buttons
-        document.querySelectorAll('.popup-close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', closePopup);
-        });
-    
-        // Event listener for the "Yes" button in the first popup
-        document.getElementById('monopole-yes-btn-1').addEventListener('click', function () {
-            window.location.href = '/upload1/'; // Redirect to the upload1 page
-        });
-    
-        // Event listener for the "No" button in the first popup
-        document.getElementById('monopole-no-btn-1').addEventListener('click', function () {
-            monopolePopup1.style.display = 'none'; // Hide the first popup
-            monopolePopup2.style.display = 'block'; // Show the second popup
-        });
-    
-        // Event listener for the "Yes" button in the second popup
-        document.getElementById('monopole-yes-btn-2').addEventListener('click', function () {
-            window.location.href = '/upload1/'; // Redirect to the upload1 page
-        });
-    
-        // Event listener for the "No" button in the second popup
-        document.getElementById('monopole-no-btn-2').addEventListener('click', function () {
-            monopolePopup2.style.display = 'none'; // Hide the second popup
-            monopolePopup3.style.display = 'block'; // Show the third popup
-        });
-    
-        // Event listener for the "Yes" button in the third popup
-        document.getElementById('monopole-yes-btn-3').addEventListener('click', function () {
-            console.log('Switching to tangent terminal...');
-           
-        });
-
-        document.getElementById('monopole-no-btn-3').addEventListener('click', function () {
-            monopolePopup3.style.display = 'none'; // Hide the third popup
-            monopolePopup2.style.display = 'block'; // Show the second popup again
-        });
-    </script>
-    
+    });
+        
+</script>
     
 </body>
 </html>
