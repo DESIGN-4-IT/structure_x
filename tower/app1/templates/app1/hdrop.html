@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+           
+        }
+
+
+        /* Style for the table and dropdowns within the content */
+        /* Style for the table and dropdowns within the content */
+        .content {
+            padding: 20px;
+            margin-left:40px;
+            margin-top:80px;
+        }
+        
+        .options-table {
+            width: 25%;
+            border-collapse: collapse;
+        }
+        
+        .options-table th, .options-table td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        
+        /* Style for the single header */
+        .set-phase-header {
+            background-color: #ffec00;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+        }
+
+        td a{
+            font-weight: bold;
+            text-decoration: none;
+            color: #000;
+            cursor: pointer;
+            display: block;
+            margin-bottom: 5px;
+            background-color: lightyellow; /* Light yellow background for the links */
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .options-table td {
+            vertical-align: top;
+        }
+        
+        .dropdown-link {
+            font-weight: bold;
+            text-decoration: none;
+            color: #000;
+            cursor: pointer;
+            display: block;
+            margin-bottom: 5px;
+            background-color: lightyellow; /* Light yellow background for the links */
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        /* Ensure the dropdown is shown below the link */
+        .dropdown {
+            display: none;
+            margin-top: 5px; /* Space between the link and dropdown */
+            padding: 10px;
+            background-color: #f0f4ff;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        .load-case {
+            margin: 5px 0;
+        }
+
+        .hurricane-info, .load-case-info-group {
+            margin-left: 20px; /* Indent to indicate hierarchy */
+        }
+        
+        .load-case input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        /* Show dropdown when link is clicked */
+        .show-dropdown {
+            display: block !important;
+        }
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+   
+    <div class="content">
+        <table class="options-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="set-phase-header">Set / Phase</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <a href="#" class="dropdown-link" id="imported-load-cases-link">Imported Load Cases</a>
+                        <div class="dropdown" id="imported-load-cases-dropdown">
+                            <div class="load-case">
+                                <input type="checkbox" id="load-case-1">
+                                <label for="load-case-1">Load Case Name 1</label>
+                            </div>
+                            <div class="load-case">
+                                <input type="checkbox" id="load-case-2">
+                                <label for="load-case-2">Load Case Name 2</label>
+                            </div>
+                        </div>
+                    </td>
+                  
+                </tr>
+                <tr>
+                    <td>
+                        <a href="#" class="dropdown-link" id="group-load-cases-link">Group Load Cases</a>
+                        <div class="dropdown" id="group-load-cases-dropdown">
+                            <!-- Hurricane section -->
+                            <div class="load-case">
+                                <input type="checkbox" id="load-case-2">
+                                <label>Hurricane</label>
+                            </div>
+                            <!-- Additional information for Hurricane -->
+                            <div class="hurricane-info">
+                                <div class="load-case-info">| Hurricane NL +</div>
+                                <div class="load-case-info">[Hurricane NL -]</div>
+                                <div class="load-case-info">[Hurricane BI +]</div>
+                                <div class="load-case-info">[Hurri -70M]</div>
+                            </div>
+                
+                            <!-- Load Cases Category section -->
+                            <div class="load-case">
+                                <input type="checkbox" id="load-case-2">
+                                <label>Load Cases Category Name</label>
+                            </div>
+                            <!-- Additional Load Case information -->
+                            <div class="load-case-info-group">
+                                <div class="load-case-info">[Load Case XXXXXX]</div>
+                                <div class="load-case-info">[Load Case XXXXXX]</div>
+                                <div class="load-case-info">[Load Case XXXXXX]</div>
+                                <div class="load-case-info">[Load Case XXXXXX]</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <a href="{% url 'chart' %}" id="assign-ahead-back-pairs-link">Assign Ahead & Back Pairs</a>
+                    </td>
+                   
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        document.getElementById('imported-load-cases-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown('imported-load-cases-dropdown');
+        });
+        
+        document.getElementById('group-load-cases-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown('group-load-cases-dropdown');
+        });
+        
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.classList.toggle('show-dropdown');
+        }
+        
+    </script>
+</body>
+</html>
+
+

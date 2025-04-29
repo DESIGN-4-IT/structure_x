@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+           
+        }
+
+
+        .container {
+            max-width: 100%;
+            margin: 30px auto;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+            color: #333;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        
+        .card-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #007BFF;
+            border-radius: 8px;
+        }
+        
+        .card-section ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .card-section li {
+            padding: 8px 12px;
+            background: #007BFF;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 6px;
+        }
+        
+        .card-section li:hover {
+            background: #0056b3;
+        }
+        
+        #table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        #excel-table {
+            min-width: 100%;
+            border-collapse: collapse;
+        }
+        
+        
+        #excel-table th, #excel-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        
+        #excel-table th {
+            background-color: #007BFF;
+            color: white;
+        }
+        
+        
+        
+        
+        
+       
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+   
+    <div class="container">
+        <h2>Select Structure</h2>
+        <select id="structure-select">
+            <option value="">-- Select Structure --</option>
+            {% for s in structures %}
+                <option value="{{ s.id }}">{{ s.structure }}</option>
+            {% endfor %}
+        </select>
+    
+        <div id="files-container" class="card-section"></div>
+    
+        <div id="table-container">
+            <table id="excel-table" class="excel-table"></table>
+        </div>
+    </div>
+    
+    
+    
+    
+    
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        document.getElementById('imported-load-cases-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown('imported-load-cases-dropdown');
+        });
+        
+        document.getElementById('group-load-cases-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown('group-load-cases-dropdown');
+        });
+        
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.classList.toggle('show-dropdown');
+        }
+        
+    </script>
+
+    <script>
+        document.getElementById("structure-select").addEventListener("change", function () {
+            const structureId = this.value;
+            document.getElementById("files-container").innerHTML = '';
+            document.getElementById("excel-table").innerHTML = '';
+        
+            if (structureId) {
+                fetch(`?structure_id=${structureId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const container = document.getElementById("files-container");
+                        container.innerHTML = "<h4>Files:</h4><ul></ul>";
+                        const ul = document.createElement("ul");
+        
+                        data.files.forEach(file => {
+                            const li = document.createElement("li");
+                            li.textContent = file.name;
+                            li.addEventListener("click", () => loadExcelTable(file.id));
+                            ul.appendChild(li);
+                        });
+        
+                        container.appendChild(ul);
+                    });
+            }
+        });
+        
+        function loadExcelTable(fileId) {
+            fetch(`?file_id=${fileId}&get_full_excel=true`)
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById("excel-table");
+                    table.innerHTML = '';
+        
+                    if (data.rows.length === 0) {
+                        table.innerHTML = '<tr><td>No data available</td></tr>';
+                        return;
+                    }
+        
+                    // Header row
+                    const thead = document.createElement("thead");
+                    const headerRow = document.createElement("tr");
+                    data.rows[0].forEach(col => {
+                        const th = document.createElement("th");
+                        th.textContent = col;
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+        
+                    // Data rows
+                    const tbody = document.createElement("tbody");
+                    for (let i = 1; i < data.rows.length; i++) {
+                        const tr = document.createElement("tr");
+                        data.rows[i].forEach(cell => {
+                            const td = document.createElement("td");
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    }
+                    table.appendChild(tbody);
+                });
+        }
+        </script>
+        
+        
+</body>
+</html>
+
+
