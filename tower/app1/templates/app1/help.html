@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+           
+        }
+
+        .breadcrumb {
+            padding: 10px 20px;
+            background-color: #fff;
+            font-size: 14px;
+            margin-top: 70px; /* To prevent content from being overlapped by the fixed header */
+        }
+
+        .breadcrumb a {
+            color: #333;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+
+        .main-content {  
+            padding: 20px;  
+            background-color: #f8f8f8;  
+            margin-top:50px;
+          }  
+            
+          
+            
+          .faq-container {  
+            padding: 20px;  
+            background-color: #fff;  
+            border: 1px solid #ddd;  
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);  
+          }  
+            
+          .faq-question {  
+            padding: 10px;  
+            border-bottom: 1px solid #ddd;  
+            cursor: pointer;  
+          }  
+            
+          .faq-question span {  
+            font-size: 16px;  
+            font-weight: bold;  
+          }  
+            
+          .faq-question i {  
+            font-size: 18px;  
+            margin-left: 10px;  
+            color: #666;  
+          }  
+            
+          .faq-question:hover {  
+            background-color: #f2f2f2;  
+          }
+          
+
+
+        h2{
+            text-align:center;
+        }
+        
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+
+    <div class="main-content">    
+        <h2>Frequently Ask Questions</h2>  
+        <div class="faq-container">  
+
+         <div class="faq-question">  
+           <span>What standards are followed in the design of transmission towers?</span>  
+           <i class="fas fa-angle-down"></i>  
+         </div> 
+
+         <div class="faq-question">  
+          <span>How are transmission towers designed to withstand weather conditions?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>Can transmission towers be customized?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>How do I select the right type of tower for my project?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>What factors influence the design of a transmission tower?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+         <div class="faq-question">  
+          <span>How long does it take to design and install a transmission tower?</span>  
+          <i class="fas fa-angle-down"></i>  
+         </div>  
+
+        </div>  
+      </div>
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  

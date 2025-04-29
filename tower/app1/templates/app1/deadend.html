@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* Main Content Styling */
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 90px 20px 20px; /* Top padding adjusted to leave space for fixed header */
+            background: linear-gradient(to right,rgb(247, 248, 248),rgb(234, 252, 252));
+            min-height: 100vh;
+        }
+
+        /* Form Styling */
+        .form-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 40px 30px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease;
+        }
+
+        .form-container h2 {
+            text-align: center;
+            font-size: 25px;
+            margin-bottom: 22px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f5f7fa;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            border-color: #4facfe;
+            background-color: #ffffff;
+            outline: none;
+        }
+
+        /* Buttons */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .save-button, .view-button {
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            text-align: center;
+        }
+
+        .save-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .view-button {
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+        }
+
+        .save-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .view-button:hover {
+            background-color: #0b7dda;
+            transform: translateY(-2px);
+        }
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .content {
+                padding: 140px 20px 50px;
+            }
+        }
+
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .popup {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
+            text-align: center;
+            width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            position: relative;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Ensures content does not overflow */
+        }
+        
+        .popup .popup-header {
+            background-color: #ffec00;
+            color: black;
+            font-size: 12px;
+            padding: 10px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0px 0px 0 0;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: calc(100% + 40px);  /* Ensure it covers full width */
+            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
+            box-sizing: border-box;  /* Prevent overflow beyond the container */
+        }
+        
+        
+        .popup-close {
+            position: absolute;
+            top: 10%;
+            right: 1px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 30px;
+            color: black;
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup h3 {
+            margin: 20px 0;
+            font-size: 14px;
+            color: black;
+        }
+        
+        .popup .popup-btn {
+            padding: 10px 15px; /* Increase padding for better button size */
+            margin: 15px 30px;  /* Increase the margin between buttons */
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 20px;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        
+        .popup-btn.blue {
+            background-color: #007bff;
+        }
+        
+        .popup-btn.green {
+            background-color: green;
+        }
+        
+        .popup-btn.red {
+            background-color: red;
+        }
+        
+        .popup-btn.yellow {
+            background-color: yellow;
+            color: black;
+        }
+        
+        .popup-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .blur {
+            filter: blur(0.3spx);
+        }
+        
+        
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+    <div class="content">
+        <div class="form-container">
+            <h2>Circuit Definition</h2>
+            <form method="POST" id="monopole-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Select Structure</label>
+                    {{ form.structure }}
+                    {% if form.structure.errors %}
+                        <div class="error-message">
+                            {% for error in form.structure.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Define number of 3 - phase circuits</label>
+                    {{ form.num_3_phase_circuits }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of shield wires associated with each other</label>
+                    {{ form.num_shield_wires }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of 1 - phase circuits</label>
+                    {{ form.num_1_phase_circuits }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of communication cables</label>
+                    {{ form.num_communication_cables }}
+                </div>
+                <button class="save-button" type="submit">Save</button>
+                <a href="{% url 'monopole_deadend_view' %}" class="view-button">View</a>
+            </form>
+        </div>
+    </div>
+    
+    
+    
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+    <!-- Popup Overlay -->
+    <div id="monopole-popup-overlay" class="popup-overlay" style="display: none;">
+        <div class="popup" id="monopole-popup1">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Is this a wye arm structure?</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-yes-btn-1">Yes</button>
+            <button class="popup-btn red" id="monopole-no-btn-1">No</button>
+        </div>
+    
+        <div class="popup" id="monopole-popup2" style="display: none;">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Is this a riser/terminal structure?</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-yes-btn-2">Yes</button>
+            <button class="popup-btn red" id="monopole-no-btn-2">No</button>
+        </div>
+    
+        <div class="popup" id="monopole-popup3" style="display: none;">
+            <div class="popup-header">
+                <span class="popup-close">&times;</span>
+                <h3>Switch to tangent Structure</h3>
+            </div>
+            <button class="popup-btn blue" id="monopole-yes-btn-3">Yes</button>
+            <button class="popup-btn red" id="monopole-no-btn-3">Cancel</button>
+        </div>
+    </div>
+    
+
+    <script>
+        // monopole_save.js
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const monopoleForm = document.getElementById('monopole-form');
+            const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
+            const monopolePopup1 = document.getElementById('monopole-popup1');
+
+            monopoleForm.addEventListener('submit', function (e) {
+                e.preventDefault();  // Prevent default form submit
+
+                const formData = new FormData(monopoleForm);
+
+                fetch("/deadend/", {   // <-- Update this to your correct URL
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'), // Important for Django
+                    },
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // On success, show the popup
+                        monopolePopupOverlay.style.display = 'flex';
+                        monopolePopup1.style.display = 'block';
+                        monopoleForm.reset();  // Clear the form
+                        // Refresh the page after 9 seconds (adjust as needed)
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 9000);
+
+
+                    } else {
+                        console.error('Form validation error', data.errors);
+                        alert('Please fill all fields correctly.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving form', error);
+                    alert('Something went wrong. Please try again.');
+                });
+            });
+        });
+
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+    </script>
+    <script>
+        // Get the popup overlay and the popups
+        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
+        const monopolePopup1 = document.getElementById('monopole-popup1');
+        const monopolePopup2 = document.getElementById('monopole-popup2');
+        const monopolePopup3 = document.getElementById('monopole-popup3');
+    
+        // Add event listener to the Save button
+        document.querySelector('.save-button').addEventListener('click', function () {
+            // Perform save logic here (you can replace this with actual save functionality)
+            console.log('Saving data...');
+            
+            // Show the popup overlay and open the first popup
+            monopolePopupOverlay.style.display = 'flex'; // Show the popup overlay
+            monopolePopup1.style.display = 'block'; // Show the first popup
+        });
+    
+        // Close button for the current popup
+        function closePopup() {
+            monopolePopupOverlay.style.display = 'none'; // Hide the popup overlay when any popup is closed
+            monopolePopup1.style.display = 'none'; // Hide the first popup
+            monopolePopup2.style.display = 'none'; // Hide the second popup
+            monopolePopup3.style.display = 'none'; // Hide the third popup
+        }
+    
+        // Attach close button event listener to all popup close buttons
+        document.querySelectorAll('.popup-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', closePopup);
+        });
+    
+        // Event listener for the "Yes" button in the first popup
+        document.getElementById('monopole-yes-btn-1').addEventListener('click', function () {
+            window.location.href = '/upload1/'; // Redirect to the upload1 page
+        });
+    
+        // Event listener for the "No" button in the first popup
+        document.getElementById('monopole-no-btn-1').addEventListener('click', function () {
+            monopolePopup1.style.display = 'none'; // Hide the first popup
+            monopolePopup2.style.display = 'block'; // Show the second popup
+        });
+    
+        // Event listener for the "Yes" button in the second popup
+        document.getElementById('monopole-yes-btn-2').addEventListener('click', function () {
+            window.location.href = '/upload1/'; // Redirect to the upload1 page
+        });
+    
+        // Event listener for the "No" button in the second popup
+        document.getElementById('monopole-no-btn-2').addEventListener('click', function () {
+            monopolePopup2.style.display = 'none'; // Hide the second popup
+            monopolePopup3.style.display = 'block'; // Show the third popup
+        });
+    
+        // Event listener for the "Yes" button in the third popup
+        document.getElementById('monopole-yes-btn-3').addEventListener('click', function () {
+            console.log('Switching to tangent terminal...');
+           
+        });
+
+        document.getElementById('monopole-no-btn-3').addEventListener('click', function () {
+            monopolePopup3.style.display = 'none'; // Hide the third popup
+            monopolePopup2.style.display = 'block'; // Show the second popup again
+        });
+    </script>
+    
+    
+</body>
+</html>
+
