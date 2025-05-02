@@ -1,0 +1,218 @@
+
+in this page popup open after click on this page any time when i seleting structure that time i don't 
+want to show popup after showing excel data and click on this page then shows popup 
+<div class="container">
+    <h2>Select Structure</h2>
+    <select id="structure-select">
+        <option value="">-- Select Structure --</option>
+        {% for s in structures %}
+            <option value="{{ s.id }}">{{ s.structure }}</option>
+        {% endfor %}
+    </select>
+
+    <div id="files-container" class="card-section"></div>
+    
+
+    <div id="table-container">
+        <table id="excel-table" class="excel-table"></table>
+    </div>
+</div>
+
+
+<div class="popup-overlay" id="popup-overlay">
+    <div class="popup" id="popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Proceed with calculations?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn">Yes</button>
+        <button class="popup-btn red" id="no-btn">No</button>
+    </div>
+
+    <div class="popup" id="popup2" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Compile load table based on groups?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn-popup2">Yes</button>
+        <button class="popup-btn red" id="no-btn-popup2">No</button>
+    </div>
+
+    <div class="popup" id="popup3" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Save Project for later?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn-popup3">Choose Location</button>
+    </div>
+
+</div>
+
+
+
+<div class="popup-overlay" id="popup-overlay">
+    <div class="popup" id="popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Proceed with calculations?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn">Yes</button>
+        <button class="popup-btn red" id="no-btn">No</button>
+    </div>
+
+    <div class="popup" id="popup2" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Compile load table based on groups?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn-popup2">Yes</button>
+        <button class="popup-btn red" id="no-btn-popup2">No</button>
+    </div>
+
+    <div class="popup" id="popup3" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span> <!-- Close button (optional) -->
+            <h3>Save Project for later?</h3>
+        </div>
+        <button class="popup-btn blue" id="yes-btn-popup3">Choose Location</button>
+    </div>
+</div>
+
+
+<!-- Footer Section -->
+<footer>
+    <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+</footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popup1 = document.getElementById('popup1');
+        const popup2 = document.getElementById('popup2');
+        const popup3 = document.getElementById('popup3');
+        const mainContent = document.querySelector('body');
+
+        // Function to open a popup
+        function openPopup(popup) {
+            popupOverlay.style.display = 'flex';
+            popup.style.display = 'block';
+            mainContent.classList.add('blur');
+        }
+
+        // Function to close all popups
+        function closeAllPopups() {
+            popup1.style.display = 'none';
+            popup2.style.display = 'none';
+            popup3.style.display = 'none';
+            popupOverlay.style.display = 'none'; // Hide overlay
+            mainContent.classList.remove('blur');
+        }
+
+        // Close popup when clicking the close button
+        document.querySelectorAll('.popup-close').forEach((closeBtn) => {
+            closeBtn.addEventListener('click', closeAllPopups);
+        });
+
+        // Open popup2 when clicking the "Yes" button in popup1
+        document.getElementById('yes-btn').addEventListener('click', function () {
+            closeAllPopups(); // Close all popups
+            openPopup(popup2); // Open popup2
+        });
+
+        // Close all popups when clicking the "No" button in popup1
+        document.getElementById('no-btn').addEventListener('click', closeAllPopups);
+
+        // Redirect to data page when clicking the "Yes" button in popup2
+        document.getElementById('yes-btn-popup2').addEventListener('click', function () {
+            window.location.href = '/data/'; // Replace with your actual data page URL
+        });
+
+        // Open popup3 when clicking the "No" button in popup2
+        document.getElementById('no-btn-popup2').addEventListener('click', function () {
+            closeAllPopups(); // Close all popups
+            openPopup(popup3); // Open popup3
+        });
+
+        // Redirect to home page when clicking the "Choose Location" button in popup3
+        document.getElementById('yes-btn-popup3').addEventListener('click', function () {
+            window.location.href = '/'; // Replace with your actual home page URL
+        });
+
+        // Example of opening the main popup when clicking a specific action
+        document.body.addEventListener('click', function (event) {
+            if (!event.target.closest('#popup-overlay') &&
+                !event.target.closest('.popup') &&
+                !event.target.closest('.menu') &&
+                !event.target.closest('.search') &&
+                !event.target.closest('.breadcrumb')) {
+                openPopup(popup1); // Open the first popup
+            }
+        });
+    });
+</script>
+
+<script>
+    document.getElementById("structure-select").addEventListener("change", function () {
+        const structureId = this.value;
+        document.getElementById("files-container").innerHTML = '';
+        document.getElementById("excel-table").innerHTML = '';
+    
+        if (structureId) {
+            fetch(`?structure_id=${structureId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("files-container");
+                    container.innerHTML = "<h4>Files:</h4><ul></ul>";
+                    const ul = document.createElement("ul");
+    
+                    data.files.forEach(file => {
+                        const li = document.createElement("li");
+                        li.textContent = file.name;
+                        li.addEventListener("click", () => loadExcelTable(file.id));
+                        ul.appendChild(li);
+                    });
+    
+                    container.appendChild(ul);
+                });
+        }
+    });
+    
+    function loadExcelTable(fileId) {
+        fetch(`?file_id=${fileId}&get_full_excel=true`)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById("excel-table");
+                table.innerHTML = '';
+    
+                if (data.rows.length === 0) {
+                    table.innerHTML = '<tr><td>No data available</td></tr>';
+                    return;
+                }
+    
+                // Header row
+                const thead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
+                data.rows[0].forEach(col => {
+                    const th = document.createElement("th");
+                    th.textContent = col;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+    
+                // Data rows
+                const tbody = document.createElement("tbody");
+                for (let i = 1; i < data.rows.length; i++) {
+                    const tr = document.createElement("tr");
+                    data.rows[i].forEach(cell => {
+                        const td = document.createElement("td");
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                }
+                table.appendChild(tbody);
+            });
+    }
+    </script>
+    
