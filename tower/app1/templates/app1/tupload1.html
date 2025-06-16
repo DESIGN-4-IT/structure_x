@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+    {% load static %}
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+           
+        }
+
+
+        /* Main content wrapper */
+.content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    margin-top: 80px;
+}
+
+/* Form container */
+.form-container {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 800px;
+}
+
+/* Heading */
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Upload section layout */
+.upload-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Upload box and Uploading list */
+.upload-box, .uploading-section {
+    flex: 1;
+    min-width: 280px;
+}
+
+/* Upload box style */
+.upload-box {
+    padding: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    text-align: center;
+    background-color: #fafafa;
+}
+
+.upload-box p {
+    margin: 10px 0;
+    font-weight: 500;
+}
+
+/* File input fields */
+.upload-box input[type="file"], .upload-box select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Uploading section */
+.uploading-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+/* Each file progress block */
+.file-progress {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+/* File info */
+.file-info {
+    margin-bottom: 8px;
+}
+
+.file-info p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Progress bar */
+.progress-bar {
+    background-color: #e0e0e0;
+    height: 8px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress {
+    background-color: #4caf50;
+    height: 100%;
+}
+
+/* Text below progress */
+.file-progress > p:last-child {
+    margin-top: 8px;
+    font-size: 12px;
+    color: green;
+}
+
+/* Attachment section */
+.attachment-section {
+    background-color: #f9f9d8;
+    padding: 15px;
+    margin-top: 25px;
+    text-align: center;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+/* Buttons section */
+.buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Upload button */
+.upload-button {
+    margin-top: 15px;
+    width: 100%;
+    background-color: #007bff;
+    color: white;
+    padding: 10px 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.upload-button:hover {
+    background-color: #0056b3;
+}
+
+
+/* Buttons */
+.set-phase-button, .attachments-button {
+    flex: 1;
+    min-width: 150px;
+    background-color:rgb(61, 130, 243);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.attachments-button {
+    background-color: #00b32d;
+}
+
+.set-phase-button:hover {
+    background-color: #3b7cd1;
+}
+
+.attachments-button:hover {
+    background-color: #029023;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .upload-section {
+        flex-direction: column;
+    }
+    
+    .buttons {
+        flex-direction: column;
+    }
+
+    .set-phase-button, .attachments-button {
+        width: 100%;
+    }
+}
+
+        
+        
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .popup {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
+            text-align: center;
+            width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            position: relative;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Ensures content does not overflow */
+        }
+        
+        .popup .popup-header {
+            background-color: #ffec00;
+            color: black;
+            font-size: 12px;
+            padding: 10px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0px 0px 0 0;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: calc(100% + 40px);  /* Ensure it covers full width */
+            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
+            box-sizing: border-box;  /* Prevent overflow beyond the container */
+        }
+        
+        
+        .popup-close {
+            position: absolute;
+            top: 10%;
+            right: 1px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 30px;
+            color: black;
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup h3 {
+            margin: 20px 0;
+            font-size: 14px;
+            color: black;
+        }
+        
+        .popup .popup-btn {
+            padding: 10px 15px; /* Increase padding for better button size */
+            margin: 15px 30px;  /* Increase the margin between buttons */
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 20px;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        
+        .popup-btn.blue {
+            background-color: #007bff;
+        }
+        
+        .popup-btn.green {
+            background-color: green;
+        }
+        
+        .popup-btn.red {
+            background-color: red;
+        }
+        
+        .popup-btn.yellow {
+            background-color: yellow;
+            color: black;
+        }
+        
+        .popup-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .blur {
+            filter: blur(0.3spx);
+        }
+       
+        
+        
+        
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+    
+    
+    <div class="content">
+        <div class="form-container">
+            <h2>File Upload</h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="upload-section">
+                    <div class="upload-box">
+                        <p>Select Structure</p>
+                        {{ form.structure }}
+                        
+                        <p>Drag files to upload</p>
+                        <input type="file" name="file" accept=".xls,.xlsx" required>
+
+    
+                        <!-- Upload Button added inside form -->
+                        <button type="submit" class="upload-button">Upload File</button>
+                    </div>
+    
+                    <div class="uploading-section">
+                        <h3>Uploading</h3>
+                        {% for file in files %}
+                            <div class="file-progress">
+                                <div class="file-info">
+                                    <p>{{ file.file.name|slice:"10:" }} <span>{{ file.file.size|divisibleby:1024 }} KB</span></p>
+                                    <p>Uploaded on {{ file.uploaded_at|date:"d M Y H:i" }}</p>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 100%;"></div>
+                                </div>
+                                <p>Completed</p>
+                            </div>
+                        {% empty %}
+                            <p>No files uploaded yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </form>
+    
+            <div class="attachment-section">
+                <p>Assigned Attachment from Imported Data</p>
+            </div>
+    
+            <div class="buttons">
+                <button class="set-phase-button">Set / Phase</button>
+                OR
+                <button class="attachments-button">Attachments Joint Labels</button>
+            </div>
+        </div>
+    </div>
+    
+    
+    
+    
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+
+    <script>
+        // Get the popup overlay and popups
+        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
+        const monopolePopup1 = document.getElementById('monopole-popup1');
+        const monopolePopup2 = document.getElementById('monopole-popup2'); // Add more popups as needed
+    
+        // Initialize a stack to keep track of opened popups
+        let popupStack = [];
+    
+        // Function to show a popup
+        function showPopup(popup) {
+            monopolePopupOverlay.style.display = 'flex'; // Show the popup overlay
+            popup.style.display = 'block'; // Show the specified popup
+            popupStack.push(popup); // Push the popup to the stack
+        }
+    
+        // Function to close the current popup
+        function closePopup() {
+            const currentPopup = popupStack.pop(); // Remove the current popup from the stack
+            if (currentPopup) {
+                currentPopup.style.display = 'none'; // Hide the current popup
+            }
+            
+            if (popupStack.length > 0) {
+                const previousPopup = popupStack[popupStack.length - 1]; // Get the previous popup
+                previousPopup.style.display = 'block'; // Show the previous popup
+            } else {
+                monopolePopupOverlay.style.display = 'none'; // Hide the overlay if no popups left
+            }
+        }
+    
+    
+        // Add redirection for the buttons
+        document.querySelector('.set-phase-button').addEventListener('click', function () {
+            window.location.href = '/tdrop1/'; // Redirect to the drop1 page
+        });
+    
+        document.querySelector('.attachments-button').addEventListener('click', function () {
+            window.location.href = '/tdrop1/'; // Redirect to the drop1 page
+        });
+    </script>
+    
+    
+</body>
+</html>
+
+

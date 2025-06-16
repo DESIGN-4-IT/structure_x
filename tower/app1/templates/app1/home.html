@@ -372,7 +372,7 @@
             <div class="group-name">GroupName_xyz</div>
             
             <select id="structure-select">
-                <option>Select Structure in GroupName_xyz</option>
+                <option>Select Structure Type For Group</option>
                 <option value="towers">Towers</option>
                 <option value="hframes">H-Frames</option>
                 <option value="monopoles">Monopoles</option>
@@ -565,6 +565,8 @@
     <button class="popup-btn red" id="monopole-brace-btnmm">Brace Post insulator</button>
 </div>
 
+
+
 </div>
 
 <!-- H-Frame Popup -->
@@ -704,12 +706,12 @@
 
         // Handle Post Insulator button click to redirect
         document.getElementById('monopole-post-btn1').addEventListener('click', function () {
-            window.location.href = '/tdeadend1/'; // Redirect to the specified URL
+            window.location.href = '/tdeadend3/'; // Redirect to the specified URL
         });
 
         // Handle Post Insulator button click to redirect
         document.getElementById('monopole-brace-btn1').addEventListener('click', function () {
-            window.location.href = '/tdeadend1/'; // Redirect to the specified URL
+            window.location.href = '/tdeadend3/'; // Redirect to the specified URL
         });
 
         // V-String button does nothing    
@@ -843,18 +845,19 @@
 
         // Event listener for the "Vertical" button in the third popup
         document.getElementById('monopole-vertical-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend/'; // Redirect to the specified URL for Vertical
+            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Vertical
         });
 
         // Event listener for the "Delta" button in the third popup
         document.getElementById('monopole-delta-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend/'; // Redirect to the specified URL for Delta
+            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Delta
         });
 
         // Event listener for the "Horizontal" button in the third popup
         document.getElementById('monopole-horizontal-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend/'; // Redirect to the specified URL for Horizontal
+            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Horizontal
         });
+        
 
 
         // Event listener for the "Tangent" button in the first popup
@@ -887,7 +890,7 @@
         // Event listener for the "Post insulator" button
         document.getElementById('monopole-post-btnmm').addEventListener('click', function () {
             document.getElementById('monopole-popup8').style.display = 'none'; // Hide the "Select Insulator Type" popup
-            document.getElementById('monopole-popup3').style.display = 'block'; // Show the "Select Configuration" popup
+            document.getElementById('monopole-popup9').style.display = 'block'; // Show the "Select Configuration" popup
         });
 
         // Event listener for the "V-String" button (No further action, just close popup)
@@ -959,7 +962,7 @@
         document.getElementById('vertical-btn').addEventListener('click', function () {
             hframePopups[1].style.display = 'none'; // Hide the insulator type popup
             // Redirect to the specified URL for deadend
-            window.location.href = '/hdeadend/'; // Change this URL to the destination page
+            window.location.href = '/hdeadend1/'; // Change this URL to the destination page
         });
     
         // Functionality for the Horizontal button in the second popup
@@ -986,7 +989,7 @@
         document.getElementById('post-insulator-btn').addEventListener('click', function () {
             hframePopups[3].style.display = 'none'; // Hide the insulator type popup
             // Handle post insulator action here
-            window.location.href = '/hdeadend/';
+            window.location.href = '/hdeadend2/';
             // Add any additional action or redirect if needed
         });
     
@@ -994,7 +997,7 @@
         document.getElementById('v-string-btn').addEventListener('click', function () {
             hframePopups[3].style.display = 'none'; // Hide the insulator type popup
             // Handle post insulator action here
-            window.location.href = '/hdeadend/';
+            window.location.href = '/hdeadend2/';
             // Add any additional action or redirect if needed
         });
     </script>

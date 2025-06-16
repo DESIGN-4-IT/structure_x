@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,8 @@
     {% load static %}
     <link rel="stylesheet" href="styles.css">
     <style>
+        
+
         /* Reset some default browser styles */
         * {
             box-sizing: border-box;
@@ -79,104 +82,6 @@
             font-size: 14px;
         }
 
-        /* Main Content Styling */
-        .content {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 90px 20px 20px; /* Top padding adjusted to leave space for fixed header */
-            background: linear-gradient(to right,rgb(247, 248, 248),rgb(234, 252, 252));
-            min-height: 100vh;
-        }
-
-        /* Form Styling */
-        .form-container {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 40px 30px;
-            width: 80%;
-            max-width: 600px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.8s ease;
-        }
-
-        .form-container h2 {
-            text-align: center;
-            font-size: 25px;
-            margin-bottom: 22px;
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 16px;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
-        }
-
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #f5f7fa;
-            font-size: 13px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group select:focus,
-        .form-group input:focus {
-            border-color: #4facfe;
-            background-color: #ffffff;
-            outline: none;
-        }
-
-        /* Buttons */
-        .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .save-button, .view-button {
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            text-align: center;
-        }
-
-        .save-button {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .view-button {
-            background-color: #2196F3;
-            color: white;
-            text-decoration: none;
-        }
-
-        .save-button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .view-button:hover {
-            background-color: #0b7dda;
-            transform: translateY(-2px);
-        }
 
         /* Footer Styling */
         footer {
@@ -217,12 +122,10 @@
                 margin-top: 10px;
             }
 
-            .content {
-                padding: 140px 20px 50px;
-            }
+           
         }
 
-
+    
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -326,7 +229,33 @@
             filter: blur(0.3spx);
         }
         
-        
+
+        /* Table for View Page */
+        table {
+            width: 70%;
+            border-collapse: collapse;
+            margin-top: 90px;
+            margin-left:200px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
         
         
     </style>
@@ -352,43 +281,30 @@
         </div>
     </header>
     
-    <div class="content">
-        <div class="form-container">
-            <h2>Circuit Definition</h2>
-            <form method="POST" id="monopole-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label>Select Structure</label>
-                    {{ form.structure }}
-                    {% if form.structure.errors %}
-                        <div class="error-message">
-                            {% for error in form.structure.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Define number of 3 - phase circuits</label>
-                    {{ form.num_3_phase_circuits }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of shield wires associated with each other</label>
-                    {{ form.num_shield_wires }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of 1 - phase circuits</label>
-                    {{ form.num_1_phase_circuits }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of communication cables</label>
-                    {{ form.num_communication_cables }}
-                </div>
-                <button class="save-button" type="submit">Save</button>
-                <a href="{% url 'monopole_deadend_view1' %}" class="view-button">View</a>
-            </form>
-        </div>
-    </div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Structure</th>
+                <th>3-Phase Circuits</th>
+                <th>Shield Wires</th>
+                <th>1-Phase Circuits</th>
+                <th>Communication Cables</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for monopole in monopoles %}
+            <tr>
+                <td>{{ monopole.id }}</td>
+                <td>{{ monopole.structure }}</td>
+                <td>{{ monopole.num_3_phase_circuits }}</td>
+                <td>{{ monopole.num_shield_wires }}</td>
+                <td>{{ monopole.num_1_phase_circuits }}</td>
+                <td>{{ monopole.num_communication_cables }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     
     
     <!-- Footer Section -->
