@@ -1,50 +1,475 @@
-check this code i wanted to modify this code to make this page user friendly 
-i don't want red dot with Attach. Joint Labels values and user want functionality to make small size of Attach. Joint Labels
-values and easy move to any part of 3D tower and fix that values to any part 
-this is complete code 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
-this is view 
-"def hdata1(request):
-    # Get the latest uploaded file (or modify as needed for your use case)
-    latest_file = hUploadedFile1.objects.last()
+<!-- Load dependencies -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <title>Chart Page</title>
+    {% load static %}
+
+    <style>
+        /* Reset some default browser styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            padding: 10px 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffe082;
+            margin-left:-120px;
+        }
+
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 5px;
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffe082;
+        }
+
+        .search input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+
+        /* Footer Styling */
+        footer {
+            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 14px;
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                padding: 10px 0;
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+           
+        }
+
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+    }
     
-    if latest_file:
-        try:
-            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-            # Get unique joint labels and their corresponding load values
-            joint_data = df[['Attach. Joint Labels', 
-                            'Structure Loads Vert. (lbs)', 
-                            'Structure Loads Trans. (lbs)', 
-                            'Structure Loads Long. (lbs)']].dropna(subset=['Attach. Joint Labels'])
-            
-            # Convert to list of dictionaries with proper handling of numeric values
-            load_data = []
-            for _, row in joint_data.iterrows():
-                load_data.append({
-                    'Attach. Joint Labels': str(row['Attach. Joint Labels']),
-                    'Structure Loads Vert. (lbs)': float(row['Structure Loads Vert. (lbs)']) if pd.notna(row['Structure Loads Vert. (lbs)']) else 0,
-                    'Structure Loads Trans. (lbs)': float(row['Structure Loads Trans. (lbs)']) if pd.notna(row['Structure Loads Trans. (lbs)']) else 0,
-                    'Structure Loads Long. (lbs)': float(row['Structure Loads Long. (lbs)']) if pd.notna(row['Structure Loads Long. (lbs)']) else 0
-                })
-            
-            # Get unique joint labels
-            joint_labels = [str(label) for label in joint_data['Attach. Joint Labels'].unique()]
-            
-        except Exception as e:
-            joint_labels = []
-            load_data = []
-            print(f"Error processing Excel file: {str(e)}")
-    else:
-        joint_labels = []
-        load_data = []
+    h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
     
-    return render(request, 'app1/hdata1.html', {
-        'joint_labels': joint_labels,
-        'load_data_json': json.dumps(load_data)
-    })
-    "
-this is hdata1.html 
-"<div class="container">
+    /* Layout */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+    
+    .col-md-4, .col-md-8 {
+        padding: 0 15px;
+        box-sizing: border-box;
+    }
+    
+    @media (max-width: 768px) {
+        .col-md-4, .col-md-8 {
+            width: 100%;
+        }
+    }
+    
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #34495e;
+    }
+    
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        font-size: 14px;
+    }
+    
+    select option {
+        padding: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    select option:hover {
+        background-color: #f0f0f0;
+    }
+    
+    /* Load Display Table */
+    #load-display {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 4px;
+        border: 1px solid #eee;
+    }
+    
+    #load-display h5 {
+        margin-top: 0;
+        color: #3498db;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    
+    .table th, .table td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid #ddd;
+    }
+    
+    .table th {
+        background-color: #f2f2f2;
+        font-weight: 600;
+    }
+    
+    .table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    /* Drag and Drop Feedback */
+    option[draggable="true"] {
+        cursor: grab;
+    }
+    
+    option[draggable="true"]:active {
+        cursor: grabbing;
+    }
+    
+    model-viewer {
+        --poster-color: transparent;
+    }
+    
+    .table tr.highlight {
+        animation: highlight 1.5s;
+    }
+
+    .checkbox-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    
+    .checkbox-list label {
+        display: block;
+        cursor: move;
+    }
+    
+    .model-viewer {
+        width: 100%;
+        height: 600px;
+        border: 1px solid #ccc;
+    }
+
+    #joint-markers-container, #load-displays-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    
+    .joint-marker {
+        position: absolute;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+        transform: translate(-50%, -50%);
+    }
+    
+    .checkbox-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 10px;
+    }
+    
+    .joint-label-item {
+        display: block;
+        padding: 5px;
+        margin: 2px 0;
+        cursor: grab;
+        background-color: #f8f9fa;
+        border-radius: 3px;
+    }
+    
+    .joint-label-item:hover {
+        background-color: #e9ecef;
+    }
+    
+    .joint-label-item:active {
+        cursor: grabbing;
+    }
+
+    .load-display {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        min-width: 150px;
+        pointer-events: auto;
+        z-index: 10;
+    }
+    
+    .load-display-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .load-display-content {
+        font-size: 14px;
+    }
+    
+    .load-display-content div {
+        margin: 3px 0;
+    }
+    
+    .editable {
+        cursor: pointer;
+        border-bottom: 1px dashed #666;
+    }
+    
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .value-edit {
+        width: 50px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 2px;
+    }
+    
+    .close-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        color: #999;
+    }
+    
+    .close-btn:hover {
+        color: #333;
+    }
+
+    .joint-marker {
+        font-size: 12px;
+        font-weight: bold;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 2px 5px;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        cursor: move;
+        user-select: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .load-display {
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        width: 180px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        z-index: 100;
+    }
+    
+    .load-display-header {
+        font-weight: bold;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .load-display-content div {
+        margin-bottom: 5px;
+    }
+    
+    .editable {
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .close-btn {
+        cursor: pointer;
+        float: right;
+        font-size: 16px;
+        line-height: 1;
+    }
+    
+    .size-controls {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .size-btn {
+        width: 20px;
+        height: 20px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    @media (max-width: 576px) {
+        #model-viewer {
+            height: 400px;
+        }
+        
+        .load-display {
+            min-width: 120px;
+            padding: 5px;
+            font-size: 12px;
+        }
+    }
+
+
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            </div>
+            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
+
+            <div class="menu">
+                <a href="#">About</a>
+                <a href="{% url 'home' %}">Services</a>
+                <a href="#">Contact Us</a>
+                <a href="{% url 'help' %}">Help</a>
+            </div>
+            <div class="search">
+                <input type="text" placeholder="Search">
+            </div>
+        </div>
+    </header>
+
+
+<div class="container">
     <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
     
     <div class="row">
@@ -170,13 +595,12 @@ this is hdata1.html
         const jointLoadData = loadData.find(item => item['Attach. Joint Labels'] === jointLabel);
         if (!jointLoadData) return;
         
-        // Create a marker (red sphere)
-        const geometry = new THREE.SphereGeometry(0.1, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        // Create a marker (smaller and without red dot)
+        const geometry = new THREE.SphereGeometry(0.02, 16, 16); // Much smaller
+        const material = new THREE.MeshBasicMaterial({ color: 0x333333 });
         const sphere = new THREE.Mesh(geometry, material);
         
         // Position the marker (you'll need to adjust this based on your model)
-        // For now, we'll place it randomly on the model surface
         sphere.position.set(
             (Math.random() - 0.5) * 2,
             Math.random() * 2,
@@ -187,9 +611,8 @@ this is hdata1.html
         const markerDiv = document.createElement('div');
         markerDiv.className = 'joint-marker';
         markerDiv.textContent = jointLabel;
-        markerDiv.style.color = 'red';
         markerDiv.style.position = 'absolute';
-        markerDiv.style.cursor = 'pointer';
+        markerDiv.style.cursor = 'move';
         markerDiv.style.pointerEvents = 'auto';
         markerDiv.dataset.jointLabel = jointLabel;
         document.getElementById('joint-markers-container').appendChild(markerDiv);
@@ -205,7 +628,8 @@ this is hdata1.html
             mesh: sphere,
             div: markerDiv,
             loadData: jointLoadData,
-            isDragging: false
+            isDragging: false,
+            fontSize: 12 // Default font size
         };
         
         scene.add(sphere);
@@ -216,6 +640,7 @@ this is hdata1.html
     }
     
 
+    
     // Toggle load display visibility
     function toggleLoadDisplay(jointLabel) {
         if (loadDisplays[jointLabel]) {
@@ -317,13 +742,19 @@ this is hdata1.html
         displayDiv.style.pointerEvents = 'auto';
         
         displayDiv.innerHTML = `
-            <div class="load-display-header">${jointLabel}</div>
+            <div class="load-display-header">
+                <span>${jointLabel}</span>
+                <span class="close-btn" title="Remove">×</span>
+            </div>
             <div class="load-display-content">
                 <div>Vert: <span class="editable" data-field="vert">${jointInfo.loadData['Structure Loads Vert. (lbs)'] || '0'}</span> lbs</div>
                 <div>Trans: <span class="editable" data-field="trans">${jointInfo.loadData['Structure Loads Trans. (lbs)'] || '0'}</span> lbs</div>
                 <div>Long: <span class="editable" data-field="long">${jointInfo.loadData['Structure Loads Long. (lbs)'] || '0'}</span> lbs</div>
             </div>
-            <div class="close-btn" title="Remove">×</div>
+            <div class="size-controls">
+                <div class="size-btn" data-action="increase">+</div>
+                <div class="size-btn" data-action="decrease">-</div>
+            </div>
         `;
         
         document.getElementById('load-displays-container').appendChild(displayDiv);
@@ -352,7 +783,20 @@ this is hdata1.html
             }
         });
         
-        // Add editable fields
+        // Add size control events
+        displayDiv.querySelector('[data-action="increase"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.min(24, jointMarkers[jointLabel].fontSize + 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        displayDiv.querySelector('[data-action="decrease"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.max(8, jointMarkers[jointLabel].fontSize - 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        // Add editable fields (same as before)
         displayDiv.querySelectorAll('.editable').forEach(el => {
             el.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -397,6 +841,9 @@ this is hdata1.html
                 });
             });
         });
+        
+        // Make the display draggable
+        makeDraggable(displayDiv, jointLabel);
     }
     
     // Make load display draggable
@@ -632,4 +1079,12 @@ this is hdata1.html
         });
     });
 </script>
-"
+
+   
+    <footer>
+        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
+    </footer>
+
+
+</body>
+</html>

@@ -45,6 +45,7 @@ urlpatterns = [
    path('hdrop2/',views.hdrop2,name='hdrop2'),
    path('h_deadend_view1/', views.h_deadend_view1, name='h_deadend_view1'),
    path('h_deadend_view2/', views.h_deadend_view2, name='h_deadend_view2'),
+   path('hdata1/',views.hdata1,name='hdata1'),
 
 
    path('hupload/',views.hupload,name='hupload'),

@@ -403,8 +403,53 @@ def chart(request):
 def data(request):
     return render(request,'app1/data.html')
 
+import json
 
 
+
+from django.templatetags.static import static
+
+
+def hdata1(request):
+    # Get the latest uploaded file (or modify as needed for your use case)
+    latest_file = hUploadedFile1.objects.last()
+    
+    if latest_file:
+        try:
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+            # Get unique joint labels and their corresponding load values
+            joint_data = df[['Attach. Joint Labels', 
+                            'Structure Loads Vert. (lbs)', 
+                            'Structure Loads Trans. (lbs)', 
+                            'Structure Loads Long. (lbs)']].dropna(subset=['Attach. Joint Labels'])
+            
+            # Convert to list of dictionaries with proper handling of numeric values
+            load_data = []
+            for _, row in joint_data.iterrows():
+                load_data.append({
+                    'Attach. Joint Labels': str(row['Attach. Joint Labels']),
+                    'Structure Loads Vert. (lbs)': float(row['Structure Loads Vert. (lbs)']) if pd.notna(row['Structure Loads Vert. (lbs)']) else 0,
+                    'Structure Loads Trans. (lbs)': float(row['Structure Loads Trans. (lbs)']) if pd.notna(row['Structure Loads Trans. (lbs)']) else 0,
+                    'Structure Loads Long. (lbs)': float(row['Structure Loads Long. (lbs)']) if pd.notna(row['Structure Loads Long. (lbs)']) else 0
+                })
+            
+            # Get unique joint labels
+            joint_labels = [str(label) for label in joint_data['Attach. Joint Labels'].unique()]
+            
+        except Exception as e:
+            joint_labels = []
+            load_data = []
+            print(f"Error processing Excel file: {str(e)}")
+    else:
+        joint_labels = []
+        load_data = []
+    
+    return render(request, 'app1/hdata1.html', {
+        'joint_labels': joint_labels,
+        'load_data_json': json.dumps(load_data)
+    })
+    
+    
 from django.shortcuts import render, redirect
 from .models import ListOfStructure
 from .forms import StructureForm
