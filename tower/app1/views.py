@@ -419,6 +419,8 @@ def hdata1(request):
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
             # Get unique joint labels and their corresponding load values
             joint_data = df[['Attach. Joint Labels', 
+                            'Set No.',
+                            'Phase No.',
                             'Structure Loads Vert. (lbs)', 
                             'Structure Loads Trans. (lbs)', 
                             'Structure Loads Long. (lbs)']].dropna(subset=['Attach. Joint Labels'])
@@ -428,24 +430,34 @@ def hdata1(request):
             for _, row in joint_data.iterrows():
                 load_data.append({
                     'Attach. Joint Labels': str(row['Attach. Joint Labels']),
+                    'Set No.': str(row['Set No.']) if pd.notna(row['Set No.']) else '',
+                    'Phase No.': str(row['Phase No.']) if pd.notna(row['Phase No.']) else '',
                     'Structure Loads Vert. (lbs)': float(row['Structure Loads Vert. (lbs)']) if pd.notna(row['Structure Loads Vert. (lbs)']) else 0,
                     'Structure Loads Trans. (lbs)': float(row['Structure Loads Trans. (lbs)']) if pd.notna(row['Structure Loads Trans. (lbs)']) else 0,
                     'Structure Loads Long. (lbs)': float(row['Structure Loads Long. (lbs)']) if pd.notna(row['Structure Loads Long. (lbs)']) else 0
                 })
             
-            # Get unique joint labels
+            # Get unique values for each column
             joint_labels = [str(label) for label in joint_data['Attach. Joint Labels'].unique()]
+            set_numbers = [str(num) for num in joint_data['Set No.'].dropna().unique()]
+            phase_numbers = [str(num) for num in joint_data['Phase No.'].dropna().unique()]
             
         except Exception as e:
             joint_labels = []
+            set_numbers = []
+            phase_numbers = []
             load_data = []
             print(f"Error processing Excel file: {str(e)}")
     else:
         joint_labels = []
+        set_numbers = []
+        phase_numbers = []
         load_data = []
     
     return render(request, 'app1/hdata1.html', {
         'joint_labels': joint_labels,
+        'set_numbers': set_numbers,
+        'phase_numbers': phase_numbers,
         'load_data_json': json.dumps(load_data)
     })
     

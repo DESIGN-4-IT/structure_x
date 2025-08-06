@@ -300,8 +300,6 @@ class hUploadedFile1(models.Model):
         ]
         
         
-        
-        
 class HDeadend2(models.Model):
     CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
 
