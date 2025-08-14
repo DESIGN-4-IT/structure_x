@@ -1047,6 +1047,25 @@
     function updateTable() {
     clearTable();
     const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
+
+    tbody.innerHTML = '';
+
+            // Add new rows from the data
+            loadData.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                <td>${item['Attach. Joint Labels']}</td>
+                <td>${item['Set No.']}</td>
+                <td>${item['Phase No.']}</td>
+                <td>${item['Structure Loads Vert. (lbs)']}</td>
+                <td>${item['Structure Loads Trans. (lbs)']}</td>
+                <td>${item['Structure Loads Long. (lbs)']}</td>
+            `;
+            });
+
+            // Initialize the rest of your 3D viewer
+            initModelViewer();
+    
     
     // Add joints
     Array.from(selectedJoints).forEach(label => {
@@ -1220,6 +1239,8 @@ function addPhaseMarker(phaseNumber) {
             });
         }
     });
+
+
         
         // Make labels draggable
          document.querySelectorAll('.drag-item').forEach(item => {

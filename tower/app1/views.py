@@ -411,23 +411,50 @@ from django.templatetags.static import static
 
 
 def hdata1(request):
-    # Get the latest uploaded file (or modify as needed for your use case)
-    latest_file = hUploadedFile1.objects.last()
-    
-    if latest_file:
+    # Get selected values from session
+    selected_values = request.session.get('selected_values', {})
+    structure_id = selected_values.get('structure_id')
+
+    if structure_id:
         try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-            # Get unique joint labels and their corresponding load values
-            joint_data = df[['Attach. Joint Labels', 
-                            'Set No.',
-                            'Phase No.',
-                            'Structure Loads Vert. (lbs)', 
-                            'Structure Loads Trans. (lbs)', 
-                            'Structure Loads Long. (lbs)']].dropna(subset=['Attach. Joint Labels'])
-            
-            # Convert to list of dictionaries with proper handling of numeric values
+
+            # Initialize filtered data
+            filtered_data = df
+
+            # Filter by joint labels if selected
+            selected_joints = selected_values.get('joint_labels', [])
+            if selected_joints:
+                filtered_data = filtered_data[filtered_data['Attach. Joint Labels'].isin(selected_joints)]
+
+            # Filter by set/phase if selected
+            selected_set_phase = selected_values.get('set_phase', [])
+            if selected_set_phase:
+                # Create a mask for filtering
+                mask = pd.Series(False, index=filtered_data.index)
+                
+                for value in selected_set_phase:
+                    # Parse the set-phase value (format: "set-phase-{set}-{phase}")
+                    parts = value.split('-')
+                    if len(parts) >= 4:  # Ensure we have both set and phase
+                        set_num = parts[2]
+                        phase_num = parts[3]
+                        
+                        # Apply filter for both set and phase
+                        set_mask = (filtered_data['Set No.'].astype(str) == set_num)
+                        phase_mask = (filtered_data['Phase No.'].astype(str) == phase_num)
+                        mask |= (set_mask & phase_mask)
+                    elif len(parts) == 3:  # Only set number provided
+                        set_num = parts[2]
+                        mask |= (filtered_data['Set No.'].astype(str) == set_num)
+
+                filtered_data = filtered_data[mask]
+
+            # Prepare load data
             load_data = []
-            for _, row in joint_data.iterrows():
+            for _, row in filtered_data.iterrows():
                 load_data.append({
                     'Attach. Joint Labels': str(row['Attach. Joint Labels']),
                     'Set No.': str(row['Set No.']) if pd.notna(row['Set No.']) else '',
@@ -436,12 +463,12 @@ def hdata1(request):
                     'Structure Loads Trans. (lbs)': float(row['Structure Loads Trans. (lbs)']) if pd.notna(row['Structure Loads Trans. (lbs)']) else 0,
                     'Structure Loads Long. (lbs)': float(row['Structure Loads Long. (lbs)']) if pd.notna(row['Structure Loads Long. (lbs)']) else 0
                 })
-            
-            # Get unique values for each column
-            joint_labels = [str(label) for label in joint_data['Attach. Joint Labels'].unique()]
-            set_numbers = [str(num) for num in joint_data['Set No.'].dropna().unique()]
-            phase_numbers = [str(num) for num in joint_data['Phase No.'].dropna().unique()]
-            
+
+            # Get unique values for display
+            joint_labels = [str(label) for label in filtered_data['Attach. Joint Labels'].unique()]
+            set_numbers = [str(num) for num in filtered_data['Set No.'].dropna().unique()]
+            phase_numbers = [str(num) for num in filtered_data['Phase No.'].dropna().unique()]
+
         except Exception as e:
             joint_labels = []
             set_numbers = []
@@ -453,12 +480,14 @@ def hdata1(request):
         set_numbers = []
         phase_numbers = []
         load_data = []
-    
+
     return render(request, 'app1/hdata1.html', {
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
-        'load_data_json': json.dumps(load_data)
+        'load_data': load_data,  # Pass the actual data, not just JSON
+        'load_data_json': json.dumps(load_data),
+        'selected_values': selected_values
     })
     
     
@@ -924,26 +953,124 @@ def hdeadend1(request):
 
 def hupload1(request):
     if request.method == 'POST':
-        form = HUDeadendForm1(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                form.save()
-                return redirect('hupload1')
-            except IntegrityError:
-                form.add_error('structure', 'A file has already been uploaded for this structure.')
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = HUDeadendForm1(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    form.save()
+                    return redirect('hupload1')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            selected_values = {
+                'set_phase': request.POST.getlist('set_phase_values'),
+                'joint_labels': request.POST.getlist('joint_label_values'),
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
     else:
         form = HUDeadendForm1()
 
-    files = hUploadedFile1.objects.all().order_by('-uploaded_at')[:2]  # Limit to 2 recent uploads
+    files = hUploadedFile1.objects.all().order_by('-uploaded_at')[:2]
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
 
-    return render(request, 'app1/hupload1.html', {'form': form, 'files': files})
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/hupload1.html', {
+        'form': form,
+        'files': files,
+        'structures_with_files': structures_with_files
+    })
 
 
 def hdrop1(request):
-    # Page load: return all structures
+    # Get data for Attachments Joint Labels
+    if 'get_joint_labels' in request.GET and 'structure_id' in request.GET:
+        structure_id = request.GET.get('structure_id')
+        try:
+            file = hUploadedFile1.objects.get(structure_id=structure_id)
+            df = pd.read_excel(file.file.path, engine='openpyxl')
+            
+            # Check for common column names that might contain joint labels
+            possible_columns = ['Attach. Joint Labels', 'Attachment Joint Labels', 'Joint Labels']
+            target_column = None
+            
+            for col in possible_columns:
+                if col in df.columns:
+                    target_column = col
+                    break
+            
+            if target_column:
+                values = df[target_column].dropna().astype(str).unique().tolist()
+                return JsonResponse({'values': values})
+            else:
+                return JsonResponse({'error': 'No joint labels column found'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to read file: {str(e)}"}, status=400)
+
+    # Get data for Set/Phase
+    if 'get_set_phase' in request.GET and 'structure_id' in request.GET:
+        structure_id = request.GET.get('structure_id')
+        try:
+            file = hUploadedFile1.objects.get(structure_id=structure_id)
+            df = pd.read_excel(file.file.path, engine='openpyxl')
+            
+            # Check for required columns
+            required_columns = {
+                'description': ['Load Case Description', 'Description', 'Load Description'],
+                'set_no': ['Set No.', 'Set Number', 'Set'],
+                'phase_no': ['Phase No.', 'Phase Number', 'Phase']
+            }
+            
+            found_columns = {}
+            for field, possible_names in required_columns.items():
+                for name in possible_names:
+                    if name in df.columns:
+                        found_columns[field] = name
+                        break
+            
+            if len(found_columns) == 3:
+                result = df[list(found_columns.values())].dropna().to_dict('records')
+                return JsonResponse({'data': result, 'columns': found_columns})
+            else:
+                return JsonResponse({'error': 'Required columns not found'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to read file: {str(e)}"}, status=400)
+
+    # Original hdrop1 functionality remains the same
     if request.method == "GET" and not request.GET:
         structures = ListOfStructure.objects.all()
         return render(request, 'app1/hdrop1.html', {'structures': structures})
+
 
     # AJAX: Get files of a selected structure
     if 'structure_id' in request.GET:

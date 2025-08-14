@@ -311,7 +311,36 @@ h2 {
     }
 }
 
-        
+        .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    
+    .data-table th {
+        background-color: #f2f2f2;
+    }
+    
+    .joint-labels-list {
+        list-style-type: none;
+        padding: 0;
+    }
+    
+    .joint-labels-list li {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .error {
+        color: red;
+        margin-top: 10px;
+    } 
         
 
         .popup-overlay {
@@ -444,55 +473,75 @@ h2 {
     </header>
     
     
-    <div class="content">
-        <div class="form-container">
-            <h2>File Upload</h2>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="upload-section">
-                    <div class="upload-box">
-                        <p>Select Structure</p>
-                        {{ form.structure }}
-                        
-                        <p>Drag files to upload</p>
-                        <input type="file" name="file" accept=".xls,.xlsx" required>
+<div class="content">
+    <div class="form-container">
+        <h2>File Upload</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-section">
+                <div class="upload-box">
+                    <p>Select Structure</p>
+                    {{ form.structure }}
 
-    
-                        <!-- Upload Button added inside form -->
-                        <button type="submit" class="upload-button">Upload File</button>
-                    </div>
-    
-                    <div class="uploading-section">
-                        <h3>Uploading</h3>
-                        {% for file in files %}
-                            <div class="file-progress">
-                                <div class="file-info">
-                                    <p>{{ file.file.name|slice:"10:" }} <span>{{ file.file.size|divisibleby:1024 }} KB</span></p>
-                                    <p>Uploaded on {{ file.uploaded_at|date:"d M Y H:i" }}</p>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress" style="width: 100%;"></div>
-                                </div>
-                                <p>Completed</p>
-                            </div>
-                        {% empty %}
-                            <p>No files uploaded yet.</p>
-                        {% endfor %}
-                    </div>
+                    <p>Drag files to upload</p>
+                    <input type="file" name="file" accept=".xls,.xlsx" required>
+
+                    <button type="submit" class="upload-button">Upload File</button>
                 </div>
-            </form>
-    
-            <div class="attachment-section">
-                <p>Assigned Attachment from Imported Data</p>
+
+                <div class="uploading-section">
+                    <h3>Uploading</h3>
+                    {% for file in files %}
+                    <div class="file-progress">
+                        <div class="file-info">
+                            <p>{{ file.file.name|slice:"10:" }} <span>{{ file.file.size|divisibleby:1024 }} KB</span>
+                            </p>
+                            <p>Uploaded on {{ file.uploaded_at|date:"d M Y H:i" }}</p>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 100%;"></div>
+                        </div>
+                        <p>Completed</p>
+                    </div>
+                    {% empty %}
+                    <p>No files uploaded yet.</p>
+                    {% endfor %}
+                </div>
             </div>
-    
-            <div class="buttons">
-                <button class="set-phase-button">Set / Phase</button>
-                OR
-                <button class="attachments-button">Attachments Joint Labels</button>
-            </div>
+        </form>
+
+        <div class="attachment-section">
+            <p>Select Structure to Extract Data</p>
+            <select id="structure-select" class="form-control">
+                <option value="">-- Select Structure --</option>
+                {% for structure in structures_with_files %}
+                <option value="{{ structure.id }}">{{ structure.structure }}</option>
+                {% endfor %}
+            </select>
         </div>
+
+        <div class="buttons">
+            <button id="set-phase-button" class="set-phase-button">Set / Phase</button>
+            OR
+            <button id="joint-labels-button" class="attachments-button">Attachments Joint Labels</button>
+        </div>
+
+        <div id="results-container" style="margin-top: 20px;">
+            <!-- Results will be displayed here -->
+        </div>
+
+        <!-- Hidden form for selected values -->
+        <form id="selected-values-form" method="post" style="display: none;">
+            {% csrf_token %}
+            <input type="hidden" name="structure_id" id="structure-id-input">
+            <input type="hidden" name="go_button" value="1">
+            <div id="set-phase-values-container"></div>
+            <div id="joint-label-values-container"></div>
+            <button type="submit" id="go-button">Go</button>
+        </form>
     </div>
+</div>
+
     
     
     
@@ -535,17 +584,187 @@ h2 {
         }
     
     
-        // Add redirection for the buttons
-        document.querySelector('.set-phase-button').addEventListener('click', function () {
-            window.location.href = '/hdrop1/'; // Redirect to the drop1 page
-        });
-    
-        document.querySelector('.attachments-button').addEventListener('click', function () {
-            window.location.href = '/hdrop1/'; // Redirect to the drop1 page
-        });
     </script>
     
-    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const structureSelect = document.getElementById('structure-select');
+            const setPhaseButton = document.getElementById('set-phase-button');
+            const jointLabelsButton = document.getElementById('joint-labels-button');
+            const resultsContainer = document.getElementById('results-container');
+            const selectedValuesForm = document.getElementById('selected-values-form');
+            const goButton = document.getElementById('go-button');
+            const structureIdInput = document.getElementById('structure-id-input');
+            const setPhaseValuesContainer = document.getElementById('set-phase-values-container');
+            const jointLabelValuesContainer = document.getElementById('joint-label-values-container');
+
+            // Handle Set/Phase button click
+            setPhaseButton.addEventListener('click', function () {
+                const structureId = structureSelect.value;
+                if (!structureId) {
+                    alert('Please select a structure first');
+                    return;
+                }
+
+                fetch(`/hupload1/?get_set_phase=true&structure_id=${structureId}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                            return;
+                        }
+
+                        let html = '<h3>Set / Phase Data</h3>';
+                        html += '<form id="set-phase-form">';
+                        html += '<table class="data-table"><thead><tr>';
+
+                        // Add checkbox column header
+                        html += '<th>Select</th>';
+
+                        // Add other headers
+                        for (const [key, value] of Object.entries(data.columns)) {
+                            html += `<th>${value}</th>`;
+                        }
+
+                        html += '</tr></thead><tbody>';
+
+                        // Add rows with checkboxes
+                        data.data.forEach(row => {
+                            html += '<tr>';
+                            // Add checkbox
+                            const rowId = `set-phase-${row[data.columns['Set No.']]}-${row[data.columns['Phase No.']]}`;
+                            html += `<td><input type="checkbox" name="set_phase_values" value="${rowId}" data-set="${row[data.columns['Set No.']]}" data-phase="${row[data.columns['Phase No.']]}"></td>`;
+                            // Add other columns
+                            for (const col of Object.values(data.columns)) {
+                                html += `<td>${row[col] || ''}</td>`;
+                            }
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody></table>';
+                        html += '<button type="button" class="go-button">Go</button>';
+                        html += '</form>';
+                        resultsContainer.innerHTML = html;
+
+                        // Set up the Go button for set/phase
+                        document.querySelector('#set-phase-form .go-button').addEventListener('click', function () {
+                            // Collect selected values
+                            const selectedCheckboxes = document.querySelectorAll('#set-phase-form input[type="checkbox"]:checked');
+                            const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+                            // Update hidden form
+                            setPhaseValuesContainer.innerHTML = '';
+                            selectedValues.forEach(value => {
+                                const input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'set_phase_values';
+                                input.value = value;
+                                setPhaseValuesContainer.appendChild(input);
+                            });
+
+                            // Set structure ID
+                            structureIdInput.value = structureId;
+
+                            // Submit the form
+                            selectedValuesForm.submit();
+                        });
+                    })
+                    .catch(error => {
+                        resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+                    });
+            });
+
+            // Inside your DOMContentLoaded event listener
+            document.querySelector('#go-button').addEventListener('click', function (e) {
+                e.preventDefault();
+
+                // Collect selected values
+                const structureId = document.getElementById('structure-select').value;
+                if (!structureId) {
+                    alert('Please select a structure first');
+                    return;
+                }
+
+                // Set structure ID
+                document.getElementById('structure-id-input').value = structureId;
+
+                // Submit the form
+                document.getElementById('selected-values-form').submit();
+            });
+            
+            // Handle Joint Labels button click
+            jointLabelsButton.addEventListener('click', function () {
+                const structureId = structureSelect.value;
+                if (!structureId) {
+                    alert('Please select a structure first');
+                    return;
+                }
+
+                fetch(`/hupload1/?get_joint_labels=true&structure_id=${structureId}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                            return;
+                        }
+
+                        let html = '<h3>Attachment Joint Labels</h3>';
+                        if (data.values && data.values.length > 0) {
+                            html += '<form id="joint-labels-form">';
+                            html += '<ul class="joint-labels-list">';
+                            data.values.forEach(label => {
+                                html += `<li>
+                            <input type="checkbox" name="joint_label_values" value="${label}">
+                            ${label}
+                        </li>`;
+                            });
+                            html += '</ul>';
+                            html += '<button type="button" class="go-button">Go</button>';
+                            html += '</form>';
+                        } else {
+                            html += '<p>No joint labels found</p>';
+                        }
+                        resultsContainer.innerHTML = html;
+
+                        // Set up the Go button for joint labels
+                        if (data.values && data.values.length > 0) {
+                            document.querySelector('#joint-labels-form .go-button').addEventListener('click', function () {
+                                // Collect selected values
+                                const selectedCheckboxes = document.querySelectorAll('#joint-labels-form input[type="checkbox"]:checked');
+                                const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+                                // Update hidden form
+                                jointLabelValuesContainer.innerHTML = '';
+                                selectedValues.forEach(value => {
+                                    const input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = 'joint_label_values';
+                                    input.value = value;
+                                    jointLabelValuesContainer.appendChild(input);
+                                });
+
+                                // Set structure ID
+                                structureIdInput.value = structureId;
+
+                                // Submit the form
+                                selectedValuesForm.submit();
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+                    });
+            });
+        });
+    </script>
 </body>
 </html>
 
