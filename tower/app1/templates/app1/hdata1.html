@@ -540,23 +540,23 @@
                     {% endfor %}
                 </div>
             </div>
-            
-            <!-- Load Display Table -->
+                        
+                        <!-- Load Display Table -->
             <div id="load-display" class="mt-4">
                 <h5>Load Values:</h5>
-                <table class="table table-bordered" id="load-table">
-                    <thead>
-                        <tr>
-                            <th>Joint Label</th>
-                            <th>Set No.</th>
-                            <th>Phase No.</th>
-                            <th>Vertical (lbs)</th>
-                            <th>Transverse (lbs)</th>
-                            <th>Longitudinal (lbs)</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="table table-bordered" id="load-table">
+                        <thead>
+                            <tr>
+                                <!-- Dynamically generate column headers for ALL columns -->
+                                {% for column in all_columns %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
@@ -1044,60 +1044,58 @@
     }
     
     // Update table with selected labels
-    function updateTable() {
+    // Update table with selected labels
+function updateTable() {
     clearTable();
     const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
-
-    tbody.innerHTML = '';
-
-            // Add new rows from the data
-            loadData.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                <td>${item['Attach. Joint Labels']}</td>
-                <td>${item['Set No.']}</td>
-                <td>${item['Phase No.']}</td>
-                <td>${item['Structure Loads Vert. (lbs)']}</td>
-                <td>${item['Structure Loads Trans. (lbs)']}</td>
-                <td>${item['Structure Loads Long. (lbs)']}</td>
-            `;
-            });
-
-            // Initialize the rest of your 3D viewer
-            initModelViewer();
     
+    // Get all column names from the table headers
+    const columns = Array.from(document.querySelectorAll('#load-table thead th'))
+        .map(th => th.textContent.trim());
+    
+    // Add new rows from the data
+    loadData.forEach(item => {
+        const row = tbody.insertRow();
+        
+        // Add cells for each column
+        columns.forEach(column => {
+            const cell = row.insertCell();
+            cell.textContent = item[column] !== undefined ? item[column] : '';
+        });
+    });
     
     // Add joints
     Array.from(selectedJoints).forEach(label => {
         const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
         if (loadInfo) {
             const newRow = tbody.insertRow();
-            newRow.innerHTML = `
-                <td>${label}</td>
-                <td>${loadInfo['Set No.'] || ''}</td>
-                <td>${loadInfo['Phase No.'] || ''}</td>
-                <td>${loadInfo['Structure Loads Vert. (lbs)'] || ''}</td>
-                <td>${loadInfo['Structure Loads Trans. (lbs)'] || ''}</td>
-                <td>${loadInfo['Structure Loads Long. (lbs)'] || ''}</td>
-            `;
+            
+            // Add cells for each column
+            columns.forEach(column => {
+                const cell = newRow.insertCell();
+                cell.textContent = loadInfo[column] !== undefined ? loadInfo[column] : '';
+            });
         }
     });
 
+    // Add sets (if you want to display them in the table)
     Array.from(selectedSets).forEach(setNum => {
         const newRow = tbody.insertRow();
-        newRow.innerHTML = `
-            <td colspan="3" style="text-align: center; background-color: #e6f2ff;">Set ${setNum}</td>
-            <td colspan="3" style="background-color: #e6f2ff;"></td>
-        `;
+        const cell = newRow.insertCell();
+        cell.colSpan = columns.length;
+        cell.textContent = `Set ${setNum}`;
+        cell.style.textAlign = 'center';
+        cell.style.backgroundColor = '#e6f2ff';
     });
     
     // Add phases (if you want to display them in the table)
     Array.from(selectedPhases).forEach(phaseNum => {
         const newRow = tbody.insertRow();
-        newRow.innerHTML = `
-            <td colspan="3" style="text-align: center; background-color: #e6ffe6;">Phase ${phaseNum}</td>
-            <td colspan="3" style="background-color: #e6ffe6;"></td>
-        `;
+        const cell = newRow.insertCell();
+        cell.colSpan = columns.length;
+        cell.textContent = `Phase ${phaseNum}`;
+        cell.style.textAlign = 'center';
+        cell.style.backgroundColor = '#e6ffe6';
     });
 }
     
@@ -1189,7 +1187,8 @@ function addPhaseMarker(phaseNumber) {
     document.addEventListener('DOMContentLoaded', function() {
     // Initialize 3D viewer
     initModelViewer();
-    
+    updateTable();
+
     // Handle checkbox changes for all types
     ['joint', 'set', 'phase'].forEach(type => {
         const container = document.getElementById(`${type}-${type === 'joint' ? 'labels' : 'numbers'}`);

@@ -153,14 +153,7 @@ h2 {
 /* Upload section layout */
 .upload-section {
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
-/* Upload box and Uploading list */
-.upload-box, .uploading-section {
-    flex: 1;
-    min-width: 280px;
+    justify-content: center;
 }
 
 /* Upload box style */
@@ -170,6 +163,8 @@ h2 {
     border-radius: 8px;
     text-align: center;
     background-color: #fafafa;
+    width: 100%;
+    max-width: 500px;
 }
 
 .upload-box p {
@@ -178,57 +173,15 @@ h2 {
 }
 
 /* File input fields */
-.upload-box input[type="file"], .upload-box select {
+.upload-box input[type="file"], 
+.upload-box select,
+.form-control {
     width: 100%;
     padding: 8px;
     margin-top: 8px;
     border: 1px solid #ccc;
     border-radius: 5px;
-}
-
-/* Uploading section */
-.uploading-section h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-/* Each file progress block */
-.file-progress {
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-}
-
-/* File info */
-.file-info {
-    margin-bottom: 8px;
-}
-
-.file-info p {
-    margin: 0;
-    font-size: 14px;
-}
-
-/* Progress bar */
-.progress-bar {
-    background-color: #e0e0e0;
-    height: 8px;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.progress {
-    background-color: #4caf50;
-    height: 100%;
-}
-
-/* Text below progress */
-.file-progress > p:last-child {
-    margin-top: 8px;
-    font-size: 12px;
-    color: green;
+    box-sizing: border-box;
 }
 
 /* Attachment section */
@@ -268,8 +221,47 @@ h2 {
     background-color: #0056b3;
 }
 
-
 /* Buttons */
+/* Add these styles to your CSS file */
+
+/* Success message styling */
+.messages {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+}
+
+.alert {
+    padding: 15px 25px;
+    border-radius: 5px;
+    margin: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.5s ease-out;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Go button styling */
+
 .set-phase-button, .attachments-button {
     flex: 1;
     min-width: 150px;
@@ -296,10 +288,89 @@ h2 {
     background-color: #029023;
 }
 
+.styled-go-button, 
+#set-phase-form .go-button, 
+#joint-labels-form .go-button {
+    background-color: #28a745;
+    color: white;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 15px;
+    display: inline-block;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.styled-go-button:hover, 
+#set-phase-form .go-button:hover, 
+#joint-labels-form .go-button:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.styled-go-button:active, 
+#set-phase-form .go-button:active, 
+#joint-labels-form .go-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Center the Go buttons in forms */
+#set-phase-form, 
+#joint-labels-form {
+    text-align: center;
+}
+
+/* Data tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.data-table th {
+    background-color: #f2f2f2;
+}
+
+.joint-labels-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.joint-labels-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .upload-section {
-        flex-direction: column;
+    .content {
+        padding: 10px;
+        margin-top: 60px;
+    }
+    
+    .form-container {
+        width: 100%;
+        padding: 15px;
+    }
+    
+    .upload-box {
+        padding: 15px;
     }
     
     .buttons {
@@ -309,39 +380,56 @@ h2 {
     .set-phase-button, .attachments-button {
         width: 100%;
     }
+    
+    .attachment-section {
+        padding: 10px;
+    }
+}
+    .load-case-links {
+    margin-bottom: 15px;
 }
 
-        .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    
-    .data-table th, .data-table td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-    }
-    
-    .data-table th {
-        background-color: #f2f2f2;
-    }
-    
-    .joint-labels-list {
-        list-style-type: none;
-        padding: 0;
-    }
-    
-    .joint-labels-list li {
-        padding: 8px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .error {
-        color: red;
-        margin-top: 10px;
-    } 
-        
+.load-case-link {
+    display: inline-block;
+    margin-right: 15px;
+    padding: 8px 15px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+}
+
+.load-case-link:hover {
+    background-color: #e0e0e0;
+}
+
+.load-cases-list, .group-load-cases-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.load-cases-list li, .group-load-cases-list li {
+    margin-bottom: 5px;
+}
+
+.load-case-group {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.load-case-group h5 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.group-select-all {
+    margin-bottom: 10px;
+    font-weight: bold;
+}  
 
         .popup-overlay {
             position: fixed;
@@ -474,6 +562,16 @@ h2 {
     
     
 <div class="content">
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="form-container">
         <h2>File Upload</h2>
         <form method="post" enctype="multipart/form-data">
@@ -488,25 +586,6 @@ h2 {
 
                     <button type="submit" class="upload-button">Upload File</button>
                 </div>
-
-                <div class="uploading-section">
-                    <h3>Uploading</h3>
-                    {% for file in files %}
-                    <div class="file-progress">
-                        <div class="file-info">
-                            <p>{{ file.file.name|slice:"10:" }} <span>{{ file.file.size|divisibleby:1024 }} KB</span>
-                            </p>
-                            <p>Uploaded on {{ file.uploaded_at|date:"d M Y H:i" }}</p>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress" style="width: 100%;"></div>
-                        </div>
-                        <p>Completed</p>
-                    </div>
-                    {% empty %}
-                    <p>No files uploaded yet.</p>
-                    {% endfor %}
-                </div>
             </div>
         </form>
 
@@ -518,6 +597,19 @@ h2 {
                 <option value="{{ structure.id }}">{{ structure.structure }}</option>
                 {% endfor %}
             </select>
+        </div>
+
+        <!-- New Load Cases Section -->
+        <div class="load-cases-section" style="margin-top: 20px; display: none;" id="load-cases-section">
+            <h3>Load Cases</h3>
+            <div class="load-case-links">
+                <a href="#" id="imported-load-cases-link" class="load-case-link">Imported Load Cases</a>
+                <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
+            </div>
+            
+            <div id="load-cases-results" style="margin-top: 20px;">
+                <!-- Load cases results will be displayed here -->
+            </div>
         </div>
 
         <div class="buttons">
@@ -537,7 +629,8 @@ h2 {
             <input type="hidden" name="go_button" value="1">
             <div id="set-phase-values-container"></div>
             <div id="joint-label-values-container"></div>
-            <button type="submit" id="go-button">Go</button>
+            <div id="load-case-values-container"></div>
+            <button type="submit" id="go-button" class="styled-go-button">Go</button>
         </form>
     </div>
 </div>
@@ -587,83 +680,327 @@ h2 {
     </script>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const structureSelect = document.getElementById('structure-select');
-            const setPhaseButton = document.getElementById('set-phase-button');
-            const jointLabelsButton = document.getElementById('joint-labels-button');
-            const resultsContainer = document.getElementById('results-container');
-            const selectedValuesForm = document.getElementById('selected-values-form');
-            const goButton = document.getElementById('go-button');
-            const structureIdInput = document.getElementById('structure-id-input');
-            const setPhaseValuesContainer = document.getElementById('set-phase-values-container');
-            const jointLabelValuesContainer = document.getElementById('joint-label-values-container');
+    document.addEventListener('DOMContentLoaded', function () {
+        const structureSelect = document.getElementById('structure-select');
+        const setPhaseButton = document.getElementById('set-phase-button');
+        const jointLabelsButton = document.getElementById('joint-labels-button');
+        const resultsContainer = document.getElementById('results-container');
+        const selectedValuesForm = document.getElementById('selected-values-form');
+        const goButton = document.getElementById('go-button');
+        const structureIdInput = document.getElementById('structure-id-input');
+        const setPhaseValuesContainer = document.getElementById('set-phase-values-container');
+        const jointLabelValuesContainer = document.getElementById('joint-label-values-container');
+        const loadCaseValuesContainer = document.getElementById('load-case-values-container');
+        const loadCasesSection = document.getElementById('load-cases-section');
+        const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
+        const groupLoadCasesLink = document.getElementById('group-load-cases-link');
+        const loadCasesResults = document.getElementById('load-cases-results');
 
-            // Handle Set/Phase button click
-            setPhaseButton.addEventListener('click', function () {
-                const structureId = structureSelect.value;
-                if (!structureId) {
-                    alert('Please select a structure first');
+        // Show load cases section when a structure is selected
+        structureSelect.addEventListener('change', function() {
+            if (this.value) {
+                loadCasesSection.style.display = 'block';
+            } else {
+                loadCasesSection.style.display = 'none';
+                loadCasesResults.innerHTML = '';
+            }
+        });
+
+        // Handle Imported Load Cases link click
+        importedLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
                     return;
                 }
 
-                fetch(`/hupload1/?get_set_phase=true&structure_id=${structureId}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
-                            return;
-                        }
+                let html = '<h4>Imported Load Cases</h4>';
+                if (data.values && data.values.length > 0) {
+                    html += '<form id="load-cases-form">';
+                    html += '<ul class="load-cases-list">';
+                    data.values.forEach(caseName => {
+                        html += `<li>
+                            <input type="checkbox" name="load_case_values" value="${caseName}">
+                            ${caseName}
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    html += '<button type="button" class="go-button load-case-go">Go</button>';
+                    html += '</form>';
+                } else {
+                    html += '<p>No load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
 
-                        let html = '<h3>Set / Phase Data</h3>';
-                        html += '<form id="set-phase-form">';
-                        html += '<table class="data-table"><thead><tr>';
+                // Set up the Go button for load cases
+                if (data.values && data.values.length > 0) {
+                    document.querySelector('#load-cases-form .load-case-go').addEventListener('click', function() {
+                        // Collect selected values
+                        const selectedCheckboxes = document.querySelectorAll('#load-cases-form input[type="checkbox"]:checked');
+                        const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
 
-                        // Add checkbox column header
-                        html += '<th>Select</th>';
-
-                        // Add other headers
-                        for (const [key, value] of Object.entries(data.columns)) {
-                            html += `<th>${value}</th>`;
-                        }
-
-                        html += '</tr></thead><tbody>';
-
-                        // Add rows with checkboxes
-                        data.data.forEach(row => {
-                            html += '<tr>';
-                            // Add checkbox
-                            const rowId = `set-phase-${row[data.columns['Set No.']]}-${row[data.columns['Phase No.']]}`;
-                            html += `<td><input type="checkbox" name="set_phase_values" value="${rowId}" data-set="${row[data.columns['Set No.']]}" data-phase="${row[data.columns['Phase No.']]}"></td>`;
-                            // Add other columns
-                            for (const col of Object.values(data.columns)) {
-                                html += `<td>${row[col] || ''}</td>`;
-                            }
-                            html += '</tr>';
+                        // Update hidden form
+                        loadCaseValuesContainer.innerHTML = '';
+                        selectedValues.forEach(value => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'load_case_values';
+                            input.value = value;
+                            loadCaseValuesContainer.appendChild(input);
                         });
 
-                        html += '</tbody></table>';
+                        // Set structure ID
+                        structureIdInput.value = structureId;
+
+                        // Submit the form
+                        selectedValuesForm.submit();
+                    });
+                }
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+        // Handle Group Load Cases link click
+        groupLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Group Load Cases</h4>';
+                if (data.groups && Object.keys(data.groups).length > 0) {
+                    html += '<form id="grouped-load-cases-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName}</h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
+                                <label for="select-all-${groupName}">Select All</label>
+                            </div>
+                            <ul class="group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}">
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '<button type="button" class="go-button load-case-go">Go</button>';
+                    html += '</form>';
+                } else {
+                    html += '<p>No grouped load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality
+                document.querySelectorAll('.select-all-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                        });
+                    });
+                });
+
+                // Set up the Go button for grouped load cases
+                if (data.groups && Object.keys(data.groups).length > 0) {
+                    document.querySelector('#grouped-load-cases-form .load-case-go').addEventListener('click', function() {
+                        // Collect selected values
+                        const selectedCheckboxes = document.querySelectorAll('#grouped-load-cases-form input[type="checkbox"]:checked');
+                        const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+                        // Update hidden form
+                        loadCaseValuesContainer.innerHTML = '';
+                        selectedValues.forEach(value => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'load_case_values';
+                            input.value = value;
+                            loadCaseValuesContainer.appendChild(input);
+                        });
+
+                        // Set structure ID
+                        structureIdInput.value = structureId;
+
+                        // Submit the form
+                        selectedValuesForm.submit();
+                    });
+                }
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+        // ... (keep the existing setPhaseButton and jointLabelsButton event listeners)
+        // Handle Set/Phase button click
+        setPhaseButton.addEventListener('click', function () {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_set_phase=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                        return;
+                    }
+
+                    let html = '<h3>Set / Phase Data</h3>';
+                    html += '<form id="set-phase-form">';
+                    html += '<table class="data-table"><thead><tr>';
+
+                    // Add checkbox column header
+                    html += '<th>Select</th>';
+
+                    // Add other headers
+                    for (const [key, value] of Object.entries(data.columns)) {
+                        html += `<th>${value}</th>`;
+                    }
+
+                    html += '</tr></thead><tbody>';
+
+                    // Add rows with checkboxes
+                    data.data.forEach(row => {
+                        html += '<tr>';
+                        // Add checkbox
+                        const rowId = `set-phase-${row[data.columns['Set No.']]}-${row[data.columns['Phase No.']]}`;
+                        html += `<td><input type="checkbox" name="set_phase_values" value="${rowId}" data-set="${row[data.columns['Set No.']]}" data-phase="${row[data.columns['Phase No.']]}"></td>`;
+                        // Add other columns
+                        for (const col of Object.values(data.columns)) {
+                            html += `<td>${row[col] || ''}</td>`;
+                        }
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    html += '<button type="button" class="go-button">Go</button>';
+                    html += '</form>';
+                    resultsContainer.innerHTML = html;
+
+                    // Set up the Go button for set/phase
+                    document.querySelector('#set-phase-form .go-button').addEventListener('click', function () {
+                        // Collect selected values
+                        const selectedCheckboxes = document.querySelectorAll('#set-phase-form input[type="checkbox"]:checked');
+                        const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+                        // Update hidden form
+                        setPhaseValuesContainer.innerHTML = '';
+                        selectedValues.forEach(value => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'set_phase_values';
+                            input.value = value;
+                            setPhaseValuesContainer.appendChild(input);
+                        });
+
+                        // Set structure ID
+                        structureIdInput.value = structureId;
+
+                        // Submit the form
+                        selectedValuesForm.submit();
+                    });
+                })
+                .catch(error => {
+                    resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+                });
+        });
+
+        // Handle Joint Labels button click
+        jointLabelsButton.addEventListener('click', function () {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_joint_labels=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                        return;
+                    }
+
+                    let html = '<h3>Attachment Joint Labels</h3>';
+                    if (data.values && data.values.length > 0) {
+                        html += '<form id="joint-labels-form">';
+                        html += '<ul class="joint-labels-list">';
+                        data.values.forEach(label => {
+                            html += `<li>
+                        <input type="checkbox" name="joint_label_values" value="${label}">
+                        ${label}
+                    </li>`;
+                        });
+                        html += '</ul>';
                         html += '<button type="button" class="go-button">Go</button>';
                         html += '</form>';
-                        resultsContainer.innerHTML = html;
+                    } else {
+                        html += '<p>No joint labels found</p>';
+                    }
+                    resultsContainer.innerHTML = html;
 
-                        // Set up the Go button for set/phase
-                        document.querySelector('#set-phase-form .go-button').addEventListener('click', function () {
+                    // Set up the Go button for joint labels
+                    if (data.values && data.values.length > 0) {
+                        document.querySelector('#joint-labels-form .go-button').addEventListener('click', function () {
                             // Collect selected values
-                            const selectedCheckboxes = document.querySelectorAll('#set-phase-form input[type="checkbox"]:checked');
+                            const selectedCheckboxes = document.querySelectorAll('#joint-labels-form input[type="checkbox"]:checked');
                             const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
 
                             // Update hidden form
-                            setPhaseValuesContainer.innerHTML = '';
+                            jointLabelValuesContainer.innerHTML = '';
                             selectedValues.forEach(value => {
                                 const input = document.createElement('input');
                                 input.type = 'hidden';
-                                input.name = 'set_phase_values';
+                                input.name = 'joint_label_values';
                                 input.value = value;
-                                setPhaseValuesContainer.appendChild(input);
+                                jointLabelValuesContainer.appendChild(input);
                             });
 
                             // Set structure ID
@@ -672,99 +1009,45 @@ h2 {
                             // Submit the form
                             selectedValuesForm.submit();
                         });
-                    })
-                    .catch(error => {
-                        resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-                    });
-            });
-
-            // Inside your DOMContentLoaded event listener
-            document.querySelector('#go-button').addEventListener('click', function (e) {
-                e.preventDefault();
-
-                // Collect selected values
-                const structureId = document.getElementById('structure-select').value;
-                if (!structureId) {
-                    alert('Please select a structure first');
-                    return;
-                }
-
-                // Set structure ID
-                document.getElementById('structure-id-input').value = structureId;
-
-                // Submit the form
-                document.getElementById('selected-values-form').submit();
-            });
-            
-            // Handle Joint Labels button click
-            jointLabelsButton.addEventListener('click', function () {
-                const structureId = structureSelect.value;
-                if (!structureId) {
-                    alert('Please select a structure first');
-                    return;
-                }
-
-                fetch(`/hupload1/?get_joint_labels=true&structure_id=${structureId}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
-                            return;
-                        }
-
-                        let html = '<h3>Attachment Joint Labels</h3>';
-                        if (data.values && data.values.length > 0) {
-                            html += '<form id="joint-labels-form">';
-                            html += '<ul class="joint-labels-list">';
-                            data.values.forEach(label => {
-                                html += `<li>
-                            <input type="checkbox" name="joint_label_values" value="${label}">
-                            ${label}
-                        </li>`;
-                            });
-                            html += '</ul>';
-                            html += '<button type="button" class="go-button">Go</button>';
-                            html += '</form>';
-                        } else {
-                            html += '<p>No joint labels found</p>';
-                        }
-                        resultsContainer.innerHTML = html;
-
-                        // Set up the Go button for joint labels
-                        if (data.values && data.values.length > 0) {
-                            document.querySelector('#joint-labels-form .go-button').addEventListener('click', function () {
-                                // Collect selected values
-                                const selectedCheckboxes = document.querySelectorAll('#joint-labels-form input[type="checkbox"]:checked');
-                                const selectedValues = Array.from(selectedCheckboxes).map(cb => cb.value);
-
-                                // Update hidden form
-                                jointLabelValuesContainer.innerHTML = '';
-                                selectedValues.forEach(value => {
-                                    const input = document.createElement('input');
-                                    input.type = 'hidden';
-                                    input.name = 'joint_label_values';
-                                    input.value = value;
-                                    jointLabelValuesContainer.appendChild(input);
-                                });
-
-                                // Set structure ID
-                                structureIdInput.value = structureId;
-
-                                // Submit the form
-                                selectedValuesForm.submit();
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-                    });
-            });
+                .catch(error => {
+                    resultsContainer.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+                });
         });
-    </script>
+
+        // Inside your DOMContentLoaded event listener
+        document.querySelector('#go-button').addEventListener('click', function (e) {
+            e.preventDefault();
+
+            // Collect selected values
+            const structureId = document.getElementById('structure-select').value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            // Set structure ID
+            document.getElementById('structure-id-input').value = structureId;
+
+            // Submit the form
+            document.getElementById('selected-values-form').submit();
+        });
+    });
+
+    setTimeout(function() {
+        const messages = document.querySelectorAll('.alert');
+        messages.forEach(function(message) {
+            message.style.transition = 'opacity 0.5s ease-out';
+            message.style.opacity = '0';
+            setTimeout(function() {
+                message.remove();
+            }, 500);
+        });
+    }, 3000); 
+</script>
+
+
 </body>
 </html>
 

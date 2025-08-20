@@ -298,7 +298,23 @@ class hUploadedFile1(models.Model):
             models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
             
         ]
-        
+
+# Add these models to your models.py
+class LoadCaseGroup(models.Model):
+    name = models.CharField(max_length=100)
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='hload_case_groups')
+    
+    def __str__(self):
+        return self.name
+
+class LoadCase(models.Model):
+    name = models.CharField(max_length=100)
+    group = models.ForeignKey(LoadCaseGroup, on_delete=models.CASCADE, related_name='load_cases', null=True, blank=True)
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='hload_cases')
+    
+    def __str__(self):
+        return self.name
+    
         
 class HDeadend2(models.Model):
     CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]

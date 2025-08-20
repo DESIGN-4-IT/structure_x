@@ -1,0 +1,889 @@
+first read complete promt and act as experience developer 
+i wanted to modify canvas container functionality after selecting Attach. Joint Labels: values 
+that values drop into canvas container in white box after hover no that value it shows realted data so 
+i want all same functioanlity to Set No.: and Phase No.: valaues after selecting any values 
+from  Set No.: and Phase No.: then drop that related values in canvas container same as 
+Attach. Joint Labels: values  and other functionlaity also i want same 
+and told me where need to modify code only give modified code in response 
+this is view "def hdata1(request):
+    # Get selected values from session
+    selected_values = request.session.get('selected_values', {})
+    structure_id = selected_values.get('structure_id')
+
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            # Initialize filtered data
+            filtered_data = df
+
+            # Filter by joint labels if selected
+            selected_joints = selected_values.get('joint_labels', [])
+            if selected_joints:
+                filtered_data = filtered_data[filtered_data['Attach. Joint Labels'].isin(selected_joints)]
+
+            # Filter by set/phase if selected
+            selected_set_phase = selected_values.get('set_phase', [])
+            if selected_set_phase:
+                # Create a mask for filtering
+                mask = pd.Series(False, index=filtered_data.index)
+                
+                for value in selected_set_phase:
+                    # Parse the set-phase value (format: "set-phase-{set}-{phase}")
+                    parts = value.split('-')
+                    if len(parts) >= 4:  # Ensure we have both set and phase
+                        set_num = parts[2]
+                        phase_num = parts[3]
+                        
+                        # Apply filter for both set and phase
+                        set_mask = (filtered_data['Set No.'].astype(str) == set_num)
+                        phase_mask = (filtered_data['Phase No.'].astype(str) == phase_num)
+                        mask |= (set_mask & phase_mask)
+                    elif len(parts) == 3:  # Only set number provided
+                        set_num = parts[2]
+                        mask |= (filtered_data['Set No.'].astype(str) == set_num)
+
+                filtered_data = filtered_data[mask]
+
+            # Filter by load cases if selected
+            selected_load_cases = selected_values.get('load_cases', [])
+            if selected_load_cases and 'Load Case Description' in filtered_data.columns:
+                filtered_data = filtered_data[filtered_data['Load Case Description'].isin(selected_load_cases)]
+
+            # Prepare complete data for table display - include ALL columns
+            load_data = []
+            for _, row in filtered_data.iterrows():
+                row_data = {}
+                # Add all columns from the dataframe
+                for col in filtered_data.columns:
+                    if pd.notna(row[col]):
+                        # Convert numeric values to appropriate types
+                        if pd.api.types.is_numeric_dtype(filtered_data[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(filtered_data[col]) else 0
+                load_data.append(row_data)
+
+            # Get unique values for display
+            joint_labels = [str(label) for label in filtered_data['Attach. Joint Labels'].unique()]
+            set_numbers = [str(num) for num in filtered_data['Set No.'].dropna().unique()]
+            phase_numbers = [str(num) for num in filtered_data['Phase No.'].dropna().unique()]
+
+        except Exception as e:
+            joint_labels = []
+            set_numbers = []
+            phase_numbers = []
+            load_data = []
+            print(f"Error processing Excel file: {str(e)}")
+    else:
+        joint_labels = []
+        set_numbers = []
+        phase_numbers = []
+        load_data = []
+
+    return render(request, 'app1/hdata1.html', {
+        'joint_labels': joint_labels,
+        'set_numbers': set_numbers,
+        'phase_numbers': phase_numbers,
+        'load_data': load_data,  # Pass the actual data, not just JSON
+        'load_data_json': json.dumps(load_data),
+        'selected_values': selected_values,
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else []  # Pass all column names
+    })" this is hdata1.html "<div class="container">
+    <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
+    
+    <div class="row">
+        <!-- Left side - Selection Options -->
+        <div class="col-md-4">
+            <!-- Joint Labels Section -->
+            <div class="form-group">
+                <label for="joint-labels">Attach. Joint Labels:</label>
+                <div class="checkbox-list" id="joint-labels">
+                    {% for label in joint_labels %}
+                        <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                            <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Set Numbers Section -->
+            <div class="form-group">
+                <label for="set-numbers">Set No.:</label>
+                <div class="checkbox-list" id="set-numbers">
+                    {% for num in set_numbers %}
+                        <label draggable="true" class="drag-item" data-type="set" data-value="{{ num }}">
+                            <input type="checkbox" name="set-numbers" value="{{ num }}"> {{ num }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Phase Numbers Section -->
+            <div class="form-group">
+                <label for="phase-numbers">Phase No.:</label>
+                <div class="checkbox-list" id="phase-numbers">
+                    {% for num in phase_numbers %}
+                        <label draggable="true" class="drag-item" data-type="phase" data-value="{{ num }}">
+                            <input type="checkbox" name="phase-numbers" value="{{ num }}"> {{ num }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+                        
+                        <!-- Load Display Table -->
+            <div id="load-display" class="mt-4">
+                <h5>Load Values:</h5>
+                <div style="overflow-x: auto;">
+                    <table class="table table-bordered" id="load-table">
+                        <thead>
+                            <tr>
+                                <!-- Dynamically generate column headers for ALL columns -->
+                                {% for column in all_columns %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right side - 3D Model Viewer -->
+        <div class="col-md-8">
+            <div id="model-viewer" style="height: 600px; border: 1px solid #ccc; position: relative;">
+                <canvas id="model-canvas"></canvas>
+                <div id="joint-markers-container"></div>
+                <div id="set-markers-container"></div>
+                <div id="phase-markers-container"></div>
+                <div id="load-displays-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Three.js library -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    // Load data passed from Django
+    const loadData = JSON.parse('{{ load_data_json|escapejs }}');
+    
+    // Three.js variables
+    let scene, camera, renderer, model, controls;
+    const jointMarkers = {};
+    const selectedJoints = new Set();
+    const loadDisplays = {};
+    const setMarkers = {};
+    const phaseMarkers = {};
+    const selectedSets = new Set();
+    const selectedPhases = new Set();
+    let activeJoint = null;
+
+    
+    // Initialize the 3D model viewer
+    function initModelViewer() {
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        
+        // Create camera
+        camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+        
+        // Create renderer
+        const canvas = document.getElementById('model-canvas');
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+        
+        // Add controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+        
+        // Load GLB model
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            "{% static 'app1/images/tower3d.glb' %}",
+            function (gltf) {
+                model = gltf.scene;
+                scene.add(model);
+                
+                // Center the model
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.sub(center);
+                
+                // Auto-rotate
+                model.rotation.y = Math.PI / 4;
+                
+                // Start animation loop
+                animate();
+            },
+            undefined,
+            function (error) {
+                console.error('Error loading model:', error);
+            }
+        );
+        
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize);
+    }
+    
+    // Add a marker for a joint on the 3D model
+    function addJointMarker(jointLabel) {
+        if (jointMarkers[jointLabel]) return; // Already exists
+        
+        // Find the load data for this joint
+        const jointLoadData = loadData.find(item => item['Attach. Joint Labels'] === jointLabel);
+        if (!jointLoadData) return;
+        
+        // Create a marker (smaller and without red dot)
+        const geometry = new THREE.SphereGeometry(0.02, 16, 16); // Much smaller
+        const material = new THREE.MeshBasicMaterial({ color: 0x333333 });
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker (you'll need to adjust this based on your model)
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2,
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'joint-marker';
+        markerDiv.textContent = jointLabel;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.cursor = 'move';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.jointLabel = jointLabel;
+        document.getElementById('joint-markers-container').appendChild(markerDiv);
+        
+        // Click handler for the marker
+        markerDiv.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleLoadDisplay(jointLabel);
+        });
+        
+        // Store references
+        jointMarkers[jointLabel] = {
+            mesh: sphere,
+            div: markerDiv,
+            loadData: jointLoadData,
+            isDragging: false,
+            fontSize: 12 // Default font size
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        
+        // Make marker draggable
+        makeJointDraggable(markerDiv, jointLabel);
+    }
+    
+
+    
+    // Toggle load display visibility
+    function toggleLoadDisplay(jointLabel) {
+        if (loadDisplays[jointLabel]) {
+            // Hide if already showing
+            removeLoadDisplay(jointLabel);
+            activeJoint = null;
+        } else {
+            // Show if hidden
+            addLoadDisplay(jointLabel, jointMarkers[jointLabel].mesh.position);
+            activeJoint = jointLabel;
+            
+            // Hide any other active displays
+            Object.keys(loadDisplays).forEach(label => {
+                if (label !== jointLabel) {
+                    removeLoadDisplay(label);
+                }
+            });
+        }
+    }
+    
+    // Make joint marker draggable
+    function makeJointDraggable(element, jointLabel) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            jointMarkers[jointLabel].isDragging = true;
+            
+            // Get the mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Calculate the new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // Set the element's new position
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            
+            // Update the 3D position
+            update3DPositionFromScreen(jointLabel, parseInt(element.style.left), parseInt(element.style.top));
+            
+            // Update load display position if visible
+            if (loadDisplays[jointLabel]) {
+                updateLoadDisplayPosition(
+                    loadDisplays[jointLabel].div, 
+                    jointMarkers[jointLabel].mesh.position
+                );
+            }
+        }
+
+    
+    function closeDragElement() {
+            jointMarkers[jointLabel].isDragging = false;
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    
+    // Update 3D position from screen coordinates
+    function update3DPositionFromScreen(jointLabel, x, y) {
+        const vector = new THREE.Vector3(
+            (x / renderer.domElement.clientWidth) * 2 - 1,
+            -(y / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        jointMarkers[jointLabel].mesh.position.copy(vector);
+    }
+    
+    // Add load display for a joint
+    function addLoadDisplay(jointLabel, position) {
+        if (loadDisplays[jointLabel]) return; // Already exists
+        
+        const jointInfo = jointMarkers[jointLabel];
+        if (!jointInfo) return;
+        
+        const displayDiv = document.createElement('div');
+        displayDiv.className = 'load-display';
+        displayDiv.dataset.jointLabel = jointLabel;
+        displayDiv.style.position = 'absolute';
+        displayDiv.style.pointerEvents = 'auto';
+        
+        displayDiv.innerHTML = `
+            <div class="load-display-header">
+                <span>${jointLabel}</span>
+                <span class="close-btn" title="Remove">×</span>
+            </div>
+            <div class="load-display-content">
+                <div>Vert: <span class="editable" data-field="vert">${jointInfo.loadData['Structure Loads Vert. (lbs)'] || '0'}</span> lbs</div>
+                <div>Trans: <span class="editable" data-field="trans">${jointInfo.loadData['Structure Loads Trans. (lbs)'] || '0'}</span> lbs</div>
+                <div>Long: <span class="editable" data-field="long">${jointInfo.loadData['Structure Loads Long. (lbs)'] || '0'}</span> lbs</div>
+            </div>
+            <div class="size-controls">
+                <div class="size-btn" data-action="increase">+</div>
+                <div class="size-btn" data-action="decrease">-</div>
+            </div>
+        `;
+        
+        document.getElementById('load-displays-container').appendChild(displayDiv);
+        
+        // Position the display
+        updateLoadDisplayPosition(displayDiv, position);
+        
+        // Store reference
+        loadDisplays[jointLabel] = {
+            div: displayDiv,
+            position: position
+        };
+        
+        // Add close button event
+        displayDiv.querySelector('.close-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            removeJointMarker(jointLabel);
+            removeLoadDisplay(jointLabel);
+            
+            // Uncheck the checkbox
+            const checkbox = document.querySelector(`input[value="${jointLabel}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                selectedJoints.delete(jointLabel);
+                updateTable(Array.from(selectedJoints));
+            }
+        });
+        
+        // Add size control events
+        displayDiv.querySelector('[data-action="increase"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.min(24, jointMarkers[jointLabel].fontSize + 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        displayDiv.querySelector('[data-action="decrease"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.max(8, jointMarkers[jointLabel].fontSize - 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        // Add editable fields (same as before)
+        displayDiv.querySelectorAll('.editable').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const field = this.dataset.field;
+                const currentValue = this.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'value-edit';
+                input.value = currentValue;
+                
+                this.textContent = '';
+                this.appendChild(input);
+                input.focus();
+                
+                input.addEventListener('blur', function() {
+                    const newValue = parseFloat(this.value) || 0;
+                    const parent = this.parentElement;
+                    parent.textContent = newValue;
+                    parent.classList.add('editable');
+                    
+                    // Update the data
+                    const jointLabel = parent.closest('.load-display').dataset.jointLabel;
+                    const jointInfo = jointMarkers[jointLabel];
+                    if (jointInfo) {
+                        if (field === 'vert') {
+                            jointInfo.loadData['Structure Loads Vert. (lbs)'] = newValue;
+                        } else if (field === 'trans') {
+                            jointInfo.loadData['Structure Loads Trans. (lbs)'] = newValue;
+                        } else if (field === 'long') {
+                            jointInfo.loadData['Structure Loads Long. (lbs)'] = newValue;
+                        }
+                    }
+                    
+                    // Update the table
+                    updateTable(Array.from(selectedJoints));
+                });
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        this.blur();
+                    }
+                });
+            });
+        });
+        
+        // Make the display draggable
+        makeDraggable(displayDiv, jointLabel);
+    }
+    
+    // Make load display draggable
+    function makeDraggable(element, jointLabel) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            // Get the mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            // Calculate the new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // Set the element's new position
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            
+            // Update the marker position reference
+            if (loadDisplays[jointLabel]) {
+                loadDisplays[jointLabel].position = getPositionFromScreen(
+                    parseInt(element.style.left), 
+                    parseInt(element.style.top)
+                );
+            }
+        }
+        
+        function closeDragElement() {
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    
+    // Convert screen coordinates to 3D position
+    function getPositionFromScreen(x, y) {
+        const vector = new THREE.Vector3(
+            (x / renderer.domElement.clientWidth) * 2 - 1,
+            -(y / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        return vector;
+    }
+    
+    // Remove load display
+    function removeLoadDisplay(jointLabel) {
+        if (!loadDisplays[jointLabel]) return;
+        
+        document.getElementById('load-displays-container').removeChild(loadDisplays[jointLabel].div);
+        delete loadDisplays[jointLabel];
+    }
+    
+    // Update HTML marker position based on 3D position
+    function updateMarkerPosition(mesh, div) {
+        const vector = mesh.position.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+        
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+    }
+    
+    // Update load display position based on 3D position
+    function updateLoadDisplayPosition(div, position) {
+        const vector = position.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+        
+        div.style.left = `${x + 20}px`; // Offset slightly from the marker
+        div.style.top = `${y}px`;
+    }
+    
+    // Remove a joint marker
+    function removeJointMarker(jointLabel) {
+        if (!jointMarkers[jointLabel]) return;
+        
+        scene.remove(jointMarkers[jointLabel].mesh);
+        document.getElementById('joint-markers-container').removeChild(jointMarkers[jointLabel].div);
+        delete jointMarkers[jointLabel];
+    }
+    
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        
+        // Update marker positions
+        for (const jointLabel in jointMarkers) {
+            updateMarkerPosition(jointMarkers[jointLabel].mesh, jointMarkers[jointLabel].div);
+            
+            // Update load display positions if they exist
+            if (loadDisplays[jointLabel]) {
+                updateLoadDisplayPosition(
+                    loadDisplays[jointLabel].div, 
+                    jointMarkers[jointLabel].mesh.position
+                );
+            }
+        }
+        
+        renderer.render(scene, camera);
+    }
+    
+    function onWindowResize() {
+        const container = document.getElementById('model-viewer');
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+    
+    // Clear table
+    function clearTable() {
+        document.getElementById('load-table').getElementsByTagName('tbody')[0].innerHTML = '';
+    }
+    
+    // Update table with selected labels
+    // Update table with selected labels
+function updateTable() {
+    clearTable();
+    const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
+    
+    // Get all column names from the table headers
+    const columns = Array.from(document.querySelectorAll('#load-table thead th'))
+        .map(th => th.textContent.trim());
+    
+    // Add new rows from the data
+    loadData.forEach(item => {
+        const row = tbody.insertRow();
+        
+        // Add cells for each column
+        columns.forEach(column => {
+            const cell = row.insertCell();
+            cell.textContent = item[column] !== undefined ? item[column] : '';
+        });
+    });
+    
+    // Add joints
+    Array.from(selectedJoints).forEach(label => {
+        const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
+        if (loadInfo) {
+            const newRow = tbody.insertRow();
+            
+            // Add cells for each column
+            columns.forEach(column => {
+                const cell = newRow.insertCell();
+                cell.textContent = loadInfo[column] !== undefined ? loadInfo[column] : '';
+            });
+        }
+    });
+
+    // Add sets (if you want to display them in the table)
+    Array.from(selectedSets).forEach(setNum => {
+        const newRow = tbody.insertRow();
+        const cell = newRow.insertCell();
+        cell.colSpan = columns.length;
+        cell.textContent = `Set ${setNum}`;
+        cell.style.textAlign = 'center';
+        cell.style.backgroundColor = '#e6f2ff';
+    });
+    
+    // Add phases (if you want to display them in the table)
+    Array.from(selectedPhases).forEach(phaseNum => {
+        const newRow = tbody.insertRow();
+        const cell = newRow.insertCell();
+        cell.colSpan = columns.length;
+        cell.textContent = `Phase ${phaseNum}`;
+        cell.style.textAlign = 'center';
+        cell.style.backgroundColor = '#e6ffe6';
+    });
+}
+    
+
+    
+    // Set up event listeners
+    function addMarker(itemType, itemValue) {
+    if (itemType === 'joint') {
+        if (jointMarkers[itemValue]) return;
+        addJointMarker(itemValue);
+    } 
+    else if (itemType === 'set') {
+        if (setMarkers[itemValue]) return;
+        addSetMarker(itemValue);
+    }
+    else if (itemType === 'phase') {
+        if (phaseMarkers[itemValue]) return;
+        addPhaseMarker(itemValue);
+    }
+}
+
+// Function to add a set marker
+function addSetMarker(setNumber) {
+    const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue for sets
+    const sphere = new THREE.Mesh(geometry, material);
+    
+    // Position the marker
+    sphere.position.set(
+        (Math.random() - 0.5) * 2,
+        Math.random() * 2,
+        (Math.random() - 0.5) * 2
+    );
+    
+    // Add label
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'set-marker';
+    markerDiv.textContent = `Set ${setNumber}`;
+    markerDiv.style.position = 'absolute';
+    markerDiv.style.color = 'blue';
+    markerDiv.dataset.setNumber = setNumber;
+    document.getElementById('set-markers-container').appendChild(markerDiv);
+    
+    setMarkers[setNumber] = {
+        mesh: sphere,
+        div: markerDiv,
+        isDragging: false
+    };
+    
+    scene.add(sphere);
+    updateMarkerPosition(sphere, markerDiv);
+    makeDraggable(markerDiv, setNumber, 'set');
+}
+
+// Function to add a phase marker
+function addPhaseMarker(phaseNumber) {
+    const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green for phases
+    const sphere = new THREE.Mesh(geometry, material);
+    
+    // Position the marker
+    sphere.position.set(
+        (Math.random() - 0.5) * 2,
+        Math.random() * 2,
+        (Math.random() - 0.5) * 2
+    );
+    
+    // Add label
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'phase-marker';
+    markerDiv.textContent = `Phase ${phaseNumber}`;
+    markerDiv.style.position = 'absolute';
+    markerDiv.style.color = 'green';
+    markerDiv.dataset.phaseNumber = phaseNumber;
+    document.getElementById('phase-markers-container').appendChild(markerDiv);
+    
+    phaseMarkers[phaseNumber] = {
+        mesh: sphere,
+        div: markerDiv,
+        isDragging: false
+    };
+    
+    scene.add(sphere);
+    updateMarkerPosition(sphere, markerDiv);
+    makeDraggable(markerDiv, phaseNumber, 'phase');
+}
+
+    // Set up event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize 3D viewer
+    initModelViewer();
+    updateTable();
+
+    // Handle checkbox changes for all types
+    ['joint', 'set', 'phase'].forEach(type => {
+        const container = document.getElementById(`${type}-${type === 'joint' ? 'labels' : 'numbers'}`);
+        if (container) {
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const itemValue = this.value;
+                    
+                    if (type === 'joint') {
+                        if (this.checked) {
+                            selectedJoints.add(itemValue);
+                            addMarker('joint', itemValue);
+                        } else {
+                            selectedJoints.delete(itemValue);
+                            removeJointMarker(itemValue);
+                        }
+                    } 
+                    else if (type === 'set') {
+                        if (this.checked) {
+                            selectedSets.add(itemValue);
+                            addMarker('set', itemValue);
+                        } else {
+                            selectedSets.delete(itemValue);
+                            if (setMarkers[itemValue]) {
+                                scene.remove(setMarkers[itemValue].mesh);
+                                document.getElementById('set-markers-container').removeChild(setMarkers[itemValue].div);
+                                delete setMarkers[itemValue];
+                            }
+                        }
+                    }
+                    else if (type === 'phase') {
+                        if (this.checked) {
+                            selectedPhases.add(itemValue);
+                            addMarker('phase', itemValue);
+                        } else {
+                            selectedPhases.delete(itemValue);
+                            if (phaseMarkers[itemValue]) {
+                                scene.remove(phaseMarkers[itemValue].mesh);
+                                document.getElementById('phase-markers-container').removeChild(phaseMarkers[itemValue].div);
+                                delete phaseMarkers[itemValue];
+                            }
+                        }
+                    }
+                    
+                    updateTable();
+                });
+            });
+        }
+    });
+
+
+        
+        // Make labels draggable
+         document.querySelectorAll('.drag-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('type', this.dataset.type);
+            e.dataTransfer.setData('value', this.dataset.value);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    });
+        
+        // Set up drop zone on model viewer
+        const modelCanvas = document.getElementById('model-canvas');
+    modelCanvas.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    
+    modelCanvas.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const itemType = e.dataTransfer.getData('type');
+        const itemValue = e.dataTransfer.getData('value');
+        
+        // Find the corresponding checkbox and check it
+        let checkbox;
+        if (itemType === 'joint') {
+            checkbox = document.querySelector(`input[name="joint-labels"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+        else if (itemType === 'set') {
+            checkbox = document.querySelector(`input[name="set-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+        else if (itemType === 'phase') {
+            checkbox = document.querySelector(`input[name="phase-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+    });
+});
+        
+       
+</script>"

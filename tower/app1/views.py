@@ -452,17 +452,26 @@ def hdata1(request):
 
                 filtered_data = filtered_data[mask]
 
-            # Prepare load data
+            # Filter by load cases if selected
+            selected_load_cases = selected_values.get('load_cases', [])
+            if selected_load_cases and 'Load Case Description' in filtered_data.columns:
+                filtered_data = filtered_data[filtered_data['Load Case Description'].isin(selected_load_cases)]
+
+            # Prepare complete data for table display - include ALL columns
             load_data = []
             for _, row in filtered_data.iterrows():
-                load_data.append({
-                    'Attach. Joint Labels': str(row['Attach. Joint Labels']),
-                    'Set No.': str(row['Set No.']) if pd.notna(row['Set No.']) else '',
-                    'Phase No.': str(row['Phase No.']) if pd.notna(row['Phase No.']) else '',
-                    'Structure Loads Vert. (lbs)': float(row['Structure Loads Vert. (lbs)']) if pd.notna(row['Structure Loads Vert. (lbs)']) else 0,
-                    'Structure Loads Trans. (lbs)': float(row['Structure Loads Trans. (lbs)']) if pd.notna(row['Structure Loads Trans. (lbs)']) else 0,
-                    'Structure Loads Long. (lbs)': float(row['Structure Loads Long. (lbs)']) if pd.notna(row['Structure Loads Long. (lbs)']) else 0
-                })
+                row_data = {}
+                # Add all columns from the dataframe
+                for col in filtered_data.columns:
+                    if pd.notna(row[col]):
+                        # Convert numeric values to appropriate types
+                        if pd.api.types.is_numeric_dtype(filtered_data[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(filtered_data[col]) else 0
+                load_data.append(row_data)
 
             # Get unique values for display
             joint_labels = [str(label) for label in filtered_data['Attach. Joint Labels'].unique()]
@@ -487,7 +496,8 @@ def hdata1(request):
         'phase_numbers': phase_numbers,
         'load_data': load_data,  # Pass the actual data, not just JSON
         'load_data_json': json.dumps(load_data),
-        'selected_values': selected_values
+        'selected_values': selected_values,
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else []  # Pass all column names
     })
     
     
@@ -932,6 +942,7 @@ def tdrop5(request):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
+from django.contrib import messages
 
 
 
@@ -958,7 +969,12 @@ def hupload1(request):
             form = HUDeadendForm1(request.POST, request.FILES)
             if form.is_valid():
                 try:
-                    form.save()
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    extract_load_cases(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
                     return redirect('hupload1')
                 except IntegrityError:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
@@ -967,6 +983,7 @@ def hupload1(request):
             selected_values = {
                 'set_phase': request.POST.getlist('set_phase_values'),
                 'joint_labels': request.POST.getlist('joint_label_values'),
+                'load_cases': request.POST.getlist('load_case_values'),
                 'structure_id': request.POST.get('structure_id')
             }
             request.session['selected_values'] = selected_values
@@ -974,7 +991,6 @@ def hupload1(request):
     else:
         form = HUDeadendForm1()
 
-    files = hUploadedFile1.objects.all().order_by('-uploaded_at')[:2]
     structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
 
     # Handle AJAX requests for data
@@ -999,15 +1015,88 @@ def hupload1(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
     return render(request, 'app1/hupload1.html', {
         'form': form,
-        'files': files,
         'structures_with_files': structures_with_files
     })
+
+
+def extract_load_cases(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete existing load cases for this structure
+        LoadCase.objects.filter(structure=uploaded_file.structure).delete()
+        LoadCaseGroup.objects.filter(structure=uploaded_file.structure).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
 
 
 def hdrop1(request):
