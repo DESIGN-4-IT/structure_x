@@ -499,13 +499,15 @@
     </header>
 
 
+
 <div class="container">
     <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
     
     <div class="row">
         <!-- Left side - Selection Options -->
         <div class="col-md-4">
-            <!-- Joint Labels Section -->
+            {% if button_type == 'joint_labels' %}
+            <!-- Show only joint labels section when joint labels button was clicked -->
             <div class="form-group">
                 <label for="joint-labels">Attach. Joint Labels:</label>
                 <div class="checkbox-list" id="joint-labels">
@@ -516,8 +518,8 @@
                     {% endfor %}
                 </div>
             </div>
-            
-            <!-- Set Numbers Section -->
+            {% elif button_type == 'set_phase' %}
+            <!-- Show only set/phase sections when set/phase button was clicked -->
             <div class="form-group">
                 <label for="set-numbers">Set No.:</label>
                 <div class="checkbox-list" id="set-numbers">
@@ -529,7 +531,6 @@
                 </div>
             </div>
             
-            <!-- Phase Numbers Section -->
             <div class="form-group">
                 <label for="phase-numbers">Phase No.:</label>
                 <div class="checkbox-list" id="phase-numbers">
@@ -540,8 +541,9 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
                         
-                        <!-- Load Display Table -->
+            <!-- Load Display Table -->
             <div id="load-display" class="mt-4">
                 <h5>Load Values:</h5>
                 <div style="overflow-x: auto;">
@@ -577,6 +579,8 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+
+
 
 <script>
     // Load data passed from Django
@@ -1044,7 +1048,6 @@
     }
     
     // Update table with selected labels
-    // Update table with selected labels
 function updateTable() {
     clearTable();
     const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
@@ -1053,7 +1056,7 @@ function updateTable() {
     const columns = Array.from(document.querySelectorAll('#load-table thead th'))
         .map(th => th.textContent.trim());
     
-    // Add new rows from the data
+    // Add new rows from the filtered data
     loadData.forEach(item => {
         const row = tbody.insertRow();
         
@@ -1064,7 +1067,8 @@ function updateTable() {
         });
     });
     
-    // Add joints
+    // Only add joints if we're in joint labels mode and joints are selected
+    {% if button_type == 'joint_labels' %}
     Array.from(selectedJoints).forEach(label => {
         const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
         if (loadInfo) {
@@ -1077,28 +1081,62 @@ function updateTable() {
             });
         }
     });
-
-    // Add sets (if you want to display them in the table)
+    {% endif %}
+    
+    // Only add sets if we're in set/phase mode and sets are selected
+    {% if button_type == 'set_phase' %}
     Array.from(selectedSets).forEach(setNum => {
-        const newRow = tbody.insertRow();
-        const cell = newRow.insertCell();
-        cell.colSpan = columns.length;
-        cell.textContent = `Set ${setNum}`;
-        cell.style.textAlign = 'center';
-        cell.style.backgroundColor = '#e6f2ff';
+        // Find all rows with this set number
+        const setData = loadData.filter(item => item['Set No.'] == setNum);
+        
+        if (setData.length > 0) {
+            // Add a header row for the set
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Set ${setNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6f2ff';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this set
+            setData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
     });
     
-    // Add phases (if you want to display them in the table)
+    // Only add phases if we're in set/phase mode and phases are selected
     Array.from(selectedPhases).forEach(phaseNum => {
-        const newRow = tbody.insertRow();
-        const cell = newRow.insertCell();
-        cell.colSpan = columns.length;
-        cell.textContent = `Phase ${phaseNum}`;
-        cell.style.textAlign = 'center';
-        cell.style.backgroundColor = '#e6ffe6';
+        // Find all rows with this phase number
+        const phaseData = loadData.filter(item => item['Phase No.'] == phaseNum);
+        
+        if (phaseData.length > 0) {
+            // Add a header row for the phase
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Phase ${phaseNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6ffe6';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this phase
+            phaseData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
     });
+    {% endif %}
 }
-    
 
     
     // Set up event listeners

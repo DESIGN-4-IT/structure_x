@@ -9,6 +9,8 @@ from django.http import JsonResponse, HttpResponseRedirect
 def help(request):
     return render(request,'app1/help.html')
 
+def base(request):
+    return render(request,'app1/base.html')
 
 from django.http import JsonResponse
 
@@ -414,69 +416,62 @@ def hdata1(request):
     # Get selected values from session
     selected_values = request.session.get('selected_values', {})
     structure_id = selected_values.get('structure_id')
-
+    button_type = selected_values.get('button_type', '')
+    selected_load_cases = selected_values.get('load_cases', [])
+    
+    # If coming directly from buttons without specific filters
+    if not structure_id and 'go_button' in request.POST:
+        structure_id = request.POST.get('structure_id')
+        button_type = request.POST.get('go_button')
+        load_case_values = request.POST.get('load_case_values', '')
+        
+        # Convert comma-separated string to list
+        if load_case_values:
+            selected_load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+        else:
+            selected_load_cases = []
+            
+        if structure_id:
+            selected_values = {
+                'structure_id': structure_id,
+                'button_type': button_type,
+                'load_cases': selected_load_cases
+            }
+            request.session['selected_values'] = selected_values
+    
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            # Initialize filtered data
-            filtered_data = df
-
-            # Filter by joint labels if selected
-            selected_joints = selected_values.get('joint_labels', [])
-            if selected_joints:
-                filtered_data = filtered_data[filtered_data['Attach. Joint Labels'].isin(selected_joints)]
-
-            # Filter by set/phase if selected
-            selected_set_phase = selected_values.get('set_phase', [])
-            if selected_set_phase:
-                # Create a mask for filtering
-                mask = pd.Series(False, index=filtered_data.index)
-                
-                for value in selected_set_phase:
-                    # Parse the set-phase value (format: "set-phase-{set}-{phase}")
-                    parts = value.split('-')
-                    if len(parts) >= 4:  # Ensure we have both set and phase
-                        set_num = parts[2]
-                        phase_num = parts[3]
-                        
-                        # Apply filter for both set and phase
-                        set_mask = (filtered_data['Set No.'].astype(str) == set_num)
-                        phase_mask = (filtered_data['Phase No.'].astype(str) == phase_num)
-                        mask |= (set_mask & phase_mask)
-                    elif len(parts) == 3:  # Only set number provided
-                        set_num = parts[2]
-                        mask |= (filtered_data['Set No.'].astype(str) == set_num)
-
-                filtered_data = filtered_data[mask]
-
-            # Filter by load cases if selected
-            selected_load_cases = selected_values.get('load_cases', [])
-            if selected_load_cases and 'Load Case Description' in filtered_data.columns:
-                filtered_data = filtered_data[filtered_data['Load Case Description'].isin(selected_load_cases)]
+            # Filter by selected load cases if any are selected
+            if selected_load_cases and 'Load Case Description' in df.columns:
+                print(f"Filtering by load cases: {selected_load_cases}")  # Debug print
+                # Filter the dataframe to include only selected load cases
+                df = df[df['Load Case Description'].isin(selected_load_cases)]
+                print(f"Filtered dataframe shape: {df.shape}")  # Debug print
 
             # Prepare complete data for table display - include ALL columns
             load_data = []
-            for _, row in filtered_data.iterrows():
+            for _, row in df.iterrows():
                 row_data = {}
                 # Add all columns from the dataframe
-                for col in filtered_data.columns:
+                for col in df.columns:
                     if pd.notna(row[col]):
                         # Convert numeric values to appropriate types
-                        if pd.api.types.is_numeric_dtype(filtered_data[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
                             row_data[col] = float(row[col])
                         else:
                             row_data[col] = str(row[col])
                     else:
-                        row_data[col] = '' if pd.api.types.is_string_dtype(filtered_data[col]) else 0
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
                 load_data.append(row_data)
 
-            # Get unique values for display
-            joint_labels = [str(label) for label in filtered_data['Attach. Joint Labels'].unique()]
-            set_numbers = [str(num) for num in filtered_data['Set No.'].dropna().unique()]
-            phase_numbers = [str(num) for num in filtered_data['Phase No.'].dropna().unique()]
+            # Get unique values for display based on filtered data
+            joint_labels = [str(label) for label in df['Attach. Joint Labels'].unique()] if 'Attach. Joint Labels' in df.columns else []
+            set_numbers = [str(num) for num in df['Set No.'].dropna().unique()] if 'Set No.' in df.columns else []
+            phase_numbers = [str(num) for num in df['Phase No.'].dropna().unique()] if 'Phase No.' in df.columns else []
 
         except Exception as e:
             joint_labels = []
@@ -494,12 +489,14 @@ def hdata1(request):
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
-        'load_data': load_data,  # Pass the actual data, not just JSON
+        'load_data': load_data,
         'load_data_json': json.dumps(load_data),
         'selected_values': selected_values,
-        'all_columns': list(df.columns) if structure_id and 'df' in locals() else []  # Pass all column names
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
+        'button_type': button_type
     })
     
+ 
     
 from django.shortcuts import render, redirect
 from .models import ListOfStructure
@@ -980,10 +977,18 @@ def hupload1(request):
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
             selected_values = {
-                'set_phase': request.POST.getlist('set_phase_values'),
-                'joint_labels': request.POST.getlist('joint_label_values'),
-                'load_cases': request.POST.getlist('load_case_values'),
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
                 'structure_id': request.POST.get('structure_id')
             }
             request.session['selected_values'] = selected_values

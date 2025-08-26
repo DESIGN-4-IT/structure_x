@@ -1,77 +1,99 @@
+
 first read complete promt and act as experience developer 
-i wanted to modify canvas container functionality after selecting Attach. Joint Labels: values 
-that values drop into canvas container in white box after hover no that value it shows realted data so 
-i want all same functioanlity to Set No.: and Phase No.: valaues after selecting any values 
-from  Set No.: and Phase No.: then drop that related values in canvas container same as 
-Attach. Joint Labels: values  and other functionlaity also i want same 
-and told me where need to modify code only give modified code in response 
-this is view "def hdata1(request):
+in hdata1 page is shows previously selected load cases filter data so i wanted to select filter Load Values: table 
+data for Calculation.add check box for all table records only on selected records from this hdata1 page i wanted to 
+perform Calculation i explain you how to perform Calculation when i select any number of records from 
+table like user select 3 records of Hurricane NL+ that contain same Set No. 9 and now user select same 3 records 
+that contain Set No. 10 this records may be of same Hurricane NL+ load case or different but user need to select 
+1,1   2,2   3,3 etc records from load case that contain different Set No. so all this records contain Structure Loads Vert. (lbs),
+Structure Loads Trans. (lbs),and Structure Loads Long. (lbs) values so get max values of Structure Loads Vert. (lbs),
+Structure Loads Trans. (lbs),and Structure Loads Long. (lbs) from all load cases if user select 3 record from 
+Hurricane NL+ that contain 9 Set No. then we find max values of Structure Loads Vert. (lbs),
+Structure Loads Trans. (lbs),and Structure Loads Long. (lbs) from all 3 record and same for other load case that we select for 
+example of 10 Set No.  and realated excel contain n number of load cases and Set No. 
+after this now we have 3 max values of set no. 9 and and 10 like this 
+            set no 9            set no 10 
+max_v   =   a   b   c           a   b   c    then here we add Structure Loads Vert. (lbs) from set no 9 + Structure Loads Vert. (lbs) from set no 10 same for
+Structure Loads Trans. (lbs),and Structure Loads Long. (lbs) max values so all this calculation i wanted to show 
+in new page with selected all data so user understand how calculation does 
+and i want one more calculation for selected Vert,Trans,Long records using this excel formula =SQRT(Structure Loads Vert. (lbs)^2 + Structure Loads Trans. (lbs)^2 + Structure Loads Long. (lbs)^2)
+like this 
+
+this is model 
+"class hUploadedFile1(models.Model)
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files1')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
+            
+        ]"
+this is views 
+"def hdata1(request):
     # Get selected values from session
     selected_values = request.session.get('selected_values', {})
     structure_id = selected_values.get('structure_id')
-
+    button_type = selected_values.get('button_type', '')
+    selected_load_cases = selected_values.get('load_cases', [])
+    
+    # If coming directly from buttons without specific filters
+    if not structure_id and 'go_button' in request.POST:
+        structure_id = request.POST.get('structure_id')
+        button_type = request.POST.get('go_button')
+        load_case_values = request.POST.get('load_case_values', '')
+        
+        # Convert comma-separated string to list
+        if load_case_values:
+            selected_load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+        else:
+            selected_load_cases = []
+            
+        if structure_id:
+            selected_values = {
+                'structure_id': structure_id,
+                'button_type': button_type,
+                'load_cases': selected_load_cases
+            }
+            request.session['selected_values'] = selected_values
+    
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            # Initialize filtered data
-            filtered_data = df
-
-            # Filter by joint labels if selected
-            selected_joints = selected_values.get('joint_labels', [])
-            if selected_joints:
-                filtered_data = filtered_data[filtered_data['Attach. Joint Labels'].isin(selected_joints)]
-
-            # Filter by set/phase if selected
-            selected_set_phase = selected_values.get('set_phase', [])
-            if selected_set_phase:
-                # Create a mask for filtering
-                mask = pd.Series(False, index=filtered_data.index)
-                
-                for value in selected_set_phase:
-                    # Parse the set-phase value (format: "set-phase-{set}-{phase}")
-                    parts = value.split('-')
-                    if len(parts) >= 4:  # Ensure we have both set and phase
-                        set_num = parts[2]
-                        phase_num = parts[3]
-                        
-                        # Apply filter for both set and phase
-                        set_mask = (filtered_data['Set No.'].astype(str) == set_num)
-                        phase_mask = (filtered_data['Phase No.'].astype(str) == phase_num)
-                        mask |= (set_mask & phase_mask)
-                    elif len(parts) == 3:  # Only set number provided
-                        set_num = parts[2]
-                        mask |= (filtered_data['Set No.'].astype(str) == set_num)
-
-                filtered_data = filtered_data[mask]
-
-            # Filter by load cases if selected
-            selected_load_cases = selected_values.get('load_cases', [])
-            if selected_load_cases and 'Load Case Description' in filtered_data.columns:
-                filtered_data = filtered_data[filtered_data['Load Case Description'].isin(selected_load_cases)]
+            # Filter by selected load cases if any are selected
+            if selected_load_cases and 'Load Case Description' in df.columns:
+                print(f"Filtering by load cases: {selected_load_cases}")  # Debug print
+                # Filter the dataframe to include only selected load cases
+                df = df[df['Load Case Description'].isin(selected_load_cases)]
+                print(f"Filtered dataframe shape: {df.shape}")  # Debug print
 
             # Prepare complete data for table display - include ALL columns
             load_data = []
-            for _, row in filtered_data.iterrows():
+            for _, row in df.iterrows():
                 row_data = {}
                 # Add all columns from the dataframe
-                for col in filtered_data.columns:
+                for col in df.columns:
                     if pd.notna(row[col]):
                         # Convert numeric values to appropriate types
-                        if pd.api.types.is_numeric_dtype(filtered_data[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
                             row_data[col] = float(row[col])
                         else:
                             row_data[col] = str(row[col])
                     else:
-                        row_data[col] = '' if pd.api.types.is_string_dtype(filtered_data[col]) else 0
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
                 load_data.append(row_data)
 
-            # Get unique values for display
-            joint_labels = [str(label) for label in filtered_data['Attach. Joint Labels'].unique()]
-            set_numbers = [str(num) for num in filtered_data['Set No.'].dropna().unique()]
-            phase_numbers = [str(num) for num in filtered_data['Phase No.'].dropna().unique()]
+            # Get unique values for display based on filtered data
+            joint_labels = [str(label) for label in df['Attach. Joint Labels'].unique()] if 'Attach. Joint Labels' in df.columns else []
+            set_numbers = [str(num) for num in df['Set No.'].dropna().unique()] if 'Set No.' in df.columns else []
+            phase_numbers = [str(num) for num in df['Phase No.'].dropna().unique()] if 'Phase No.' in df.columns else []
 
         except Exception as e:
             joint_labels = []
@@ -89,17 +111,23 @@ this is view "def hdata1(request):
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
-        'load_data': load_data,  # Pass the actual data, not just JSON
+        'load_data': load_data,
         'load_data_json': json.dumps(load_data),
         'selected_values': selected_values,
-        'all_columns': list(df.columns) if structure_id and 'df' in locals() else []  # Pass all column names
-    })" this is hdata1.html "<div class="container">
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
+        'button_type': button_type
+    })
+    "
+
+    this is hdata1.html 
+    "<div class="container">
     <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
     
     <div class="row">
         <!-- Left side - Selection Options -->
         <div class="col-md-4">
-            <!-- Joint Labels Section -->
+            {% if button_type == 'joint_labels' %}
+            <!-- Show only joint labels section when joint labels button was clicked -->
             <div class="form-group">
                 <label for="joint-labels">Attach. Joint Labels:</label>
                 <div class="checkbox-list" id="joint-labels">
@@ -110,8 +138,8 @@ this is view "def hdata1(request):
                     {% endfor %}
                 </div>
             </div>
-            
-            <!-- Set Numbers Section -->
+            {% elif button_type == 'set_phase' %}
+            <!-- Show only set/phase sections when set/phase button was clicked -->
             <div class="form-group">
                 <label for="set-numbers">Set No.:</label>
                 <div class="checkbox-list" id="set-numbers">
@@ -123,7 +151,6 @@ this is view "def hdata1(request):
                 </div>
             </div>
             
-            <!-- Phase Numbers Section -->
             <div class="form-group">
                 <label for="phase-numbers">Phase No.:</label>
                 <div class="checkbox-list" id="phase-numbers">
@@ -134,8 +161,9 @@ this is view "def hdata1(request):
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
                         
-                        <!-- Load Display Table -->
+            <!-- Load Display Table -->
             <div id="load-display" class="mt-4">
                 <h5>Load Values:</h5>
                 <div style="overflow-x: auto;">
@@ -166,11 +194,6 @@ this is view "def hdata1(request):
         </div>
     </div>
 </div>
-
-<!-- Include Three.js library -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 
 <script>
     // Load data passed from Django
@@ -638,7 +661,6 @@ this is view "def hdata1(request):
     }
     
     // Update table with selected labels
-    // Update table with selected labels
 function updateTable() {
     clearTable();
     const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
@@ -647,7 +669,7 @@ function updateTable() {
     const columns = Array.from(document.querySelectorAll('#load-table thead th'))
         .map(th => th.textContent.trim());
     
-    // Add new rows from the data
+    // Add new rows from the filtered data
     loadData.forEach(item => {
         const row = tbody.insertRow();
         
@@ -658,7 +680,8 @@ function updateTable() {
         });
     });
     
-    // Add joints
+    // Only add joints if we're in joint labels mode and joints are selected
+    {% if button_type == 'joint_labels' %}
     Array.from(selectedJoints).forEach(label => {
         const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
         if (loadInfo) {
@@ -671,28 +694,62 @@ function updateTable() {
             });
         }
     });
-
-    // Add sets (if you want to display them in the table)
+    {% endif %}
+    
+    // Only add sets if we're in set/phase mode and sets are selected
+    {% if button_type == 'set_phase' %}
     Array.from(selectedSets).forEach(setNum => {
-        const newRow = tbody.insertRow();
-        const cell = newRow.insertCell();
-        cell.colSpan = columns.length;
-        cell.textContent = `Set ${setNum}`;
-        cell.style.textAlign = 'center';
-        cell.style.backgroundColor = '#e6f2ff';
+        // Find all rows with this set number
+        const setData = loadData.filter(item => item['Set No.'] == setNum);
+        
+        if (setData.length > 0) {
+            // Add a header row for the set
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Set ${setNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6f2ff';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this set
+            setData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
     });
     
-    // Add phases (if you want to display them in the table)
+    // Only add phases if we're in set/phase mode and phases are selected
     Array.from(selectedPhases).forEach(phaseNum => {
-        const newRow = tbody.insertRow();
-        const cell = newRow.insertCell();
-        cell.colSpan = columns.length;
-        cell.textContent = `Phase ${phaseNum}`;
-        cell.style.textAlign = 'center';
-        cell.style.backgroundColor = '#e6ffe6';
+        // Find all rows with this phase number
+        const phaseData = loadData.filter(item => item['Phase No.'] == phaseNum);
+        
+        if (phaseData.length > 0) {
+            // Add a header row for the phase
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Phase ${phaseNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6ffe6';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this phase
+            phaseData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
     });
+    {% endif %}
 }
-    
 
     
     // Set up event listeners

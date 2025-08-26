@@ -2,6 +2,8 @@ from django.urls import path
 from app1 import views 
 
 urlpatterns = [
+   
+   path('base/',views.base,name='base'),
 
    path('help/',views.help,name='help'),
    path('deadend/',views.deadend,name='deadend'), 

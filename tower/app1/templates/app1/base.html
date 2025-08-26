@@ -1,0 +1,486 @@
+{% load static %}  <!-- This must be at the VERY TOP of the file -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material Matrix Viewer</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            /* Primary Colors */
+            --primary-blue: #4976b5ff;  /* Deepened primary blue */
+            --dark-blue: #0d3a7a;
+            --light-blue: #e1eaf5;
+            --middle-blue:#1252a7;
+            
+            /* Accent Colors */
+            --accent-yellow: #ffc107;
+            --dark-yellow: #e6a800;
+            --light-yellow: #fff8e6;
+            
+            /* Background Colors */
+            --bg-light: #f8fafc;
+            --bg-medium: #f0f4f8;
+            --bg-dark: #e1e8ed;
+            
+            /* Text Colors */
+            --text-dark: #2d3748;
+            --text-medium: #4a5568;
+            --text-light: #718096;
+            
+            /* UI Colors */
+            --ui-white: #ffffff;
+            --ui-light: #edf2f7;
+            --ui-medium: #e2e8f0;
+            --ui-dark: #cbd5e0;
+            
+            /* Status Colors */
+            --success: #38a169;
+            --warning: #dd6b20;
+            --error: #e53e3e;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            
+            /* Transitions */
+            --transition-fast: all 0.15s ease;
+            --transition-normal: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Spacing */
+            --space-xs: 2.95rem;
+            --space-sm: 0.5rem;
+
+            --space-smm: 0.8rem;
+            --space-mdd: 2rem;
+
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            box-shadow: var(--shadow-lg);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            padding: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+            height: 60px;
+            position: relative; /* Added for better positioning control */
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1; /* Allow it to take available space */
+        }
+
+        .logo img {
+            height: 36px;
+            width: auto;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+            margin-top:13px;
+        }
+
+        .header-title {
+            color: var(--accent-yellow);
+            font-size: 1.25rem;
+            font-weight: 600;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Navigation */
+        .main-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the navigation */
+            flex: 2; /* Take more space to help with centering */
+        }
+
+
+        .menu {
+            display: flex;
+            list-style: none;
+            gap: var(--space-xs);
+            justify-content: center; /* Center menu items */
+            width: 100%; /* Take full width of its container */
+        }
+
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            padding: var(--space-sm) var(--space-md); /* Increased padding */
+            display: block;
+            font-weight: 500;
+            transition: var(--transition-fast);
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .menu-link:hover, 
+        .menu-item:hover .menu-link {
+            color: var(--ui-white);
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: var(--accent-yellow);
+            transition: var(--transition-fast);
+        }
+
+        .menu-item:hover .menu-link::after {
+            width: 60%;
+        }
+   
+
+        .menu-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+        }
+
+
+        /* Search Bar */
+        .search {
+            position: relative;
+            display: flex;
+            justify-content: flex-end; /* Push search to the right */
+            flex: 1; /* Allow it to take available space */
+            margin-left:100px;
+        }
+        .search-input {
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            width: 200px;
+            transition: var(--transition-normal);
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--ui-white);
+            backdrop-filter: blur(5px);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+            width: 250px;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.3);
+            border-radius: 2px;
+        }
+        
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="navbar">
+            <div class="logo-container">
+                <div class="logo">
+                    <a href="#"><img src="{% static 'app1/images/new_logo.png' %}" alt="Logo"></a>
+                </div>
+                <h1 class="header-title">KOmatrix LoadView</h1>
+            </div>
+
+            <nav class="main-nav">
+            
+                <ul class="menu" id="mainMenu">
+                    
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">About</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Services</a>
+                       
+                    </li>
+                   
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Contact Us</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Help</a>
+                    </li>
+                </ul>
+
+                <div class="search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Search..." id="searchInput">
+                </div>
+            </nav>
+        </div>
+    </header>
+
+
+
+      <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}
+        <!-- Your page content will go here -->
+         {% endblock %}
+    </main>
+    {% block extra_js %}{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchIcon = document.querySelector('.search-icon');
+    
+    // Debounce function to limit search frequency
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+    
+    // Function to search and highlight only matching text
+    function searchCurrentPage(term) {
+        // Remove all previous highlights
+        removeHighlights();
+        
+        if (!term.trim()) return;
+        
+        // Get only the main content area (exclude header and sidebar)
+        const mainContent = document.querySelector('.main-content');
+        
+        // Create a regular expression for case-insensitive matching
+        const regex = new RegExp(term, 'gi');
+        
+        // Walk through all text nodes in main content
+        const walker = document.createTreeWalker(
+            mainContent,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        let found = false;
+        
+        while (node = walker.nextNode()) {
+            // Skip empty nodes or nodes in script/style elements
+            if (!node.nodeValue.trim() || 
+                node.parentNode.tagName === 'SCRIPT' || 
+                node.parentNode.tagName === 'STYLE') {
+                continue;
+            }
+            
+            const matches = node.nodeValue.match(regex);
+            if (matches) {
+                const span = document.createElement('span');
+                span.className = 'search-highlight';
+                
+                // Replace each match with a highlighted span
+                const newText = node.nodeValue.replace(regex, match => 
+                    `<span class="search-highlight">${match}</span>`
+                );
+                
+                // Create a temporary element to parse the HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = newText;
+                
+                // Replace the text node with the new content
+                const parent = node.parentNode;
+                while (temp.firstChild) {
+                    parent.insertBefore(temp.firstChild, node);
+                }
+                parent.removeChild(node);
+                
+                if (!found) {
+                    // Scroll to first match
+                    const firstHighlight = document.querySelector('.search-highlight');
+                    if (firstHighlight) {
+                        firstHighlight.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        found = true;
+                    }
+                }
+            }
+        }
+        
+        if (!found && term.length > 0) {
+            showNoResultsMessage(term);
+        }
+    }
+    
+    // Remove all highlights and restore original text
+    function removeHighlights() {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.replaceChild(
+                document.createTextNode(highlight.textContent),
+                highlight
+            );
+            // Normalize to merge adjacent text nodes
+            parent.normalize();
+        });
+        
+        // Remove any existing "no results" message
+        const existingMessage = document.getElementById('search-no-results');
+        if (existingMessage) existingMessage.remove();
+    }
+    
+    // Show temporary "no results" message
+    function showNoResultsMessage(term) {
+        const message = document.createElement('div');
+        message.id = 'search-no-results';
+        message.textContent = `No results found for "${term}"`;
+        message.style.position = 'fixed';
+        message.style.bottom = '20px';
+        message.style.right = '20px';
+        message.style.backgroundColor = 'var(--error)';
+        message.style.color = 'white';
+        message.style.padding = '10px 20px';
+        message.style.borderRadius = 'var(--radius-md)';
+        message.style.boxShadow = 'var(--shadow-md)';
+        message.style.zIndex = '2000';
+        message.style.animation = 'fadeIn 0.3s ease';
+        
+        document.body.appendChild(message);
+        
+        // Remove message after 3 seconds
+        setTimeout(() => {
+            message.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    }
+    
+    // Add styles for highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.5);
+            border-radius: 2px;
+            padding: 0 2px;
+            color: #000;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Event listener with debounce
+    searchInput.addEventListener('input', debounce(function(e) {
+        const term = e.target.value.trim();
+        searchCurrentPage(term);
+        
+        // Optional: If you want to also search server-side:
+        if (term.length > 2) {
+            fetch('/search/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: `search_term=${encodeURIComponent(term)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server results:', data.results);
+                // Handle server results if needed
+            });
+        }
+    }, 300));
+    
+    // Click on search icon to focus input
+    searchIcon.addEventListener('click', function() {
+        searchInput.focus();
+    });
+    
+    // Clear search when clicking Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            removeHighlights();
+        }
+    });
+});
+</script>
+
+</body>
+</html>
