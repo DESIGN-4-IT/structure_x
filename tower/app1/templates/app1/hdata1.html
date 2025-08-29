@@ -3,16 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Web Page</title>
 
+
+{% load static %}  <!-- Load static here too for good measure -->
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 <!-- Load dependencies -->
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <title>Chart Page</title>
-    {% load static %}
+   
 
     <style>
-        /* Reset some default browser styles */
+       
+        :root {
+            /* Primary Colors */
+            --primary-blue: #4976b5ff;  /* Deepened primary blue */
+            --dark-blue: #0d3a7a;
+            --light-blue: #e1eaf5;
+            --middle-blue:#1252a7;
+            
+            /* Accent Colors */
+            --accent-yellow: #ffc107;
+            --dark-yellow: #e6a800;
+            --light-yellow: #fff8e6;
+            
+            /* Background Colors */
+            --bg-light: #f8fafc;
+            --bg-medium: #f0f4f8;
+            --bg-dark: #e1e8ed;
+            
+            /* Text Colors */
+            --text-dark: #2d3748;
+            --text-medium: #4a5568;
+            --text-light: #718096;
+            
+            /* UI Colors */
+            --ui-white: #ffffff;
+            --ui-light: #edf2f7;
+            --ui-medium: #e2e8f0;
+            --ui-dark: #cbd5e0;
+            
+            /* Status Colors */
+            --success: #38a169;
+            --warning: #dd6b20;
+            --error: #e53e3e;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            
+            /* Transitions */
+            --transition-fast: all 0.15s ease;
+            --transition-normal: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Spacing */
+            --space-xs: 2.95rem;
+            --space-sm: 0.5rem;
+
+            --space-smm: 0.8rem;
+            --space-mdd: 2rem;
+
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -20,167 +83,278 @@
         }
 
         body {
-            font-family: 'Poppins', Arial, sans-serif;
-            background: #f4f7fa;
-            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
         }
 
-        /* Header Styling */
+        /* Header Styles */
         header {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            padding: 10px 15px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            box-shadow: var(--shadow-lg);
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .navbar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+            height: 60px;
+            position: relative; /* Added for better positioning control */
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1; /* Allow it to take available space */
         }
 
         .logo img {
-            height: 50px;
+            height: 36px;
             width: auto;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+            margin-top:2px;
         }
 
         .header-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffe082;
-            margin-left:-120px;
+            color: var(--accent-yellow);
+            font-size: 1.25rem;
+            font-weight: 600;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
+
+        /* Main Navigation */
+        .main-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the navigation */
+            flex: 2; /* Take more space to help with centering */
+        }
+
 
         .menu {
             display: flex;
-            gap: 20px;
+            list-style: none;
+            gap: var(--space-xs);
+            justify-content: center; /* Center menu items */
+            width: 100%; /* Take full width of its container */
         }
 
-        .menu a {
-            color: white;
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-link {
+            color: rgba(255, 255, 255, 0.9);
             text-decoration: none;
+            padding: var(--space-sm) var(--space-md); /* Increased padding */
+            display: block;
             font-weight: 500;
-            padding: 8px 15px;
-            transition: background-color 0.3s, color 0.3s;
-            border-radius: 5px;
+            transition: var(--transition-fast);
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            position: relative;
+            margin-top:7px;
         }
 
-        .menu a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: #ffe082;
+        .menu-link:hover, 
+        .menu-item:hover .menu-link {
+            color: var(--ui-white);
+            background-color: rgba(255, 255, 255, 0.15);
         }
 
-        .search input {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
+        .menu-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: var(--accent-yellow);
+            transition: var(--transition-fast);
         }
 
-
-        /* Footer Styling */
-        footer {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: auto;
-            font-size: 14px;
+        .menu-item:hover .menu-link::after {
+            width: 60%;
         }
+   
 
-        /* Fade-in Animation */
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .menu {
-                flex-direction: column;
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .menu a {
-                padding: 10px 0;
-                width: 100%;
-            }
-
-            .search {
-                width: 100%;
-                margin-top: 10px;
-            }
-
-           
+        .menu-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
         }
 
 
-      .container {
-        max-width: 1400px;
+        /* Search Bar */
+        .search {
+            position: relative;
+            display: flex;
+            justify-content: flex-end; /* Push search to the right */
+            flex: 1; /* Allow it to take available space */
+            margin-left:100px;
+        }
+        .search-input {
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            width: 200px;
+            transition: var(--transition-normal);
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--ui-white);
+            backdrop-filter: blur(5px);
+            padding:5px;
+            margin-top:-5px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+            width: 250px;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.3);
+            border-radius: 2px;
+        }
+        
+  :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --light-gray: #f8f9fa;
+        --border-color: #dee2e6;
+        --success-color: #28a745;
+        --warning-color: #ffc107;
+    }
+    
+    .container {
+        max-width: 98%;
         margin: 0 auto;
-        padding: 20px;
+        padding: 15px;
         background-color: white;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        border-radius: 5px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
     }
     
     h3 {
-        color: #2c3e50;
+        color: var(--primary-color);
         margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #eee;
+        font-weight: 600;
+        font-size: 1.5rem;
     }
     
-    /* Layout */
+    /* Layout adjustments */
     .row {
         display: flex;
         flex-wrap: wrap;
-        margin: 0 -15px;
+        margin: 0 -10px;
     }
     
     .col-md-4, .col-md-8 {
-        padding: 0 15px;
+        padding: 0 10px;
         box-sizing: border-box;
     }
     
-    @media (max-width: 768px) {
+    /* Left column (controls) - reduced width */
+    .col-md-4 {
+        width: 30%;
+        flex: 0 0 30%;
+        max-width: 30%;
+    }
+    
+    /* Right column (canvas) - increased width */
+    .col-md-8 {
+        width: 70%;
+        flex: 0 0 70%;
+        max-width: 70%;
+    }
+    
+    @media (max-width: 1200px) {
+        .col-md-4 {
+            width: 35%;
+            flex: 0 0 35%;
+            max-width: 35%;
+        }
+        
+        .col-md-8 {
+            width: 65%;
+            flex: 0 0 65%;
+            max-width: 65%;
+        }
+    }
+    
+    @media (max-width: 992px) {
         .col-md-4, .col-md-8 {
             width: 100%;
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            padding: 12px;
         }
     }
     
     /* Form Elements */
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 18px;
     }
     
-    label {
+    .form-group label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-weight: 600;
-        color: #34495e;
+        color: var(--primary-color);
+        font-size: 14px;
     }
     
     select {
         width: 100%;
         padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
         background-color: white;
         font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    select:focus {
+        border-color: var(--secondary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
     }
     
     select option {
@@ -193,38 +367,110 @@
         background-color: #f0f0f0;
     }
     
-    /* Load Display Table */
+    .calculation-btn {
+        margin: 15px 0;
+        padding: 10px 18px;
+        background-color: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .calculation-btn:hover:not(:disabled) {
+        background-color: #2980b9;
+    }
+    
+    .calculation-btn:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
+    
+    .selected-count {
+        margin-left: 12px;
+        font-weight: bold;
+        color: var(--primary-color);
+        background: #f1f8ff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+
+    /* Load Display Table - full width when below */
     #load-display {
-        background-color: #f9f9f9;
-        padding: 15px;
-        border-radius: 4px;
-        border: 1px solid #eee;
+        background-color: var(--light-gray);
+        padding: 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-top: 20px;
+        width: 100%;
     }
     
     #load-display h5 {
         margin-top: 0;
-        color: #3498db;
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-top: 15px;
+        width: 100%;
     }
     
     .table {
         width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    
-    .table th, .table td {
-        padding: 10px;
-        text-align: left;
-        border: 1px solid #ddd;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 0;
+        font-size: 13px;
     }
     
     .table th {
-        background-color: #f2f2f2;
+        background-color: #e9ecef;
         font-weight: 600;
+        position: sticky;
+        top: 0;
+        padding: 10px 8px;
+        border: 1px solid var(--border-color);
+        font-size: 13px;
+    }
+    
+    .table td {
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+    
+    .table th:first-child,
+    .table td:first-child {
+        text-align: center;
+        width: 40px;
     }
     
     .table tr:nth-child(even) {
         background-color: #f9f9f9;
+    }
+    
+    .table tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    /* Checkbox styling */
+    .record-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
     }
     
     /* Drag and Drop Feedback */
@@ -244,26 +490,49 @@
         animation: highlight 1.5s;
     }
 
+    @keyframes highlight {
+        0% { background-color: rgba(255, 220, 0, 0.5); }
+        100% { background-color: transparent; }
+    }
+    
     .checkbox-list {
-        max-height: 200px;
+        max-height: 220px;
         overflow-y: auto;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border-color);
         padding: 10px;
-        border-radius: 4px;
+        border-radius: 6px;
+        background: white;
+        margin-bottom: 0;
     }
     
     .checkbox-list label {
         display: block;
         cursor: move;
+        padding: 6px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        font-size: 13px;
     }
     
-    .model-viewer {
+    .checkbox-list label:hover {
+        background-color: #f0f8ff;
+    }
+    
+    .model-viewer-container {
         width: 100%;
-        height: 600px;
-        border: 1px solid #ccc;
+        height: 550px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    #joint-markers-container, #load-displays-container {
+    #joint-markers-container, 
+    #set-markers-container, 
+    #phase-markers-container,
+    #load-displays-container {
         position: absolute;
         top: 0;
         left: 0;
@@ -275,34 +544,64 @@
     
     .joint-marker {
         position: absolute;
-        background-color: rgba(255, 255, 255, 0.7);
-        padding: 2px 5px;
-        border-radius: 3px;
+        background-color: rgba(255, 255, 255, 0.85);
+        padding: 4px 8px;
+        border-radius: 4px;
         font-size: 12px;
+        font-weight: 600;
         transform: translate(-50%, -50%);
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        cursor: move;
+        user-select: none;
+        pointer-events: auto;
+        z-index: 5;
+        transition: all 0.2s;
     }
     
-    .checkbox-list {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        padding: 10px;
+    .joint-marker:hover {
+        background-color: white;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     }
     
-    .joint-label-item {
+    .set-marker {
+        background-color: rgba(0, 0, 255, 0.15);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 255, 0.5);
+        font-size: 12px;
+        font-weight: 600;
+        color: #0000aa;
+    }
+    
+    .phase-marker {
+        background-color: rgba(0, 255, 0, 0.15);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 128, 0, 0.5);
+        font-size: 12px;
+        font-weight: 600;
+        color: #006600;
+    }
+    
+    .drag-item {
         display: block;
-        padding: 5px;
-        margin: 2px 0;
-        cursor: grab;
-        background-color: #f8f9fa;
-        border-radius: 3px;
+        padding: 6px 8px;
+        margin: 4px 0;
+        cursor: move;
+        background-color: var(--light-gray);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-size: 13px;
     }
     
-    .joint-label-item:hover {
+    .drag-item:hover {
         background-color: #e9ecef;
+        transform: translateX(3px);
     }
     
-    .joint-label-item:active {
+    .drag-item:active {
         cursor: grabbing;
     }
 
@@ -310,206 +609,299 @@
         position: absolute;
         background-color: white;
         border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        min-width: 150px;
+        border-radius: 8px;
+        padding: 12px;
+        width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
         pointer-events: auto;
-        z-index: 10;
     }
     
     .load-display-header {
-        font-weight: bold;
-        margin-bottom: 5px;
-        color: #333;
-    }
-    
-    .load-display-content {
+        font-weight: 600;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--primary-color);
         font-size: 14px;
     }
     
     .load-display-content div {
-        margin: 3px 0;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
     }
     
     .editable {
         cursor: pointer;
-        border-bottom: 1px dashed #666;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: background-color 0.2s;
+        min-width: 50px;
+        text-align: right;
     }
     
     .editable:hover {
         background-color: #f0f0f0;
     }
     
-    .value-edit {
-        width: 50px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        padding: 2px;
-    }
-    
     .close-btn {
-        position: absolute;
-        top: 5px;
-        right: 5px;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 18px;
+        line-height: 1;
         color: #999;
+        transition: color 0.2s;
     }
     
     .close-btn:hover {
-        color: #333;
-    }
-
-    .joint-marker {
-        font-size: 12px;
-        font-weight: bold;
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 2px 5px;
-        border-radius: 3px;
-        border: 1px solid #ccc;
-        cursor: move;
-        user-select: none;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    .load-display {
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 10px;
-        width: 180px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        z-index: 100;
-    }
-    
-    .load-display-header {
-        font-weight: bold;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-        display: flex;
-        justify-content: space-between;
-    }
-    
-    .load-display-content div {
-        margin-bottom: 5px;
-    }
-    
-    .editable {
-        cursor: pointer;
-        padding: 2px 4px;
-        border-radius: 3px;
-    }
-    
-    .editable:hover {
-        background-color: #f0f0f0;
-    }
-    
-    .close-btn {
-        cursor: pointer;
-        float: right;
-        font-size: 16px;
-        line-height: 1;
+        color: var(--accent-color);
     }
     
     .size-controls {
         position: absolute;
-        top: 5px;
-        right: 5px;
+        top: 8px;
+        right: 30px;
         display: flex;
         gap: 5px;
     }
     
     .size-btn {
-        width: 20px;
-        height: 20px;
-        background: #f0f0f0;
-        border: 1px solid #ccc;
+        width: 22px;
+        height: 22px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
         border-radius: 3px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 12px;
+        transition: all 0.2s;
     }
-
-    .set-marker {
-    background-color: rgba(0, 0, 255, 0.2);
-    padding: 2px 5px;
-    border-radius: 3px;
-    border: 1px solid blue;
-    font-size: 12px;
-}
-
-.phase-marker {
-    background-color: rgba(0, 255, 0, 0.2);
-    padding: 2px 5px;
-    border-radius: 3px;
-    border: 1px solid green;
-    font-size: 12px;
-}
-
-.drag-item {
-    display: block;
-    padding: 5px;
-    margin: 2px 0;
-    cursor: move;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-}
-
-.drag-item:hover {
-    background-color: #e9ecef;
-}
     
-    @media (max-width: 576px) {
-        #model-viewer {
+    .size-btn:hover {
+        background: #e9ecef;
+    }
+    
+    .value-edit {
+        width: 60px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px;
+        text-align: right;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 992px) {
+        .container {
+            padding: 10px;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .model-viewer-container {
+            height: 450px;
+        }
+        
+        .load-display {
+            width: 180px;
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        .calculation-btn {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .selected-count {
+            display: block;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 8px 6px;
+            font-size: 12px;
+        }
+        
+        .checkbox-list {
+            max-height: 200px;
+        }
+        
+        #load-display {
+            padding: 15px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .model-viewer-container {
             height: 400px;
         }
         
         .load-display {
-            min-width: 120px;
-            padding: 5px;
+            width: 160px;
+            padding: 8px;
             font-size: 12px;
         }
+        
+        .table th, 
+        .table td {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        .joint-marker {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        
+        .checkbox-list {
+            max-height: 180px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .model-viewer-container {
+            height: 350px;
+        }
+        
+        .load-display {
+            width: 140px;
+            padding: 6px;
+            font-size: 11px;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 5px 3px;
+            font-size: 11px;
+        }
+        
+        .calculation-btn {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+        
+        .selected-count {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+    }
+    
+    /* Loading state */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    /* Visual feedback for selections */
+    input[type="checkbox"]:checked + span {
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+    
+    /* Custom scrollbar for better aesthetics */
+    .checkbox-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Section headers */
+    .section-header {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    /* Button group styling */
+    .btn-container {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
     }
 
-
     </style>
+
+
 </head>
 <body>
+
     <header>
         <div class="navbar">
-            <div class="logo">
-                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
+            <div class="logo-container">
+                <div class="logo">
+                    <a href="#"><img src="{% static 'app1/images/new_logo.png' %}" alt="Logo"></a>
+                </div>
+                <h1 class="header-title">KOmatrix LoadView</h1>
             </div>
-            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
 
-            <div class="menu">
-                <a href="#">About</a>
-                <a href="{% url 'home' %}">Services</a>
-                <a href="#">Contact Us</a>
-                <a href="{% url 'help' %}">Help</a>
-            </div>
-            <div class="search">
-                <input type="text" placeholder="Search">
-            </div>
+            <nav class="main-nav">
+            
+                <ul class="menu" id="mainMenu">
+                    
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">About</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="{% url 'home' %}" class="menu-link">Services</a>
+                       
+                    </li>
+                   
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Contact Us</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Help</a>
+                    </li>
+                </ul>
+
+                <div class="search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Search..." id="searchInput">
+                </div>
+            </nav>
         </div>
     </header>
-
-
 
 <div class="container">
     <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
     
     <div class="row">
-        <!-- Left side - Selection Options -->
+        <!-- Left side - Selection Options (reduced width) -->
         <div class="col-md-4">
             {% if button_type == 'joint_labels' %}
             <!-- Show only joint labels section when joint labels button was clicked -->
             <div class="form-group">
-                <label for="joint-labels">Attach. Joint Labels:</label>
+                <label for="joint-labels">Attachment Joint Labels:</label>
                 <div class="checkbox-list" id="joint-labels">
                     {% for label in joint_labels %}
                         <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
@@ -542,29 +934,11 @@
                 </div>
             </div>
             {% endif %}
-                        
-            <!-- Load Display Table -->
-            <div id="load-display" class="mt-4">
-                <h5>Load Values:</h5>
-                <div style="overflow-x: auto;">
-                    <table class="table table-bordered" id="load-table">
-                        <thead>
-                            <tr>
-                                <!-- Dynamically generate column headers for ALL columns -->
-                                {% for column in all_columns %}
-                                    <th>{{ column }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
         
-        <!-- Right side - 3D Model Viewer -->
+        <!-- Right side - 3D Model Viewer (increased width) -->
         <div class="col-md-8">
-            <div id="model-viewer" style="height: 600px; border: 1px solid #ccc; position: relative;">
+            <div class="model-viewer-container">
                 <canvas id="model-canvas"></canvas>
                 <div id="joint-markers-container"></div>
                 <div id="set-markers-container"></div>
@@ -573,7 +947,33 @@
             </div>
         </div>
     </div>
+    
+    <!-- Load Display Table - now placed below and full width -->
+    <div id="load-display">
+        <h5>Load Values</h5>
+        <div class="btn-container">
+            <button id="calculate-btn" class="calculation-btn" disabled>
+                <span>Calculate Selected Records</span>
+            </button>
+            <span id="selected-count" class="selected-count">0 selected</span>
+        </div>
+        <div class="table-container">
+            <table class="table table-bordered" id="load-table">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        {% for column in all_columns %}
+                            <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+
 
 <!-- Include Three.js library -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
@@ -596,6 +996,8 @@
     const selectedSets = new Set();
     const selectedPhases = new Set();
     let activeJoint = null;
+    const selectedRecords = new Set();
+    let allTableData = [];
 
     
     // Initialize the 3D model viewer
@@ -1046,6 +1448,53 @@
     function clearTable() {
         document.getElementById('load-table').getElementsByTagName('tbody')[0].innerHTML = '';
     }
+
+
+    function handleRecordSelection(e) {
+    const index = parseInt(e.target.dataset.index);
+    const record = allTableData[index];
+    
+    if (e.target.checked) {
+        selectedRecords.add(record);
+    } else {
+        selectedRecords.delete(record);
+    }
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCount = document.getElementById('selected-count');
+    const calculateBtn = document.getElementById('calculate-btn');
+    
+    selectedCount.textContent = `${selectedRecords.size} selected`;
+    calculateBtn.disabled = selectedRecords.size === 0;
+}
+
+// Add event listener for calculate button
+// Update the calculate button event listener
+document.getElementById('calculate-btn').addEventListener('click', function() {
+    if (selectedRecords.size > 0) {
+        // Prepare data for calculation - convert Set to Array
+        const calculationData = Array.from(selectedRecords);
+        
+        // Create a form to submit the data
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '/calculation/';
+        form.target = '_blank';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'calculation_data';
+        input.value = JSON.stringify(calculationData);
+        form.appendChild(input);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+});
     
     // Update table with selected labels
 function updateTable() {
@@ -1054,11 +1503,25 @@ function updateTable() {
     
     // Get all column names from the table headers
     const columns = Array.from(document.querySelectorAll('#load-table thead th'))
-        .map(th => th.textContent.trim());
+        .map(th => th.textContent.trim())
+        .filter(col => col !== 'Select'); // Exclude the Select column
+    
+    // Store all table data for later reference
+    allTableData = [];
     
     // Add new rows from the filtered data
-    loadData.forEach(item => {
+    loadData.forEach((item, index) => {
         const row = tbody.insertRow();
+        allTableData.push(item); // Store reference to this data
+        
+        // Add checkbox cell
+        const checkboxCell = row.insertCell();
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'record-checkbox';
+        checkbox.dataset.index = index;
+        checkbox.addEventListener('change', handleRecordSelection);
+        checkboxCell.appendChild(checkbox);
         
         // Add cells for each column
         columns.forEach(column => {
@@ -1067,6 +1530,9 @@ function updateTable() {
         });
     });
     
+    // Update selected count
+    updateSelectedCount();
+
     // Only add joints if we're in joint labels mode and joints are selected
     {% if button_type == 'joint_labels' %}
     Array.from(selectedJoints).forEach(label => {
@@ -1332,11 +1798,200 @@ function addPhaseMarker(phaseNumber) {
        
 </script>
 
+
+{% comment %} this js is for header bar  {% endcomment %}
    
-    <footer>
-        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
-    </footer>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchIcon = document.querySelector('.search-icon');
+    
+    // Debounce function to limit search frequency
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+    
+    // Function to search and highlight only matching text
+    function searchCurrentPage(term) {
+        // Remove all previous highlights
+        removeHighlights();
+        
+        if (!term.trim()) return;
+        
+        // Get only the main content area (exclude header and sidebar)
+        const mainContent = document.querySelector('.main-content');
+        
+        // Create a regular expression for case-insensitive matching
+        const regex = new RegExp(term, 'gi');
+        
+        // Walk through all text nodes in main content
+        const walker = document.createTreeWalker(
+            mainContent,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        let found = false;
+        
+        while (node = walker.nextNode()) {
+            // Skip empty nodes or nodes in script/style elements
+            if (!node.nodeValue.trim() || 
+                node.parentNode.tagName === 'SCRIPT' || 
+                node.parentNode.tagName === 'STYLE') {
+                continue;
+            }
+            
+            const matches = node.nodeValue.match(regex);
+            if (matches) {
+                const span = document.createElement('span');
+                span.className = 'search-highlight';
+                
+                // Replace each match with a highlighted span
+                const newText = node.nodeValue.replace(regex, match => 
+                    `<span class="search-highlight">${match}</span>`
+                );
+                
+                // Create a temporary element to parse the HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = newText;
+                
+                // Replace the text node with the new content
+                const parent = node.parentNode;
+                while (temp.firstChild) {
+                    parent.insertBefore(temp.firstChild, node);
+                }
+                parent.removeChild(node);
+                
+                if (!found) {
+                    // Scroll to first match
+                    const firstHighlight = document.querySelector('.search-highlight');
+                    if (firstHighlight) {
+                        firstHighlight.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        found = true;
+                    }
+                }
+            }
+        }
+        
+        if (!found && term.length > 0) {
+            showNoResultsMessage(term);
+        }
+    }
+    
+    // Remove all highlights and restore original text
+    function removeHighlights() {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.replaceChild(
+                document.createTextNode(highlight.textContent),
+                highlight
+            );
+            // Normalize to merge adjacent text nodes
+            parent.normalize();
+        });
+        
+        // Remove any existing "no results" message
+        const existingMessage = document.getElementById('search-no-results');
+        if (existingMessage) existingMessage.remove();
+    }
+    
+    // Show temporary "no results" message
+    function showNoResultsMessage(term) {
+        const message = document.createElement('div');
+        message.id = 'search-no-results';
+        message.textContent = `No results found for "${term}"`;
+        message.style.position = 'fixed';
+        message.style.bottom = '20px';
+        message.style.right = '20px';
+        message.style.backgroundColor = 'var(--error)';
+        message.style.color = 'white';
+        message.style.padding = '10px 20px';
+        message.style.borderRadius = 'var(--radius-md)';
+        message.style.boxShadow = 'var(--shadow-md)';
+        message.style.zIndex = '2000';
+        message.style.animation = 'fadeIn 0.3s ease';
+        
+        document.body.appendChild(message);
+        
+        // Remove message after 3 seconds
+        setTimeout(() => {
+            message.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    }
+    
+    // Add styles for highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.5);
+            border-radius: 2px;
+            padding: 0 2px;
+            color: #000;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Event listener with debounce
+    searchInput.addEventListener('input', debounce(function(e) {
+        const term = e.target.value.trim();
+        searchCurrentPage(term);
+        
+        // Optional: If you want to also search server-side:
+        if (term.length > 2) {
+            fetch('/search/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: `search_term=${encodeURIComponent(term)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server results:', data.results);
+                // Handle server results if needed
+            });
+        }
+    }, 300));
+    
+    // Click on search icon to focus input
+    searchIcon.addEventListener('click', function() {
+        searchInput.focus();
+    });
+    
+    // Clear search when clicking Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            removeHighlights();
+        }
+    });
+});
+</script>
 
-
-</body>
+ </body>
 </html>
+

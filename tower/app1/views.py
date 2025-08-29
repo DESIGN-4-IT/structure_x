@@ -496,8 +496,79 @@ def hdata1(request):
         'button_type': button_type
     })
     
- 
+import math
+import json
+from django.shortcuts import render
+
+def calculation_view(request):
+    if request.method == 'GET':
+        # Get calculation data from request parameters
+        calculation_data_json = request.GET.get('calculation_data')
+        
+        if calculation_data_json:
+            try:
+                calculation_data = json.loads(calculation_data_json)
+                
+                # Add resultant calculation to each record
+                for record in calculation_data:
+                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+                    
+                    # Calculate SQRT(Vert² + Trans² + Long²) for each record
+                    resultant = math.sqrt(vert**2 + trans**2 + long**2)
+                    record['Resultant (lbs)'] = round(resultant, 2)
+                
+                # Group data by Set No. (for display purposes)
+                grouped_data = {}
+                for record in calculation_data:
+                    set_no = record.get('Set No.', 'Unknown')
+                    if set_no not in grouped_data:
+                        grouped_data[set_no] = []
+                    grouped_data[set_no].append(record)
+                
+                # Calculate max values for each set (optional, if still needed)
+                set_max_values = {}
+                for set_no, records in grouped_data.items():
+                    vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
+                    trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
+                    long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
+                    
+                    set_max_values[set_no] = {
+                        'max_vert': max(vert_values),
+                        'max_trans': max(trans_values),
+                        'max_long': max(long_values),
+                        'count': len(records)
+                    }
+                
+                # Calculate combined values across all sets (optional, if still needed)
+                combined_vert = sum([values['max_vert'] for values in set_max_values.values()])
+                combined_trans = sum([values['max_trans'] for values in set_max_values.values()])
+                combined_long = sum([values['max_long'] for values in set_max_values.values()])
+                
+                # Calculate the SQRT formula for combined values (optional)
+                combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
+                
+                # Prepare context for template
+                context = {
+                    'grouped_data': grouped_data,
+                    'set_max_values': set_max_values,
+                    'combined_vert': combined_vert,
+                    'combined_trans': combined_trans,
+                    'combined_long': combined_long,
+                    'combined_sqrt': combined_sqrt,
+                    'calculation_data': calculation_data
+                }
+                
+                return render(request, 'app1/calculation.html', context)
+                
+            except json.JSONDecodeError:
+                error = 'Invalid calculation data format'
+        else:
+            error = 'No calculation data provided'
     
+    return render(request, 'app1/calculation.html', {'error': error or 'An error occurred during calculation'})
+
 from django.shortcuts import render, redirect
 from .models import ListOfStructure
 from .forms import StructureForm
@@ -1233,19 +1304,104 @@ def hdeadend2(request):
 
 def hupload2(request):
     if request.method == 'POST':
-        form = HUDeadendForm2(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                form.save()
-                return redirect('hupload2')
-            except IntegrityError:
-                form.add_error('structure', 'A file has already been uploaded for this structure.')
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = HUDeadendForm2(request.POST, request.FILES)      # *******************
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    extract_load_cases(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('hupload1')          # ******************************
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
     else:
-        form = HUDeadendForm2()
+        form = HUDeadendForm2()         # **********************
 
-    files = hUploadedFile2.objects.all().order_by('-uploaded_at')[:2]  # Limit to 2 recent uploads
+    structures_with_files2 = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
 
-    return render(request, 'app1/hupload2.html', {'form': form, 'files': files})
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')  # *************************
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/hupload2.html', {             # ***************************
+        'form': form,
+        'structures_with_files2': structures_with_files2
+    })
+
 
 
 def hdrop2(request):

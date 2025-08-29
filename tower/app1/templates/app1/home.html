@@ -1,94 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Page</title>
-    {% load static %}
+{% extends "app1/base.html" %}
+{% load static %}  <!-- Load static here too for good measure -->
+
+{% block title %}Home - KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Reset some default browser styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Poppins', Arial, sans-serif;
-            background: #f4f7fa;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header Styling */
-        header {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            padding: 10px 15px;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .navbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-
-        .logo img {
-            height: 50px;
-            width: auto;
-        }
-
-        .header-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffe082;
-            margin-left:-120px;
-        }
-
-        .menu {
-            display: flex;
-            gap: 20px;
-        }
-
-        .menu a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 8px 15px;
-            transition: background-color 0.3s, color 0.3s;
-            border-radius: 5px;
-        }
-
-        .menu a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: #ffe082;
-        }
-
-        .search input {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-
-        /* Footer Styling */
-        footer {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: auto;
-            font-size: 14px;
-        }
+        
 
         /* Fade-in Animation */
         @keyframes fadeIn {
@@ -135,63 +54,209 @@
             margin-right: 5px;
         } {% endcomment %}
     
+        :root {
+            --primary: #4976b5ff;
+            --secondary: #1252a7;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #0d3a7a;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --info: #1252a7;
+            --danger: #e74c3c;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+
         .content {
             display: flex;
             justify-content: space-around;
             padding: 20px;
-            flex-grow: 1; /* Ensures content takes up remaining vertical space */
-            margin-bottom: 60px; /* Prevent content overlap with the fixed footer */
-            margin-top:50px;
+            flex-grow: 1;
+            margin-bottom: 60px;
+            margin-top: 80px;
+            gap: 30px;
+            flex-wrap: wrap;
         }
 
         .panel {
             background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 0;
             width: 45%;
+            min-width: 320px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
         }
 
         .panel-header {
-            background-color: #b3d1ff;
-            padding: 10px;
-            font-weight: bold;
-            border-radius: 5px 5px 0 0;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            padding: 18px 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-body {
+            padding: 20px;
         }
 
         .btn {
-            display: block;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #006fe8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: var(--transition);
         }
 
-        .structure-list div, .group-name {
-            background-color: #fffdd0;
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .structure-list {
+            margin-top: 15px;
+        }
+
+        .structure-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+            transition: var(--transition);
+        }
+
+        .structure-item:hover {
+            background: linear-gradient(to right, #e9ecef, #dee2e6);
+            transform: translateX(5px);
+        }
+
+        .delete-btn {
+            color: var(--danger);
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
             padding: 5px;
-            margin: 5px 0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+            transform: scale(1.1);
         }
 
         select {
             width: 100%;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            background-color: white;
+            color: var(--dark);
+            font-weight: 500;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 18px;
+            transition: var(--transition);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        option {
+            background-color: white;
+            color: var(--dark);
             padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            background-color: #006fe8;
-            color:white;
         }
 
-        option{
-            background-color: #fffa9b;
-            color:black;
+        .group-name {
+            background: linear-gradient(to right, #ffeaa7, #fab1a0);
+            padding: 6px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            color: var(--dark);
+            border-left: 4px solid var(--warning);
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
 
+        @media (max-width: 992px) {
+            .content {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .panel {
+                width: 90%;
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .panel {
+                width: 100%;
+            }
+            
+            .content {
+                padding: 10px;
+                margin-top: 30px;
+            }
+        }
+
+        .panel-icon {
+            font-size: 1.5rem;
+        }
+
+    
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -271,7 +336,7 @@
         }
         
         .popup-btn.blue {
-            background-color: #007bff;
+            background-color: #1252a7;
         }
         
         .popup-btn.green {
@@ -319,27 +384,12 @@
         }
         
     </style>
-</head>
-<body>
-    <!-- Header Section -->
-    <header>
-        <div class="navbar">      
-            <div class="logo">
-                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
-            </div>
-            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
 
-            <div class="menu">
-                <a href="#">About</a>
-                <a href="{% url 'home' %}">Services</a>
-                <a href="#">Contact Us</a>
-                <a href="{% url 'help' %}">Help</a>
-            </div>
-            <div class="search">
-                <input type="text" placeholder="Search">
-            </div>
-        </div>
-    </header>
+
+
+    {% endblock %}
+
+{% block content %}
     
     {% comment %} <div class="breadcrumb">
         <a href="#">Back</a>
@@ -349,41 +399,55 @@
     </div> {% endcomment %}
     
     <!-- Main Content Section -->
-    <div class="content">
+   <div class="content">
         <div class="panel">
-            <div class="panel-header">List All Structures</div>
-            <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">Add Structure</button>
-            <div class="structure-list">
-                {% for structure in structures %}
-                    <div class="structure-item">
-                        <div>{{ structure.structure }}</div>
-                        <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
-                            &#x2716;
-                        </a>
-                    </div>
-                {% empty %}
-                    <div>No structures found.</div>
-                {% endfor %}
+            <div class="panel-header">
+                <i class="fas fa-list panel-icon"></i>
+                List All Structures
+            </div>
+            <div class="panel-body">
+                <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">
+                    <i class="fas fa-plus-circle"></i> Add Structure
+                </button>
+                <div class="structure-list">
+                    {% for structure in structures %}
+                        <div class="structure-item">
+                            <div>{{ structure.structure }}</div>
+                            <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">No structures found. Add your first structure!</div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
+        
         <div class="panel">
-            <div class="panel-header">Group Structures</div>
-            <button class="btn">Select Structures to Add</button>
-            <div class="group-name">GroupName_xyz</div>
-            
-            <select id="structure-select">
-                <option>Select Structure Type For Group</option>
-                <option value="towers">Towers</option>
-                <option value="hframes">H-Frames</option>
-                <option value="monopoles">Monopoles</option>
-            </select>
+            <div class="panel-header">
+                <i class="fas fa-layer-group panel-icon"></i>
+                Group Structures
+            </div>
+            <div class="panel-body">
+                <button class="btn">
+                    <i class="fas fa-plus-circle"></i> Select Structures to Add
+                </button>
+                <div class="group-name">
+                    <i class="fas fa-tag"></i> GroupName_xyz
+                </div>
+                
+                <select id="structure-select">
+                    <option value="">Select Structure Type For Group</option>
+                    <option value="towers">Towers</option>
+                    <option value="hframes">H-Frames</option>
+                    <option value="monopoles">Monopoles</option>
+                </select>
+            </div>
         </div>
     </div>
     
-    <!-- Footer Section -->
-    <footer>
-        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
-    </footer>
+
 
 
                       {% comment %} tower  {% endcomment %}
@@ -612,7 +676,9 @@
     </div>
 </div>
 
+{% endblock %}
 
+{% block extra_js %}
                              {% comment %} tower  {% endcomment %}
 <script>
     const popupOverlay = document.getElementById('popup-overlay');
@@ -1002,9 +1068,29 @@
         });
     </script>
     
-    
-    
+     <script>
+        // Add some interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const structureSelect = document.getElementById('structure-select');
+            
+            structureSelect.addEventListener('change', function() {
+                if (this.value) {
+                    this.style.borderColor = '#3498db';
+                    this.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.2)';
+                }
+            });
+            
+            // Add confirmation to delete buttons
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (!confirm('Are you sure you want to delete this structure?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+ 
+{% endblock %}
 
-    
-</body>
-</html>

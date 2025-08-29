@@ -1,83 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Page</title>
-    {% load static %}
+{% extends "app1/base.html" %}
+{% load static %}  <!-- Load static here too for good measure -->
+
+{% block title %}Home - KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Reset some default browser styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Poppins', Arial, sans-serif;
-            background: #f4f7fa;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header Styling */
-        header {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            padding: 10px 15px;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .navbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-
-        .logo img {
-            height: 50px;
-            width: auto;
-        }
-
-        .header-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffe082;
-            margin-left:-120px;
-        }
-
-        .menu {
-            display: flex;
-            gap: 20px;
-        }
-
-        .menu a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 8px 15px;
-            transition: background-color 0.3s, color 0.3s;
-            border-radius: 5px;
-        }
-
-        .menu a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: #ffe082;
-        }
-
-        .search input {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-        }
+    
 
         /* Main Content Styling */
         .content {
@@ -163,7 +93,7 @@
         }
 
         .view-button {
-            background-color: #2196F3;
+            background-color: #1252a7;
             color: white;
             text-decoration: none;
         }
@@ -174,52 +104,14 @@
         }
 
         .view-button:hover {
-            background-color: #0b7dda;
+            background-color: #2259a2ff;
             transform: translateY(-2px);
-        }
-
-        /* Footer Styling */
-        footer {
-            background: linear-gradient(90deg, #4facfe,rgb(16, 236, 247));
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: auto;
-            font-size: 14px;
         }
 
         /* Fade-in Animation */
         @keyframes fadeIn {
             0% { opacity: 0; transform: translateY(20px); }
             100% { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .menu {
-                flex-direction: column;
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .menu a {
-                padding: 10px 0;
-                width: 100%;
-            }
-
-            .search {
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .content {
-                padding: 140px 20px 50px;
-            }
         }
 
 
@@ -302,7 +194,7 @@
         }
         
         .popup-btn.blue {
-            background-color: #007bff;
+            background-color: #1252a7;
         }
         
         .popup-btn.green {
@@ -327,30 +219,12 @@
         }
         
         
-        
-        
     </style>
-</head>
-<body>
-    <!-- Header Section -->
-    <header>
-        <div class="navbar">
-            <div class="logo">
-                <a href="#"><img src="{% static 'app1/images/logo1.png' %}" alt="Logo"></a>
-            </div>
-            <h5 class="header-title">Structure-X</h5> <!-- Title added here -->
 
-            <div class="menu">
-                <a href="#">About</a>
-                <a href="{% url 'home' %}">Services</a>
-                <a href="#">Contact Us</a>
-                <a href="{% url 'help' %}">Help</a>
-            </div>
-            <div class="search">
-                <input type="text" placeholder="Search">
-            </div>
-        </div>
-    </header>
+{% endblock %}
+
+{% block content %}
+   
     
     <div class="content">
         <div class="form-container">
@@ -385,16 +259,16 @@
                     {{ form.num_communication_cables }}
                 </div>
                 <button class="save-button" type="submit">Save</button>
-                <a href="{% url 'h_deadend_view1' %}" class="view-button">View</a>
+                <a href="{% url 'h_deadend_view1' %}" class="view-button">View</a>   <!-- ********************* -->
             </form>
         </div>
     </div>
     
     
-    <!-- Footer Section -->
-    <footer>
-        <p>&copy; 2024 Your Company Name. All Rights Reserved.</p>
-    </footer>
+  {% endblock %}
+
+{% block extra_js %}
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -402,12 +276,11 @@
     
         saveButton.addEventListener("click", function() {
             // Redirect to the upload1 page
-            window.location.href = '/hupload1/';
+            window.location.href = '/hupload1/';          // **********************************
         });
     });
         
 </script>
     
-</body>
-</html>
+  {% endblock %}
 
