@@ -527,26 +527,44 @@ def calculation_view(request):
                         grouped_data[set_no] = []
                     grouped_data[set_no].append(record)
                 
-                # Calculate max values for each set (optional, if still needed)
+                # Calculate max values for each set and flag max resultant rows
                 set_max_values = {}
+                max_resultant_indexes = {}  # Store indexes for JavaScript approach
+                
                 for set_no, records in grouped_data.items():
                     vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
                     trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
                     long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
+                    resultant_values = [record['Resultant (lbs)'] for record in records]
+                    
+                    # Find the maximum resultant value
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    # Store index for JavaScript approach
+                    max_resultant_indexes[set_no] = max_index
+                    
+                    # Add a simple flag to each record (as a string to avoid underscore issues)
+                    for i, record in enumerate(records):
+                        if resultant_values[i] == max_resultant:
+                            record['max_resultant_flag'] = 'yes'
+                        else:
+                            record['max_resultant_flag'] = 'no'
                     
                     set_max_values[set_no] = {
                         'max_vert': max(vert_values),
                         'max_trans': max(trans_values),
                         'max_long': max(long_values),
+                        'max_resultant': max_resultant,
                         'count': len(records)
                     }
                 
-                # Calculate combined values across all sets (optional, if still needed)
+                # Calculate combined values across all sets
                 combined_vert = sum([values['max_vert'] for values in set_max_values.values()])
                 combined_trans = sum([values['max_trans'] for values in set_max_values.values()])
                 combined_long = sum([values['max_long'] for values in set_max_values.values()])
                 
-                # Calculate the SQRT formula for combined values (optional)
+                # Calculate the SQRT formula for combined values
                 combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
                 
                 # Prepare context for template
@@ -557,7 +575,8 @@ def calculation_view(request):
                     'combined_trans': combined_trans,
                     'combined_long': combined_long,
                     'combined_sqrt': combined_sqrt,
-                    'calculation_data': calculation_data
+                    'calculation_data': calculation_data,
+                    'max_resultant_indexes': max_resultant_indexes  # Add this for JavaScript
                 }
                 
                 return render(request, 'app1/calculation.html', context)
@@ -568,6 +587,7 @@ def calculation_view(request):
             error = 'No calculation data provided'
     
     return render(request, 'app1/calculation.html', {'error': error or 'An error occurred during calculation'})
+
 
 from django.shortcuts import render, redirect
 from .models import ListOfStructure
