@@ -20,5 +20,6 @@ admin.site.register(tUploadedFile4)
 admin.site.register(tUploadedFile5)    
 admin.site.register(HDeadend1)  
 admin.site.register(hUploadedFile1)  
-
+admin.site.register(LoadCaseGroup)
+admin.site.register(LoadCase)
 

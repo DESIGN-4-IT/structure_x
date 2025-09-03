@@ -529,6 +529,7 @@ def calculation_view(request):
                 
                 # Calculate max values for each set and flag max resultant rows
                 set_max_values = {}
+                max_resultant_values = {}  # Store the actual values that created the max resultant
                 max_resultant_indexes = {}  # Store indexes for JavaScript approach
                 
                 for set_no, records in grouped_data.items():
@@ -540,6 +541,14 @@ def calculation_view(request):
                     # Find the maximum resultant value
                     max_resultant = max(resultant_values)
                     max_index = resultant_values.index(max_resultant)
+                    
+                    # Store the actual values that created the max resultant
+                    max_resultant_values[set_no] = {
+                        'vert': vert_values[max_index],
+                        'trans': trans_values[max_index],
+                        'long': long_values[max_index],
+                        'resultant': max_resultant
+                    }
                     
                     # Store index for JavaScript approach
                     max_resultant_indexes[set_no] = max_index
@@ -559,10 +568,10 @@ def calculation_view(request):
                         'count': len(records)
                     }
                 
-                # Calculate combined values across all sets
-                combined_vert = sum([values['max_vert'] for values in set_max_values.values()])
-                combined_trans = sum([values['max_trans'] for values in set_max_values.values()])
-                combined_long = sum([values['max_long'] for values in set_max_values.values()])
+                # Calculate combined values across all sets using the actual values that created max resultants
+                combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
+                combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
+                combined_long = sum([values['long'] for values in max_resultant_values.values()])
                 
                 # Calculate the SQRT formula for combined values
                 combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
@@ -571,6 +580,7 @@ def calculation_view(request):
                 context = {
                     'grouped_data': grouped_data,
                     'set_max_values': set_max_values,
+                    'max_resultant_values': max_resultant_values,  # Add this for displaying actual values
                     'combined_vert': combined_vert,
                     'combined_trans': combined_trans,
                     'combined_long': combined_long,
@@ -587,7 +597,6 @@ def calculation_view(request):
             error = 'No calculation data provided'
     
     return render(request, 'app1/calculation.html', {'error': error or 'An error occurred during calculation'})
-
 
 from django.shortcuts import render, redirect
 from .models import ListOfStructure
@@ -1066,6 +1075,37 @@ def hupload1(request):
                     return redirect('hupload1')
                 except IntegrityError:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
             button_type = request.POST.get('go_button')
@@ -1141,6 +1181,31 @@ def hupload1(request):
                     return JsonResponse({'groups': grouped_cases})
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -1154,9 +1219,15 @@ def hupload1(request):
 def extract_load_cases(uploaded_file):
     """Extract load cases from the uploaded Excel file and save to database"""
     try:
-        # Delete existing load cases for this structure
-        LoadCase.objects.filter(structure=uploaded_file.structure).delete()
-        LoadCaseGroup.objects.filter(structure=uploaded_file.structure).delete()
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
         
         df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
         
@@ -1181,7 +1252,8 @@ def extract_load_cases(uploaded_file):
         for group_name, cases in grouped_cases.items():
             group = LoadCaseGroup.objects.create(
                 name=group_name,
-                structure=uploaded_file.structure
+                structure=uploaded_file.structure,
+                is_custom=False
             )
             
             for case_name in cases:
@@ -1193,7 +1265,6 @@ def extract_load_cases(uploaded_file):
                 
     except Exception as e:
         print(f"Error extracting load cases: {e}")
-
 
 def hdrop1(request):
     # Get data for Attachments Joint Labels

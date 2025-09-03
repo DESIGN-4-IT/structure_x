@@ -169,33 +169,6 @@ h3, h4, h5 {
     transform: translateY(0);
 }
 
-/* Success message styling */
-.messages {
-    position: fixed;
-    top: 80px;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.alert {
-    padding: 15px 25px;
-    border-radius: 8px;
-    margin: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: slideDown 0.5s ease-out;
-    pointer-events: auto;
-    max-width: 90%;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
 
 @keyframes slideDown {
     from {
@@ -365,6 +338,57 @@ h3, h4, h5 {
     color: #ff2e43;
 }
 
+/* Custom Group Creation Section */
+#create-custom-group {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e1e4e8;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#custom-group-name {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+#custom-group-name:focus {
+    border-color: #1252a7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
+}
+
+#create-custom-group-btn {
+    background-color: #1252a7;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+#create-custom-group-btn:hover {
+    background-color: #0e4285;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#create-custom-group-btn:active {
+    transform: translateY(0);
+}
+
 /* Data tables */
 .data-table {
     width: 100%;
@@ -489,6 +513,22 @@ input[type="checkbox"] {
     }
 }
 
+@media (max-width: 768px) {
+    #create-custom-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #custom-group-name {
+        min-width: auto;
+        margin-bottom: 10px;
+    }
+    
+    #create-custom-group-btn {
+        width: 100%;
+    }
+}
+
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -602,15 +642,7 @@ input[type="checkbox"] {
     
     
 <div class="content">
-    {% if messages %}
-    <div class="messages">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    
 
     <div class="form-container">
         <h2>File Upload</h2>
@@ -645,6 +677,7 @@ input[type="checkbox"] {
             <div class="load-case-links">
                 <a href="#" id="imported-load-cases-link" class="load-case-link">Imported Load Cases</a>
                 <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
+                <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
             </div>
             
             <div id="load-cases-results" style="margin-top: 20px;">
@@ -655,36 +688,35 @@ input[type="checkbox"] {
         <div class="selected-load-cases" id="selected-load-cases" style="margin-top: 20px; display: none;">
             <h4>Selected Load Cases:</h4>
             <div id="selected-cases-list"></div>
+            
+            <!-- Create Custom Group Form -->
+            <div id="create-custom-group" style="margin-top: 10px; display: none;">
+                <input type="text" id="custom-group-name" placeholder="Enter custom group name" style="padding: 5px; margin-right: 10px;">
+                <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
+            </div>
         </div>
 
         <div class="buttons">
-    <form id="set-phase-form" method="post" style="display: inline;">
-        {% csrf_token %}
-        <input type="hidden" name="structure_id" id="structure-id-input">
-        <input type="hidden" name="go_button" value="set_phase">
-        <input type="hidden" name="load_case_values" id="load-case-values-input">
-        <button type="submit" class="set-phase-button">Set / Phase</button>
-    </form>
+            <form id="set-phase-form" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="structure_id" id="structure-id-input">
+                <input type="hidden" name="go_button" value="set_phase">
+                <input type="hidden" name="load_case_values" id="load-case-values-input">
+                <button type="submit" class="set-phase-button">Set / Phase</button>
+            </form>
 
-    <form id="joint-labels-form" method="post" style="display: inline;">
-        {% csrf_token %}
-        <input type="hidden" name="structure_id" id="structure-id-input-joint">
-        <input type="hidden" name="go_button" value="joint_labels">
-        <input type="hidden" name="load_case_values" id="load-case-values-input-joint">
-        <button type="submit" class="attachments-button">Attachments Joint Labels</button>
-    </form>
-</div>
+            <form id="joint-labels-form" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="structure_id" id="structure-id-input-joint">
+                <input type="hidden" name="go_button" value="joint_labels">
+                <input type="hidden" name="load_case_values" id="load-case-values-input-joint">
+                <button type="submit" class="attachments-button">Attachments Joint Labels</button>
+            </form>
+        </div>
 
         <div id="results-container" style="margin-top: 20px;">
             <!-- Results will be displayed here -->
         </div>
-
-        <!-- Hidden form for submitting -->
-        <form id="hidden-form" method="post" style="display: none;">
-            {% csrf_token %}
-            <input type="hidden" name="structure_id" id="structure-id-input">
-            <input type="hidden" name="go_button" value="1">
-        </form>
     </div>
 </div>
 
@@ -731,12 +763,10 @@ input[type="checkbox"] {
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const structureSelect = document.getElementById('structure-select');
-        const setPhaseButton = document.getElementById('set-phase-button');
-        const jointLabelsButton = document.getElementById('joint-labels-button');
-        const structureIdInput = document.getElementById('structure-id-input');
         const loadCasesSection = document.getElementById('load-cases-section');
         const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
         const groupLoadCasesLink = document.getElementById('group-load-cases-link');
+        const customGroupsLink = document.getElementById('custom-groups-link');
         const loadCasesResults = document.getElementById('load-cases-results');
 
         const selectedLoadCases = new Set();
@@ -746,7 +776,11 @@ input[type="checkbox"] {
         const loadCaseValuesInputJoint = document.getElementById('load-case-values-input-joint');
         const setPhaseForm = document.getElementById('set-phase-form');
         const jointLabelsForm = document.getElementById('joint-labels-form');
+        const createCustomGroupSection = document.getElementById('create-custom-group');
+        const customGroupNameInput = document.getElementById('custom-group-name');
+        const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
 
+        
         // Show load cases section when a structure is selected
         structureSelect.addEventListener('change', function() {
             if (this.value) {
@@ -754,265 +788,415 @@ input[type="checkbox"] {
             } else {
                 loadCasesSection.style.display = 'none';
                 loadCasesResults.innerHTML = '';
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
             }
         });
 
         function updateSelectedLoadCases() {
-        if (selectedLoadCases.size > 0) {
-            selectedLoadCasesSection.style.display = 'block';
-            selectedCasesList.innerHTML = '';
-            
-            selectedLoadCases.forEach(caseName => {
-                const caseElement = document.createElement('div');
-                caseElement.className = 'selected-case';
-                caseElement.innerHTML = `
-                    ${caseName}
-                    <span class="remove-case" data-case="${caseName}">×</span>
-                `;
-                selectedCasesList.appendChild(caseElement);
-            });
-            
-            // Add remove event listeners
-            document.querySelectorAll('.remove-case').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const caseName = this.dataset.case;
-                    selectedLoadCases.delete(caseName);
-                    updateSelectedLoadCases();
+            if (selectedLoadCases.size > 0) {
+                selectedLoadCasesSection.style.display = 'block';
+                selectedCasesList.innerHTML = '';
+                
+                selectedLoadCases.forEach(caseName => {
+                    const caseElement = document.createElement('div');
+                    caseElement.className = 'selected-case';
+                    caseElement.innerHTML = `
+                        ${caseName}
+                        <span class="remove-case" data-case="${caseName}">×</span>
+                    `;
+                    selectedCasesList.appendChild(caseElement);
                 });
-            });
-        } else {
-            selectedLoadCasesSection.style.display = 'none';
+                
+                // Show create custom group option
+                createCustomGroupSection.style.display = 'block';
+                
+                // Add remove event listeners
+                document.querySelectorAll('.remove-case').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const caseName = this.dataset.case;
+                        selectedLoadCases.delete(caseName);
+                        updateSelectedLoadCases();
+                    });
+                });
+            } else {
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
+            }
+        
+            // Update hidden inputs
+            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
+            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
         }
-    
-        // Update hidden inputs
-        loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
-        loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
-    }
 
         // Handle Imported Load Cases link click
         importedLoadCasesLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    const structureId = structureSelect.value;
-    if (!structureId) {
-        alert('Please select a structure first');
-        return;
-    }
-
-    fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-            return;
-        }
-
-        let html = '<h4>Imported Load Cases</h4>';
-        if (data.values && data.values.length > 0) {
-            html += '<form id="load-cases-form">';
-            html += '<ul class="load-cases-list">';
-            data.values.forEach(caseName => {
-                const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                html += `<li>
-                    <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
-                    ${caseName}
-                </li>`;
-            });
-            html += '</ul>';
-            html += '</form>';
-        } else {
-            html += '<p>No load cases found</p>';
-        }
-        loadCasesResults.innerHTML = html;
-
-        // Add event listener for checkbox changes
-        document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedLoadCases.add(this.value);
-                } else {
-                    selectedLoadCases.delete(this.value);
-                }
-                updateSelectedLoadCases();
-            });
-        });
-
-    })
-    .catch(error => {
-        loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-    });
-});
-
-// Replace the group load cases click handler
-groupLoadCasesLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    const structureId = structureSelect.value;
-    if (!structureId) {
-        alert('Please select a structure first');
-        return;
-    }
-
-    fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-            return;
-        }
-
-        let html = '<h4>Group Load Cases</h4>';
-        if (data.groups && Object.keys(data.groups).length > 0) {
-            html += '<form id="grouped-load-cases-form">';
-            
-            for (const [groupName, cases] of Object.entries(data.groups)) {
-                html += `<div class="load-case-group">
-                    <h5>${groupName}</h5>
-                    <div class="group-select-all">
-                        <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
-                        <label for="select-all-${groupName}">Select All</label>
-                    </div>
-                    <ul class="group-load-cases-list">`;
-                
-                cases.forEach(caseName => {
-                    const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                    html += `<li>
-                        <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                        ${caseName}
-                    </li>`;
-                });
-                
-                html += '</ul></div>';
-            }
-            
-            html += '</form>';
-        } else {
-            html += '<p>No grouped load cases found</p>';
-        }
-        loadCasesResults.innerHTML = html;
-
-        // Add select all functionality
-        document.querySelectorAll('.select-all-group').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const groupName = this.id.replace('select-all-', '');
-                const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
-                caseCheckboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedLoadCases.add(cb.value);
-                    } else {
-                        selectedLoadCases.delete(cb.value);
-                    }
-                });
-                updateSelectedLoadCases();
-            });
-        });
-
-        // Add event listener for individual checkbox changes
-        document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedLoadCases.add(this.value);
-                } else {
-                    selectedLoadCases.delete(this.value);
-                    // Uncheck select-all if any checkbox is unchecked
-                    const groupName = this.dataset.group;
-                    const selectAll = document.getElementById(`select-all-${groupName}`);
-                    if (selectAll) {
-                        selectAll.checked = false;
-                    }
-                }
-                updateSelectedLoadCases();
-            });
-        });
-        
-    })
-    .catch(error => {
-        loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-    });
-});
-
-setPhaseForm.addEventListener('submit', function(e) {
-    const structureId = structureSelect.value;
-    if (!structureId) {
-        e.preventDefault();
-        alert('Please select a structure first');
-        return;
-    }
-    
-    if (selectedLoadCases.size === 0) {
-        e.preventDefault();
-        alert('Please select at least one load case');
-        return;
-    }
-    
-    document.getElementById('structure-id-input').value = structureId;
-    document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
-    console.log("Submitting load cases:", Array.from(selectedLoadCases).join(',')); // Debug
-});
-
-jointLabelsForm.addEventListener('submit', function(e) {
-    const structureId = structureSelect.value;
-    if (!structureId) {
-        e.preventDefault();
-        alert('Please select a structure first');
-        return;
-    }
-    
-    if (selectedLoadCases.size === 0) {
-        e.preventDefault();
-        alert('Please select at least one load case');
-        return;
-    }
-    
-    document.getElementById('structure-id-input-joint').value = structureId;
-    document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
-    console.log("Submitting load cases:", Array.from(selectedLoadCases).join(',')); // Debug
-});
-
-        // Handle Set/Phase button click
-        setPhaseButton.addEventListener('click', function() {
+            e.preventDefault();
             const structureId = structureSelect.value;
             if (!structureId) {
                 alert('Please select a structure first');
                 return;
             }
-            
-            // Set structure ID and submit
-            structureIdInput.value = structureId;
-            document.getElementById('hidden-form').submit();
+
+            fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Imported Load Cases</h4>';
+                if (data.values && data.values.length > 0) {
+                    html += '<form id="load-cases-form">';
+                    html += '<ul class="load-cases-list">';
+                    data.values.forEach(caseName => {
+                        const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                        html += `<li>
+                            <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
+                            ${caseName}
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    html += '</form>';
+                } else {
+                    html += '<p>No load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add event listener for checkbox changes
+                document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
         });
 
-        // Handle Joint Labels button click
-        jointLabelsButton.addEventListener('click', function() {
+        // Handle Group Load Cases link click
+        groupLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
             const structureId = structureSelect.value;
             if (!structureId) {
                 alert('Please select a structure first');
                 return;
             }
-            
-            // Set structure ID and submit
-            structureIdInput.value = structureId;
-            document.getElementById('hidden-form').submit();
-        });
-    });
 
-    setTimeout(function() {
-        const messages = document.querySelectorAll('.alert');
-        messages.forEach(function(message) {
-            message.style.transition = 'opacity 0.5s ease-out';
-            message.style.opacity = '0';
-            setTimeout(function() {
-                message.remove();
-            }, 500);
+            fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Group Load Cases</h4>';
+                if (data.groups && Object.keys(data.groups).length > 0) {
+                    html += '<form id="grouped-load-cases-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName}</h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
+                                <label for="select-all-${groupName}">Select All</label>
+                            </div>
+                            <ul class="group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</form>';
+                } else {
+                    html += '<p>No grouped load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality
+                document.querySelectorAll('.select-all-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                            if (this.checked) {
+                                selectedLoadCases.add(cb.value);
+                            } else {
+                                selectedLoadCases.delete(cb.value);
+                            }
+                        });
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add event listener for individual checkbox changes
+                document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                            // Uncheck select-all if any checkbox is unchecked
+                            const groupName = this.dataset.group;
+                            const selectAll = document.getElementById(`select-all-${groupName}`);
+                            if (selectAll) {
+                                selectAll.checked = false;
+                            }
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
         });
-    }, 3000); 
+
+        // Handle Custom Groups link click
+        customGroupsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Custom Groups - Select Load Cases</h4>';
+                if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+                    html += '<form id="custom-groups-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.custom_groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName} 
+                                <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 10px;">Delete</button>
+                            </h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
+                                <label for="select-all-custom-${groupName}">Select All</label>
+                            </div>
+                            <ul class="custom-group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</form>';
+                } else {
+                    html += '<p>No custom groups found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality for custom groups
+                document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-custom-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                            if (this.checked) {
+                                selectedLoadCases.add(cb.value);
+                            } else {
+                                selectedLoadCases.delete(cb.value);
+                            }
+                        });
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add event listener for individual checkbox changes in custom groups
+                document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                            // Uncheck select-all if any checkbox is unchecked
+                            const groupName = this.dataset.group;
+                            const selectAll = document.getElementById(`select-all-custom-${groupName}`);
+                            if (selectAll) {
+                                selectAll.checked = false;
+                            }
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add delete functionality
+                document.querySelectorAll('.delete-group').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const groupName = this.dataset.group;
+                        if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+                            fetch(`/hupload1/?delete_custom_group=true&structure_id=${structureId}&group_name=${encodeURIComponent(groupName)}`, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // Reload custom groups
+                                    customGroupsLink.click();
+                                } else {
+                                    alert('Error deleting group: ' + data.error);
+                                }
+                            })
+                            .catch(error => {
+                                alert('Error deleting group: ' + error);
+                            });
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+        // Handle Create Custom Group button
+        createCustomGroupBtn.addEventListener('click', function() {
+            const structureId = structureSelect.value;
+            const groupName = customGroupNameInput.value.trim();
+            
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (!groupName) {
+                alert('Please enter a group name');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('create_custom_group', 'true');
+            formData.append('structure_id', structureId);
+            formData.append('group_name', groupName);
+            selectedLoadCases.forEach(caseName => {
+                formData.append('selected_cases', caseName);
+            });
+            
+            // Send request
+            fetch('/hupload1/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Custom group "${groupName}" created successfully!`);
+                    customGroupNameInput.value = '';
+                    selectedLoadCases.clear();
+                    updateSelectedLoadCases();
+                } else {
+                    alert('Error creating custom group: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error creating custom group: ' + error);
+            });
+        });
+
+        // Handle form submissions
+        setPhaseForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input').value = structureId;
+            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        jointLabelsForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input-joint').value = structureId;
+            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        // Auto-hide messages
+        setTimeout(function() {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000); 
+    });
 </script>
 
     {% endblock %}

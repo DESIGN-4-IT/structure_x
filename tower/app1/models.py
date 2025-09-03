@@ -296,13 +296,12 @@ class hUploadedFile1(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
-            
         ]
 
-# Add these models to your models.py
 class LoadCaseGroup(models.Model):
     name = models.CharField(max_length=100)
     structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='hload_case_groups')
+    is_custom = models.BooleanField(default=False)  # Flag to identify custom groups
     
     def __str__(self):
         return self.name
