@@ -7,6 +7,61 @@ class ListOfStructure(models.Model):
         return self.structure
 
 
+# models.py
+from django.db import models
+
+class LoadCondition(models.Model):
+    description = models.CharField(max_length=100)
+    temperature = models.FloatField(verbose_name="°F")
+    ice_radial = models.FloatField(verbose_name="Radial (in)")
+    wind_pressure = models.FloatField(verbose_name="Pressure (psf)")
+    angle_factor = models.FloatField()
+    transverse_factor = models.FloatField()
+    vertical_factor = models.FloatField()
+    longitudinal_factor = models.FloatField()
+    
+    def __str__(self):
+        return self.description
+
+class AttachmentLoad(models.Model):
+    LOAD_CASE_CHOICES = [
+        ('LC1', 'LC1, NESC LIGHT (250B)'),
+        ('LC2', 'LC2, NESC EXTREME WIND (250C)'),
+        ('LC3', 'LC3, NESC COMBINED ICE AND WIND (250D)'),
+        ('LC4', 'LC4, NORMAL EVERYDAY'),
+        ('LC5', 'LC5, 2% POLE DEFLECTION'),
+        ('LC6', 'LC6, FULL BREAK (250B)'),
+        ('LC7', 'LC7, Full Break (250D)'),
+    ]
+    
+    ATTACHMENT_CHOICES = [
+        ('S1', 'S1'),
+        ('P1,A', 'P1,A'),
+        ('P1,B', 'P1,B'),
+        ('P1,C', 'P1,C'),
+        ('F1', 'F1'),
+        ('D1,A & D2,A', 'D1,A & D2,A'),
+        ('D1,B & D2,B', 'D1,B & D2,B'),
+        ('D1,C & D2,C', 'D1,C & D2,C'),
+        ('N1 & N2', 'N1 & N2'),
+        ('C1', 'C1'),
+        ('C2', 'C2'),
+        ('C3', 'C3'),
+        ('C4', 'C4'),
+    ]
+    
+    load_case = models.CharField(max_length=3, choices=LOAD_CASE_CHOICES)
+    attachment = models.CharField(max_length=20, choices=ATTACHMENT_CHOICES)
+    vertical_load = models.FloatField(verbose_name="V")
+    transverse_load = models.FloatField(verbose_name="T")
+    longitudinal_load = models.FloatField(verbose_name="L")
+    
+    class Meta:
+        unique_together = ('load_case', 'attachment')
+    
+    def __str__(self):
+        return f"{self.get_load_case_display()} - {self.attachment}"
+
 from django.db import models
 
 class MonopoleDeadend(models.Model):
@@ -120,14 +175,22 @@ class UploadedFile4(models.Model):
         
         
 class TowerDeadend(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+        (None, "None"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadends', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='tower_deadends',
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES,null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES,null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES,null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES,null=True, blank=True)
 
     def __str__(self):
         return f"TowerDeadend {self.id} - Structure: {self.structure}"
@@ -268,22 +331,31 @@ class tUploadedFile5(models.Model):
         
         
 class HDeadend1(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+        (None, "None"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='h_deadends1', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='h_deadends1',
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
         return f"HDeadend {self.id} - Structure: {self.structure}"
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure1')
         ]
+
         
 class hUploadedFile1(models.Model):
     structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files1')
@@ -316,18 +388,26 @@ class LoadCase(models.Model):
     
         
 class HDeadend2(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+        (None, "None"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='h_deadends2', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='h_deadends2',
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
         return f"HDeadend {self.id} - Structure: {self.structure}"
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure2')
@@ -344,5 +424,4 @@ class hUploadedFile2(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure2')
-            
         ]

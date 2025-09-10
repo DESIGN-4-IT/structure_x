@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Conditions</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --info: #3498db;
+            --danger: #e74c3c;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        h3 {
+            color: var(--primary);
+            margin: 25px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        h4 {
+            color: var(--secondary);
+            margin: 20px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h4 i {
+            color: var(--accent);
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #f1f8ff;
+        }
+
+        .highlight {
+            background-color: #e3f2fd !important;
+            font-weight: bold;
+        }
+
+        .resultant-cell {
+            background-color: #fff3cd;
+            font-weight: bold;
+            color: #856404;
+        }
+
+        .result {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 600;
+            color: var(--dark);
+            display: inline-block;
+        }
+
+        .max-resultant-row {
+            background-color: #fff3cd;
+            font-weight: bold;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .max-resultant-row td {
+            padding: 8px 12px;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 600;
+            text-align: center;
+            border-left: 4px solid var(--danger);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .badge-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .set-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1a252f;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-info {
+            background-color: var(--info);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background-color: #2980b9;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        input[type="number"], select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-right: 10px;
+            width: 200px;
+        }
+        
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            th, td {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .set-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            input[type="number"], select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            #bufferSettings {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        @media print {
+            .action-buttons, footer {
+                display: none;
+            }
+            
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h2><i class="fas fa-table"></i> Load Conditions</h2>
+        <p>Configure and apply load conditions to your calculations</p>
+    </header>
+
+{% if calculation_data %}
+<div class="card">
+    <h3><i class="fas fa-bug"></i> Debug: Received Calculation Data</h3>
+    <p>Number of records: {{ calculation_data|length }}</p>
+    {% for set_no, records in grouped_calculation_data.items %}
+    <div class="set-container">
+        <div class="set-header">
+            <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        {% for key in records.0.keys %}
+                            {% if key != 'max_resultant_flag' %}  <!-- Exclude the flag from header -->
+                                <th>{{ key }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        <tr>
+                            {% for key, value in record.items %}
+                                {% if key != 'max_resultant_flag' %}  <!-- Exclude the flag from display -->
+                                    {% if key == 'Resultant (lbs)' %}
+                                        <td class="resultant-cell">{{ value }}</td>
+                                    {% else %}
+                                        <td>{{ value }}</td>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+    
+    <div class="card">
+        <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>°F</th>
+                        <th>Radial (in)</th>
+                        <th>Pressure (psf)</th>
+                        <th>ANGLE</th>
+                        <th>TRANSVERSE</th>
+                        <th>VERTICAL</th>
+                        <th>LONGITUDINAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for condition in load_conditions %}
+                    <tr>
+                        <td>{{ condition.description }}</td>
+                        <td>{{ condition.temperature }}</td>
+                        <td>{{ condition.ice_radial }}</td>
+                        <td>{{ condition.wind_pressure }}</td>
+                        <td>{{ condition.angle_factor }}</td>
+                        <td>{{ condition.transverse_factor }}</td>
+                        <td>{{ condition.vertical_factor }}</td>
+                        <td>{{ condition.longitudinal_factor }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+{% if has_factored_loads %}
+{% for condition_name, condition_data in factored_loads_by_condition.items %}
+<div class="card">
+    <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+    <p>Overload Factors: V×{{ condition_data.factors.vertical }}, 
+                   T×{{ condition_data.factors.transverse }}, 
+                   L×{{ condition_data.factors.longitudinal }}</p>
+    
+    <!-- Detailed Factored Records -->
+    {% for set_no, records in condition_data.grouped_data.items %}
+    <div class="set-container">
+        <div class="set-header">
+            <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        {% for key in records.0.keys %}
+                            {% if key != 'max_resultant_flag' %}  <!-- Exclude the flag from header -->
+                                <th>{{ key }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        <tr>
+                            {% for key, value in record.items %}
+                                {% if key != 'max_resultant_flag' %}  <!-- Exclude the flag from display -->
+                                    {% if key == 'Resultant (lbs)' or key == 'Structure Loads Vert. (lbs)' or key == 'Structure Loads Trans. (lbs)' or key == 'Structure Loads Long. (lbs)' %}
+                                        <td class="resultant-cell">{{ value }}</td>
+                                    {% else %}
+                                        <td>{{ value }}</td>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+    
+
+    
+    <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Back to Previous
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report
+        </button>
+        <button class="btn btn-info" onclick="window.location.href='/'">
+            <i class="fas fa-home"></i> Back to Home
+        </button>
+    </div>
+</div>
+
+<footer>
+    <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    applyBufferCheckbox.addEventListener('change', function() {
+        bufferSettings.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Handle final calculation
+    const calculateButton = document.getElementById('calculateFinalLoads');
+    calculateButton.addEventListener('click', function() {
+        // Get calculation data from previous step (you'll need to pass this from the previous view)
+        const calculationData = JSON.parse('{{ calculation_data_json|escapejs }}' || '[]');
+        
+        // Get form data
+        const formData = new FormData(document.getElementById('finalCalculationForm'));
+        
+        // Add calculation data to form data
+        formData.append('calculation_data', JSON.stringify(calculationData));
+        
+        // Show loading indicator
+        calculateButton.disabled = true;
+        calculateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+        
+        // Send AJAX request
+        fetch('{% url "calculate_final_loads" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Display results
+                displayFinalResults(data.max_resultant_values);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            // Reset button
+            calculateButton.disabled = false;
+            calculateButton.innerHTML = '<i class="fas fa-calculator"></i> Calculate Final Loads';
+        });
+    });
+    
+    function displayFinalResults(results) {
+        const tableBody = document.querySelector('#finalLoadsTable tbody');
+        tableBody.innerHTML = '';
+        
+        let totalVert = 0;
+        let totalTrans = 0;
+        let totalLong = 0;
+        
+        for (const [setNo, values] of Object.entries(results)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${setNo}</td>
+                <td>${values.vert.toFixed(2)}</td>
+                <td>${values.trans.toFixed(2)}</td>
+                <td>${values.long.toFixed(2)}</td>
+                <td>${values.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+            
+            totalVert += values.vert;
+            totalTrans += values.trans;
+            totalLong += values.long;
+        }
+        
+        // Add total row
+        const totalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
+        const totalRow = document.createElement('tr');
+        totalRow.classList.add('highlight');
+        totalRow.innerHTML = `
+            <td><strong>Total</strong></td>
+            <td><strong>${totalVert.toFixed(2)}</strong></td>
+            <td><strong>${totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${totalLong.toFixed(2)}</strong></td>
+            <td><strong>${totalResultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(totalRow);
+        
+        // Show results section
+        document.getElementById('finalResults').style.display = 'block';
+    }
+});
+</script>
+
+
+</body>
+</html>

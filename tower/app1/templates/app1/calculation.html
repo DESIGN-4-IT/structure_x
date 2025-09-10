@@ -269,6 +269,45 @@
             font-size: 0.9rem;
         }
 
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        input[type="number"], select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-right: 10px;
+            width: 200px;
+        }
+        
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -432,11 +471,64 @@
                 </table>
             </div>
         </div>
+
+
+        <div class="card">
+            <h3><i class="fas fa-calculator"></i> Buffer Configuration</h3>
+            
+            <form id="bufferConfigurationForm">
+                <div class="form-group">
+                    <label for="bufferConfig">Apply Buffer to Combined Results</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="applyBuffer" name="apply_buffer">
+                        <label for="applyBuffer">Apply buffer to combined loads</label>
+                    </div>
+                    <div id="bufferSettings" style="display: none; margin-top: 10px;">
+                        <input type="number" id="bufferValue" name="buffer_value" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                        <select id="roundToNearest" name="round_to_nearest">
+                            <option value="1">Round to nearest 1</option>
+                            <option value="10">Round to nearest 10</option>
+                            <option value="100" selected>Round to nearest 100</option>
+                            <option value="1000">Round to nearest 1000</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="button" id="applyBufferBtn" class="btn btn-primary">
+                    <i class="fas fa-calculator"></i> Apply Buffer
+                </button>
+            </form>
+            
+            <div id="bufferedResults" style="display: none; margin-top: 20px;">
+                <h4>Buffered Results</h4>
+                <div class="table-container">
+                    <table id="bufferedLoadsTable">
+                        <thead>
+                            <tr>
+                                <th>Set No.</th>
+                                <th>Vert (lbs)</th>
+                                <th>Trans (lbs)</th>
+                                <th>Long (lbs)</th>
+                                <th>Resultant (lbs)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Results will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="window.print()">
                 <i class="fas fa-print"></i> Print Report
             </button>
+
+            <button class="btn btn-info" onclick="goToLoadConditions()">
+                <i class="fas fa-table"></i> Configure Load Conditions
+            </button>
+
             <button class="btn btn-secondary" onclick="window.location.href='/'">
                 <i class="fas fa-home"></i> Back to Home
             </button>
@@ -489,6 +581,142 @@
     });
 </script>
 
+<script>
+function goToLoadConditions() {
+    // Pass the calculation data to the load condition page
+    const calculationData = {{ calculation_data_json|safe }};
+    
+    // Create a form to submit the data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'load_condition' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add calculation data
+    const dataInput = document.createElement('input');
+    dataInput.type = 'hidden';
+    dataInput.name = 'calculation_data';
+    dataInput.value = JSON.stringify(calculationData);
+    form.appendChild(dataInput);
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+
+<script>
+    // Buffer Configuration Logic
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    if (applyBufferCheckbox && bufferSettings) {
+        applyBufferCheckbox.addEventListener('change', function() {
+            bufferSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Handle buffer application
+    const applyBufferBtn = document.getElementById('applyBufferBtn');
+    if (applyBufferBtn) {
+        applyBufferBtn.addEventListener('click', function() {
+            applyBufferToResults();
+        });
+    }
+    
+    function applyBufferToResults() {
+        // Get buffer settings
+        const applyBuffer = document.getElementById('applyBuffer').checked;
+        const bufferValue = parseFloat(document.getElementById('bufferValue').value) || 0;
+        const roundToNearest = parseInt(document.getElementById('roundToNearest').value) || 100;
+        
+        // Get the max resultant values from Django context
+        const maxResultantValues = {
+            {% for set_no, values in max_resultant_values.items %}
+                '{{ set_no }}': {
+                    vert: {{ values.vert }},
+                    trans: {{ values.trans }},
+                    long: {{ values.long }},
+                    resultant: {{ values.resultant }}
+                },
+            {% endfor %}
+        };
+        
+        // Calculate sum values
+        let sumVert = {{ combined_vert }};
+        let sumTrans = {{ combined_trans }};
+        let sumLong = {{ combined_long }};
+        let sumResultant = {{ combined_sqrt }};
+        
+        // Apply buffer if enabled
+        if (applyBuffer) {
+            sumVert += bufferValue;
+            sumTrans += bufferValue;
+            sumLong += bufferValue;
+            
+            // Recalculate resultant with buffer
+            sumResultant = Math.sqrt(sumVert**2 + sumTrans**2 + sumLong**2);
+            
+            // Round to nearest specified value
+            sumVert = Math.round(sumVert / roundToNearest) * roundToNearest;
+            sumTrans = Math.round(sumTrans / roundToNearest) * roundToNearest;
+            sumLong = Math.round(sumLong / roundToNearest) * roundToNearest;
+            sumResultant = Math.round(sumResultant / roundToNearest) * roundToNearest;
+
+        }
+        
+        // Display buffered results
+        displayBufferedResults(maxResultantValues, {
+            vert: sumVert,
+            trans: sumTrans,
+            long: sumLong,
+            resultant: sumResultant
+        });
+    }
+    
+    function displayBufferedResults(setValues, sumValues) {
+        const tableBody = document.querySelector('#bufferedLoadsTable tbody');
+        tableBody.innerHTML = '';
+        
+        // Add individual set rows
+        for (const [setNo, values] of Object.entries(setValues)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${setNo}</td>
+                <td>${values.vert.toFixed(2)}</td>
+                <td>${values.trans.toFixed(2)}</td>
+                <td>${values.long.toFixed(2)}</td>
+                <td>${values.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+        
+        // Add sum row
+        const sumRow = document.createElement('tr');
+        sumRow.classList.add('highlight');
+        sumRow.innerHTML = `
+            <td><strong>Sum</strong></td>
+            <td><strong>${sumValues.vert.toFixed(2)}</strong></td>
+            <td><strong>${sumValues.trans.toFixed(2)}</strong></td>
+            <td><strong>${sumValues.long.toFixed(2)}</strong></td>
+            <td><strong>${sumValues.resultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(sumRow);
+        
+        // Show results section
+        document.getElementById('bufferedResults').style.display = 'block';
+    }
+});
+</script>
 
 </body>
 </html>

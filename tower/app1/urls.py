@@ -49,6 +49,8 @@ urlpatterns = [
    path('h_deadend_view2/', views.h_deadend_view2, name='h_deadend_view2'),
    path('hdata1/',views.hdata1,name='hdata1'),
    path('calculation/', views.calculation_view, name='calculation'),
+   path('load-condition/', views.load_condition_view, name='load_condition'),
+   path('calculate-final-loads/', views.calculate_final_loads, name='calculate_final_loads'),
 
 
 

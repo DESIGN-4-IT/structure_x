@@ -259,7 +259,7 @@
                     {{ form.num_communication_cables }}
                 </div>
                 <button class="save-button" type="submit">Save</button>
-                <a href="{% url 'h_deadend_view2' %}" class="view-button">View</a>
+                <a href="{% url 'h_deadend_view2' %}" class="view-button">View</a>   <!-- ********************* -->
             </form>
         </div>
     </div>
@@ -270,7 +270,8 @@
 {% block extra_js %}
 
 
-<script>
+
+    <script>
     document.addEventListener("DOMContentLoaded", function() {
         const saveButton = document.querySelector(".save-button");
     
@@ -279,8 +280,8 @@
             window.location.href = '/hupload2/';
         });
     });
-        
 </script>
+
     
   {% endblock %}
 

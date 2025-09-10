@@ -331,12 +331,12 @@ class HDeadendForm2(forms.ModelForm):
     
 class HUDeadendForm2(forms.ModelForm):
     class Meta:
-        model = hUploadedFile2
+        model = hUploadedFile2  # Change here
         fields = ('structure', 'file')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)
+        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
 

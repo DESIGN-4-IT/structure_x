@@ -847,6 +847,48 @@
         margin-bottom: 15px;
     }
 
+
+    .joint-marker, .set-marker, .phase-marker {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: auto;
+    cursor: move;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+}
+
+.joint-marker {
+    background: rgba(51, 51, 51, 0.8);
+    color: white;
+}
+
+.set-marker {
+    background: rgba(0, 0, 255, 0.7);
+    color: white;
+}
+
+.phase-marker {
+    background: rgba(0, 255, 0, 0.7);
+    color: white;
+}
+
+.model-viewer-container {
+    position: relative;
+    width: 100%;
+    height: 400px; /* Adjust as needed */
+    overflow: hidden;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#model-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
     </style>
 
 
@@ -998,6 +1040,8 @@
     let activeJoint = null;
     const selectedRecords = new Set();
     let allTableData = [];
+    const assignedValues = {}; // Track assigned values to tower parts
+
 
     
     // Initialize the 3D model viewer
@@ -1007,13 +1051,20 @@
         scene.background = new THREE.Color(0xf0f0f0);
         
         // Create camera
-        camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
         camera.position.set(5, 5, 5);
         
         // Create renderer
         const canvas = document.getElementById('model-canvas');
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+        renderer = new THREE.WebGLRenderer({ 
+            canvas, 
+            antialias: true,
+            alpha: true // Allow transparency
+        });
+        
+        // Set initial size
+        updateRendererSize();
         
         // Add controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -1039,10 +1090,14 @@
                 // Center the model
                 const box = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
                 model.position.sub(center);
                 
                 // Auto-rotate
                 model.rotation.y = Math.PI / 4;
+                
+                // Add part selection functionality
+                setupPartSelection(model);
                 
                 // Start animation loop
                 animate();
@@ -1057,6 +1112,85 @@
         window.addEventListener('resize', onWindowResize);
     }
     
+
+    function updateRendererSize() {
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        if (canvasContainer && renderer) {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+    }
+
+    // Setup part selection for the tower model
+    function setupPartSelection(model) {
+        model.traverse(function(child) {
+            if (child.isMesh) {
+                // Make parts selectable
+                child.userData.selectable = true;
+                child.userData.originalMaterial = child.material.clone();
+                
+                // Add hover effect
+                child.addEventListener('mouseover', function() {
+                    if (!child.userData.isSelected) {
+                        child.material.emissive = new THREE.Color(0x444444);
+                    }
+                });
+                
+                child.addEventListener('mouseout', function() {
+                    if (!child.userData.isSelected) {
+                        child.material.emissive = new THREE.Color(0x000000);
+                    }
+                });
+                
+                // Add click event for part selection
+                child.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    selectPart(child);
+                });
+            }
+        });
+    }
+
+    // Select a tower part and assign values
+    function selectPart(part) {
+        // Deselect previously selected part
+        model.traverse(function(child) {
+            if (child.isMesh && child.userData.isSelected) {
+                child.userData.isSelected = false;
+                child.material.emissive = new THREE.Color(0x000000);
+            }
+        });
+        
+        // Select new part
+        part.userData.isSelected = true;
+        part.material.emissive = new THREE.Color(0x555500);
+        
+        // Show assigned values if any
+        if (assignedValues[part.uuid]) {
+            showAssignedValues(part);
+        } else {
+            // Show available values for assignment
+            showAvailableValues(part);
+        }
+    }
+
+
+    // Show assigned values for a part
+    function showAssignedValues(part) {
+        // Implementation for showing assigned values
+        console.log("Showing assigned values for part:", part.uuid, assignedValues[part.uuid]);
+    }
+
+    // Show available values for assignment to a part
+    function showAvailableValues(part) {
+        // Implementation for showing available values
+        console.log("Showing available values for part:", part.uuid);
+    }
+
+
     // Add a marker for a joint on the 3D model
     function addJointMarker(jointLabel) {
         if (jointMarkers[jointLabel]) return; // Already exists
@@ -1108,7 +1242,6 @@
         // Make marker draggable
         makeJointDraggable(markerDiv, jointLabel);
     }
-    
 
     
     // Toggle load display visibility
@@ -1187,7 +1320,13 @@
     }
     
     // Update 3D position from screen coordinates
-    function update3DPositionFromScreen(jointLabel, x, y) {
+    function update3DPositionFromScreen(value, type, x, y) {
+        let marker;
+        if (type === 'joint') marker = jointMarkers[value];
+        else if (type === 'set') marker = setMarkers[value];
+        else if (type === 'phase') marker = phaseMarkers[value];
+        else return;
+        
         const vector = new THREE.Vector3(
             (x / renderer.domElement.clientWidth) * 2 - 1,
             -(y / renderer.domElement.clientHeight) * 2 + 1,
@@ -1195,7 +1334,7 @@
         );
         
         vector.unproject(camera);
-        jointMarkers[jointLabel].mesh.position.copy(vector);
+        marker.mesh.position.copy(vector);
     }
     
     // Add load display for a joint
@@ -1317,14 +1456,18 @@
     }
     
     // Make load display draggable
-    function makeDraggable(element, jointLabel) {
+    function makeDraggable(element, value, type) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         
         element.onmousedown = dragMouseDown;
         
         function dragMouseDown(e) {
-            e = e || window.event;
             e.preventDefault();
+            e.stopPropagation();
+            
+            if (type === 'joint') jointMarkers[value].isDragging = true;
+            else if (type === 'set') setMarkers[value].isDragging = true;
+            else if (type === 'phase') phaseMarkers[value].isDragging = true;
             
             // Get the mouse cursor position at startup
             pos3 = e.clientX;
@@ -1335,8 +1478,8 @@
         }
         
         function elementDrag(e) {
-            e = e || window.event;
             e.preventDefault();
+            e.stopPropagation();
             
             // Calculate the new cursor position
             pos1 = pos3 - e.clientX;
@@ -1348,16 +1491,15 @@
             element.style.top = (element.offsetTop - pos2) + "px";
             element.style.left = (element.offsetLeft - pos1) + "px";
             
-            // Update the marker position reference
-            if (loadDisplays[jointLabel]) {
-                loadDisplays[jointLabel].position = getPositionFromScreen(
-                    parseInt(element.style.left), 
-                    parseInt(element.style.top)
-                );
-            }
+            // Update the 3D position
+            update3DPositionFromScreen(value, type, parseInt(element.style.left), parseInt(element.style.top));
         }
         
         function closeDragElement() {
+            if (type === 'joint') jointMarkers[value].isDragging = false;
+            else if (type === 'set') setMarkers[value].isDragging = false;
+            else if (type === 'phase') phaseMarkers[value].isDragging = false;
+            
             // Stop moving when mouse button is released
             document.onmouseup = null;
             document.onmousemove = null;
@@ -1607,85 +1749,97 @@ function updateTable() {
     
     // Set up event listeners
     function addMarker(itemType, itemValue) {
-    if (itemType === 'joint') {
-        if (jointMarkers[itemValue]) return;
-        addJointMarker(itemValue);
-    } 
-    else if (itemType === 'set') {
-        if (setMarkers[itemValue]) return;
-        addSetMarker(itemValue);
+        if (itemType === 'joint') {
+            if (jointMarkers[itemValue]) return;
+            addJointMarker(itemValue);
+        } 
+        else if (itemType === 'set') {
+            if (setMarkers[itemValue]) return;
+            addSetMarker(itemValue);
+        }
+        else if (itemType === 'phase') {
+            if (phaseMarkers[itemValue]) return;
+            addPhaseMarker(itemValue);
+        }
     }
-    else if (itemType === 'phase') {
-        if (phaseMarkers[itemValue]) return;
-        addPhaseMarker(itemValue);
+
+    // Function to add a set marker
+    function addSetMarker(setNumber) {
+        if (setMarkers[setNumber]) return;
+        
+        const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue for sets
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 1.5, // Position higher for sets
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'set-marker';
+        markerDiv.textContent = `Set ${setNumber}`;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.background = 'rgba(0, 0, 255, 0.7)';
+        markerDiv.style.color = 'white';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.borderRadius = '3px';
+        markerDiv.style.cursor = 'move';
+        markerDiv.dataset.setNumber = setNumber;
+        document.getElementById('set-markers-container').appendChild(markerDiv);
+        
+        setMarkers[setNumber] = {
+            mesh: sphere,
+            div: markerDiv,
+            isDragging: false
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        makeDraggable(markerDiv, setNumber, 'set');
     }
-}
 
-// Function to add a set marker
-function addSetMarker(setNumber) {
-    const geometry = new THREE.SphereGeometry(0.03, 16, 16);
-    const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue for sets
-    const sphere = new THREE.Mesh(geometry, material);
-    
-    // Position the marker
-    sphere.position.set(
-        (Math.random() - 0.5) * 2,
-        Math.random() * 2,
-        (Math.random() - 0.5) * 2
-    );
-    
-    // Add label
-    const markerDiv = document.createElement('div');
-    markerDiv.className = 'set-marker';
-    markerDiv.textContent = `Set ${setNumber}`;
-    markerDiv.style.position = 'absolute';
-    markerDiv.style.color = 'blue';
-    markerDiv.dataset.setNumber = setNumber;
-    document.getElementById('set-markers-container').appendChild(markerDiv);
-    
-    setMarkers[setNumber] = {
-        mesh: sphere,
-        div: markerDiv,
-        isDragging: false
-    };
-    
-    scene.add(sphere);
-    updateMarkerPosition(sphere, markerDiv);
-    makeDraggable(markerDiv, setNumber, 'set');
-}
-
-// Function to add a phase marker
-function addPhaseMarker(phaseNumber) {
-    const geometry = new THREE.SphereGeometry(0.03, 16, 16);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green for phases
-    const sphere = new THREE.Mesh(geometry, material);
-    
-    // Position the marker
-    sphere.position.set(
-        (Math.random() - 0.5) * 2,
-        Math.random() * 2,
-        (Math.random() - 0.5) * 2
-    );
-    
-    // Add label
-    const markerDiv = document.createElement('div');
-    markerDiv.className = 'phase-marker';
-    markerDiv.textContent = `Phase ${phaseNumber}`;
-    markerDiv.style.position = 'absolute';
-    markerDiv.style.color = 'green';
-    markerDiv.dataset.phaseNumber = phaseNumber;
-    document.getElementById('phase-markers-container').appendChild(markerDiv);
-    
-    phaseMarkers[phaseNumber] = {
-        mesh: sphere,
-        div: markerDiv,
-        isDragging: false
-    };
-    
-    scene.add(sphere);
-    updateMarkerPosition(sphere, markerDiv);
-    makeDraggable(markerDiv, phaseNumber, 'phase');
-}
+    // Add a phase marker
+    function addPhaseMarker(phaseNumber) {
+        if (phaseMarkers[phaseNumber]) return;
+        
+        const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green for phases
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 1, // Position mid-level for phases
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'phase-marker';
+        markerDiv.textContent = `Phase ${phaseNumber}`;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.background = 'rgba(0, 255, 0, 0.7)';
+        markerDiv.style.color = 'white';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.borderRadius = '3px';
+        markerDiv.style.cursor = 'move';
+        markerDiv.dataset.phaseNumber = phaseNumber;
+        document.getElementById('phase-markers-container').appendChild(markerDiv);
+        
+        phaseMarkers[phaseNumber] = {
+            mesh: sphere,
+            div: markerDiv,
+            isDragging: false
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        makeDraggable(markerDiv, phaseNumber, 'phase');
+    }
 
     // Set up event listeners
     document.addEventListener('DOMContentLoaded', function() {
@@ -1743,19 +1897,17 @@ function addPhaseMarker(phaseNumber) {
         }
     });
 
-
-        
-        // Make labels draggable
-         document.querySelectorAll('.drag-item').forEach(item => {
+    // Make labels draggable
+    document.querySelectorAll('.drag-item').forEach(item => {
         item.addEventListener('dragstart', function(e) {
             e.dataTransfer.setData('type', this.dataset.type);
             e.dataTransfer.setData('value', this.dataset.value);
             e.dataTransfer.effectAllowed = 'copy';
         });
     });
-        
-        // Set up drop zone on model viewer
-        const modelCanvas = document.getElementById('model-canvas');
+    
+    // Set up drop zone on model viewer
+    const modelCanvas = document.getElementById('model-canvas');
     modelCanvas.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -1791,6 +1943,27 @@ function addPhaseMarker(phaseNumber) {
                 const event = new Event('change');
                 checkbox.dispatchEvent(event);
             }
+        }
+    });
+    
+    // Add responsive behavior
+    window.addEventListener('resize', function() {
+        updateRendererSize();
+        
+        // Update all marker positions
+        for (const label in jointMarkers) {
+            updateMarkerPosition(jointMarkers[label].mesh, jointMarkers[label].div);
+        }
+        for (const setNum in setMarkers) {
+            updateMarkerPosition(setMarkers[setNum].mesh, setMarkers[setNum].div);
+        }
+        for (const phaseNum in phaseMarkers) {
+            updateMarkerPosition(phaseMarkers[phaseNum].mesh, phaseMarkers[phaseNum].div);
+        }
+        
+        // Update load display positions
+        for (const label in loadDisplays) {
+            updateLoadDisplayPosition(loadDisplays[label].div, jointMarkers[label].mesh.position);
         }
     });
 });
