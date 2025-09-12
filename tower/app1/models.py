@@ -386,6 +386,18 @@ class LoadCase(models.Model):
     def __str__(self):
         return self.name
     
+class BufferConfiguration(models.Model):
+    name = models.CharField(max_length=100, default="Default Buffer Config")
+    vertical_buffer = models.FloatField(default=0)
+    vertical_rounding = models.IntegerField(default=100)
+    transverse_buffer = models.FloatField(default=0)
+    transverse_rounding = models.IntegerField(default=100)
+    longitudinal_buffer = models.FloatField(default=0)
+    longitudinal_rounding = models.IntegerField(default=100)
+    is_active = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.name
         
 class HDeadend2(models.Model):
     CIRCUIT_CHOICES = [

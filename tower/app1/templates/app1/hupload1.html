@@ -643,7 +643,6 @@ input[type="checkbox"] {
     
 <div class="content">
     
-
     <div class="form-container">
         <h2>File Upload</h2>
         <form method="post" enctype="multipart/form-data">
@@ -829,9 +828,21 @@ input[type="checkbox"] {
             loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
         }
 
+        function clearAllSelections() {
+            selectedLoadCases.clear();
+            updateSelectedLoadCases();
+
+            // Uncheck all checkboxes in loadCasesResults
+            loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
         // Handle Imported Load Cases link click
         importedLoadCasesLink.addEventListener('click', function(e) {
             e.preventDefault();
+            clearAllSelections();
+
             const structureId = structureSelect.value;
             if (!structureId) {
                 alert('Please select a structure first');
@@ -888,6 +899,8 @@ input[type="checkbox"] {
         // Handle Group Load Cases link click
         groupLoadCasesLink.addEventListener('click', function(e) {
             e.preventDefault();
+            clearAllSelections();
+
             const structureId = structureSelect.value;
             if (!structureId) {
                 alert('Please select a structure first');
@@ -979,6 +992,8 @@ input[type="checkbox"] {
         // Handle Custom Groups link click
         customGroupsLink.addEventListener('click', function(e) {
             e.preventDefault();
+            clearAllSelections();
+
             const structureId = structureSelect.value;
             if (!structureId) {
                 alert('Please select a structure first');
@@ -1137,8 +1152,7 @@ input[type="checkbox"] {
                 if (data.success) {
                     alert(`Custom group "${groupName}" created successfully!`);
                     customGroupNameInput.value = '';
-                    selectedLoadCases.clear();
-                    updateSelectedLoadCases();
+                    clearAllSelections();  // <-- clear selections and checkboxes
                 } else {
                     alert('Error creating custom group: ' + data.error);
                 }
@@ -1147,6 +1161,9 @@ input[type="checkbox"] {
                 alert('Error creating custom group: ' + error);
             });
         });
+
+
+
 
         // Handle form submissions
         setPhaseForm.addEventListener('submit', function(e) {

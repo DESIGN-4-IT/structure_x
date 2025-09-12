@@ -720,10 +720,18 @@ def calculate_final_loads(request):
             # Get the calculation data from the previous step
             calculation_data = json.loads(request.POST.get('calculation_data', '[]'))
             
-            # Get buffer configuration
+            # Get buffer configuration - per direction
             apply_buffer = request.POST.get('apply_buffer', 'false') == 'true'
-            buffer_value = float(request.POST.get('buffer_value', 0))
-            round_to_nearest = int(request.POST.get('round_to_nearest', 100))
+            
+            # Get buffer values for each direction
+            vert_buffer = float(request.POST.get('vert_buffer', 0))
+            trans_buffer = float(request.POST.get('trans_buffer', 0))
+            long_buffer = float(request.POST.get('long_buffer', 0))
+            
+            # Get rounding values for each direction
+            vert_rounding = int(request.POST.get('vert_rounding', 100))
+            trans_rounding = int(request.POST.get('trans_rounding', 100))
+            long_rounding = int(request.POST.get('long_rounding', 100))
             
             # Group by Set No.
             grouped_data = {}
@@ -756,33 +764,60 @@ def calculate_final_loads(request):
                     'resultant': max_resultant
                 }
             
-            # Apply buffer if requested
-            if apply_buffer:
-                for set_no, values in max_resultant_values.items():
-                    values['vert'] += buffer_value
-                    values['trans'] += buffer_value
-                    values['long'] += buffer_value
-                    values['resultant'] = math.sqrt(
-                        values['vert']**2 + values['trans']**2 + values['long']**2
-                    )
+            # Calculate the original sum values
+            original_sum_vert = sum([values['vert'] for values in max_resultant_values.values()])
+            original_sum_trans = sum([values['trans'] for values in max_resultant_values.values()])
+            original_sum_long = sum([values['long'] for values in max_resultant_values.values()])
+            original_sum_resultant = math.sqrt(original_sum_vert**2 + original_sum_trans**2 + original_sum_long**2)
             
-            # Round values if requested
-            if round_to_nearest > 0:
-                for set_no, values in max_resultant_values.items():
-                    values['vert'] = round(values['vert'] / round_to_nearest) * round_to_nearest
-                    values['trans'] = round(values['trans'] / round_to_nearest) * round_to_nearest
-                    values['long'] = round(values['long'] / round_to_nearest) * round_to_nearest
-                    values['resultant'] = math.sqrt(
-                        values['vert']**2 + values['trans']**2 + values['long']**2
-                    )
+            # Apply buffer and rounding only to the sum values if requested
+            processed_sum_vert = original_sum_vert
+            processed_sum_trans = original_sum_trans
+            processed_sum_long = original_sum_long
+            processed_sum_resultant = original_sum_resultant
+            
+            if apply_buffer:
+                # Apply buffers to sum values
+                processed_sum_vert += vert_buffer
+                processed_sum_trans += trans_buffer
+                processed_sum_long += long_buffer
+                
+                # Apply rounding to sum values
+                if vert_rounding > 0:
+                    processed_sum_vert = round(processed_sum_vert / vert_rounding) * vert_rounding
+                if trans_rounding > 0:
+                    processed_sum_trans = round(processed_sum_trans / trans_rounding) * trans_rounding
+                if long_rounding > 0:
+                    processed_sum_long = round(processed_sum_long / long_rounding) * long_rounding
+                
+                # Recalculate resultant after buffer and rounding
+                processed_sum_resultant = math.sqrt(
+                    processed_sum_vert**2 + processed_sum_trans**2 + processed_sum_long**2
+                )
             
             # Prepare response
             response_data = {
                 'success': True,
-                'max_resultant_values': max_resultant_values,
+                'max_resultant_values': max_resultant_values,  # Original set values
+                'processed_sum_values': {  # Processed sum values
+                    'vert': processed_sum_vert,
+                    'trans': processed_sum_trans,
+                    'long': processed_sum_long,
+                    'resultant': processed_sum_resultant
+                },
+                'original_sum_values': {  # Original sum values
+                    'vert': original_sum_vert,
+                    'trans': original_sum_trans,
+                    'long': original_sum_long,
+                    'resultant': original_sum_resultant
+                },
                 'apply_buffer': apply_buffer,
-                'buffer_value': buffer_value,
-                'round_to_nearest': round_to_nearest
+                'vert_buffer': vert_buffer,
+                'trans_buffer': trans_buffer,
+                'long_buffer': long_buffer,
+                'vert_rounding': vert_rounding,
+                'trans_rounding': trans_rounding,
+                'long_rounding': long_rounding
             }
             
             return JsonResponse(response_data)
@@ -797,6 +832,7 @@ def calculate_final_loads(request):
         'success': False,
         'error': 'Invalid request method'
     })
+    
 
 
 from django.shortcuts import render, redirect

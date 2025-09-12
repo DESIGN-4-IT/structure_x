@@ -1,0 +1,796 @@
+
+first read complete promt and act as experience developer 
+i am begginer so help me to solve this problem 
+my client got this isssue 
+"The problem they noticed
+ in the current setup, once you select cases for one group and then select more cases, those new ones get added into the same group, instead of staying separate.
+What they actually want
+Custom grouping should be flexible.
+Basically: once a custom group is created, selecting other cases should let the user start a new group, not automatically merge them into the existing one.
+👉 In short:
+They’re saying the grouping feature works, but right now it keeps merging new selections into the same group. They want the ability to keep groups separate (Hurricane group, 250D group, 250C group, etc.), so calculations can be done correctly on each group individually."
+so correct backend 
+
+this is views 
+"def hupload1(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = HUDeadendForm1(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    extract_load_cases(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('hupload1')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = HUDeadendForm1()
+
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/hupload1.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def extract_load_cases(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")"
+this is form 
+"class HUDeadendForm1(forms.ModelForm):
+    class Meta:
+        model = hUploadedFile1
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = hUploadedFile1.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file"
+
+
+this is models 
+"class hUploadedFile1(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files1')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
+        ]
+
+class LoadCaseGroup(models.Model):
+    name = models.CharField(max_length=100)
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='hload_case_groups')
+    is_custom = models.BooleanField(default=False)  # Flag to identify custom groups
+    
+    def __str__(self):
+        return self.name
+
+class LoadCase(models.Model):
+    name = models.CharField(max_length=100)
+    group = models.ForeignKey(LoadCaseGroup, on_delete=models.CASCADE, related_name='load_cases', null=True, blank=True)
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='hload_cases')
+    
+    def __str__(self):
+        return self.name"
+
+
+this is hupload1.html 
+"<div class="content">
+    
+    <div class="form-container">
+        <h2>File Upload</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-section">
+                <div class="upload-box">
+                    <p>Select Structure</p>
+                    {{ form.structure }}
+
+                    <p>Drag files to upload</p>
+                    <input type="file" name="file" accept=".xls,.xlsx" required>
+
+                    <button type="submit" class="upload-button">Upload File</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="attachment-section">
+            <p>Select Structure to Extract Data</p>
+            <select id="structure-select" class="form-control">
+                <option value="">-- Select Structure --</option>
+                {% for structure in structures_with_files %}
+                <option value="{{ structure.id }}">{{ structure.structure }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- New Load Cases Section -->
+        <div class="load-cases-section" style="margin-top: 20px; display: none;" id="load-cases-section">
+            <h3>Load Cases</h3>
+            <div class="load-case-links">
+                <a href="#" id="imported-load-cases-link" class="load-case-link">Imported Load Cases</a>
+                <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
+                <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
+            </div>
+            
+            <div id="load-cases-results" style="margin-top: 20px;">
+                <!-- Load cases results will be displayed here -->
+            </div>
+        </div>
+
+        <div class="selected-load-cases" id="selected-load-cases" style="margin-top: 20px; display: none;">
+            <h4>Selected Load Cases:</h4>
+            <div id="selected-cases-list"></div>
+            
+            <!-- Create Custom Group Form -->
+            <div id="create-custom-group" style="margin-top: 10px; display: none;">
+                <input type="text" id="custom-group-name" placeholder="Enter custom group name" style="padding: 5px; margin-right: 10px;">
+                <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <form id="set-phase-form" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="structure_id" id="structure-id-input">
+                <input type="hidden" name="go_button" value="set_phase">
+                <input type="hidden" name="load_case_values" id="load-case-values-input">
+                <button type="submit" class="set-phase-button">Set / Phase</button>
+            </form>
+
+            <form id="joint-labels-form" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="structure_id" id="structure-id-input-joint">
+                <input type="hidden" name="go_button" value="joint_labels">
+                <input type="hidden" name="load_case_values" id="load-case-values-input-joint">
+                <button type="submit" class="attachments-button">Attachments Joint Labels</button>
+            </form>
+        </div>
+
+        <div id="results-container" style="margin-top: 20px;">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+</div>
+
+
+
+    {% endblock %}
+
+{% block extra_js %}
+
+   
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const structureSelect = document.getElementById('structure-select');
+        const loadCasesSection = document.getElementById('load-cases-section');
+        const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
+        const groupLoadCasesLink = document.getElementById('group-load-cases-link');
+        const customGroupsLink = document.getElementById('custom-groups-link');
+        const loadCasesResults = document.getElementById('load-cases-results');
+
+        const selectedLoadCases = new Set();
+        const selectedLoadCasesSection = document.getElementById('selected-load-cases');
+        const selectedCasesList = document.getElementById('selected-cases-list');
+        const loadCaseValuesInput = document.getElementById('load-case-values-input');
+        const loadCaseValuesInputJoint = document.getElementById('load-case-values-input-joint');
+        const setPhaseForm = document.getElementById('set-phase-form');
+        const jointLabelsForm = document.getElementById('joint-labels-form');
+        const createCustomGroupSection = document.getElementById('create-custom-group');
+        const customGroupNameInput = document.getElementById('custom-group-name');
+        const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
+
+        
+        // Show load cases section when a structure is selected
+        structureSelect.addEventListener('change', function() {
+            if (this.value) {
+                loadCasesSection.style.display = 'block';
+            } else {
+                loadCasesSection.style.display = 'none';
+                loadCasesResults.innerHTML = '';
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
+            }
+        });
+
+        function updateSelectedLoadCases() {
+            if (selectedLoadCases.size > 0) {
+                selectedLoadCasesSection.style.display = 'block';
+                selectedCasesList.innerHTML = '';
+                
+                selectedLoadCases.forEach(caseName => {
+                    const caseElement = document.createElement('div');
+                    caseElement.className = 'selected-case';
+                    caseElement.innerHTML = `
+                        ${caseName}
+                        <span class="remove-case" data-case="${caseName}">×</span>
+                    `;
+                    selectedCasesList.appendChild(caseElement);
+                });
+                
+                // Show create custom group option
+                createCustomGroupSection.style.display = 'block';
+                
+                // Add remove event listeners
+                document.querySelectorAll('.remove-case').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const caseName = this.dataset.case;
+                        selectedLoadCases.delete(caseName);
+                        updateSelectedLoadCases();
+                    });
+                });
+            } else {
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
+            }
+        
+            // Update hidden inputs
+            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
+            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
+        }
+
+        // Handle Imported Load Cases link click
+        importedLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Imported Load Cases</h4>';
+                if (data.values && data.values.length > 0) {
+                    html += '<form id="load-cases-form">';
+                    html += '<ul class="load-cases-list">';
+                    data.values.forEach(caseName => {
+                        const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                        html += `<li>
+                            <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
+                            ${caseName}
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    html += '</form>';
+                } else {
+                    html += '<p>No load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add event listener for checkbox changes
+                document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+        // Handle Group Load Cases link click
+        groupLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Group Load Cases</h4>';
+                if (data.groups && Object.keys(data.groups).length > 0) {
+                    html += '<form id="grouped-load-cases-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName}</h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
+                                <label for="select-all-${groupName}">Select All</label>
+                            </div>
+                            <ul class="group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</form>';
+                } else {
+                    html += '<p>No grouped load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality
+                document.querySelectorAll('.select-all-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                            if (this.checked) {
+                                selectedLoadCases.add(cb.value);
+                            } else {
+                                selectedLoadCases.delete(cb.value);
+                            }
+                        });
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add event listener for individual checkbox changes
+                document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                            // Uncheck select-all if any checkbox is unchecked
+                            const groupName = this.dataset.group;
+                            const selectAll = document.getElementById(`select-all-${groupName}`);
+                            if (selectAll) {
+                                selectAll.checked = false;
+                            }
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+        // Handle Custom Groups link click
+        customGroupsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Custom Groups - Select Load Cases</h4>';
+                if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+                    html += '<form id="custom-groups-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.custom_groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName} 
+                                <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 10px;">Delete</button>
+                            </h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
+                                <label for="select-all-custom-${groupName}">Select All</label>
+                            </div>
+                            <ul class="custom-group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</form>';
+                } else {
+                    html += '<p>No custom groups found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality for custom groups
+                document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-custom-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                            if (this.checked) {
+                                selectedLoadCases.add(cb.value);
+                            } else {
+                                selectedLoadCases.delete(cb.value);
+                            }
+                        });
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add event listener for individual checkbox changes in custom groups
+                document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                            // Uncheck select-all if any checkbox is unchecked
+                            const groupName = this.dataset.group;
+                            const selectAll = document.getElementById(`select-all-custom-${groupName}`);
+                            if (selectAll) {
+                                selectAll.checked = false;
+                            }
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add delete functionality
+                document.querySelectorAll('.delete-group').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const groupName = this.dataset.group;
+                        if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+                            fetch(`/hupload1/?delete_custom_group=true&structure_id=${structureId}&group_name=${encodeURIComponent(groupName)}`, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // Reload custom groups
+                                    customGroupsLink.click();
+                                } else {
+                                    alert('Error deleting group: ' + data.error);
+                                }
+                            })
+                            .catch(error => {
+                                alert('Error deleting group: ' + error);
+                            });
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+        // Handle Create Custom Group button
+        createCustomGroupBtn.addEventListener('click', function() {
+            const structureId = structureSelect.value;
+            const groupName = customGroupNameInput.value.trim();
+            
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (!groupName) {
+                alert('Please enter a group name');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('create_custom_group', 'true');
+            formData.append('structure_id', structureId);
+            formData.append('group_name', groupName);
+            selectedLoadCases.forEach(caseName => {
+                formData.append('selected_cases', caseName);
+            });
+            
+            // Send request
+            fetch('/hupload1/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Custom group "${groupName}" created successfully!`);
+                    customGroupNameInput.value = '';
+                    selectedLoadCases.clear();
+                    updateSelectedLoadCases();
+                } else {
+                    alert('Error creating custom group: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error creating custom group: ' + error);
+            });
+        });
+
+        // Handle form submissions
+        setPhaseForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input').value = structureId;
+            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        jointLabelsForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input-joint').value = structureId;
+            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        // Auto-hide messages
+        setTimeout(function() {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000); 
+    });
+</script>
+"

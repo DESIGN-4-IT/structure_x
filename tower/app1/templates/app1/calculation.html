@@ -308,6 +308,35 @@
         }
 
 
+        .direction-config {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.direction-config input,
+.direction-config select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.settings-info {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.original-sum {
+    background-color: #e9ecef;
+    font-style: italic;
+}
+
+.highlight {
+    background-color: #d4edda !important;
+    font-weight: bold;
+}
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -483,14 +512,43 @@
                         <input type="checkbox" id="applyBuffer" name="apply_buffer">
                         <label for="applyBuffer">Apply buffer to combined loads</label>
                     </div>
+                    
                     <div id="bufferSettings" style="display: none; margin-top: 10px;">
-                        <input type="number" id="bufferValue" name="buffer_value" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
-                        <select id="roundToNearest" name="round_to_nearest">
-                            <option value="1">Round to nearest 1</option>
-                            <option value="10">Round to nearest 10</option>
-                            <option value="100" selected>Round to nearest 100</option>
-                            <option value="1000">Round to nearest 1000</option>
-                        </select>
+                        <h4>Vertical Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="vertBuffer" name="vert_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                            <select id="vertRounding" name="vert_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10">Round to nearest 10</option>
+                                <option value="100" selected>Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
+                        
+                        <h4>Transverse Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="transBuffer" name="trans_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                            <select id="transRounding" name="trans_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10">Round to nearest 10</option>
+                                <option value="100" selected>Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
+                        
+                        <h4>Longitudinal Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="longBuffer" name="long_buffer" placeholder="Buffer value (lbs)" value="25" step="1" min="0">
+                            <select id="longRounding" name="long_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10" selected>Round to nearest 10</option>
+                                <option value="100">Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 
@@ -613,7 +671,7 @@ function goToLoadConditions() {
 
 
 <script>
-    // Buffer Configuration Logic
+// Buffer Configuration Logic
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle buffer settings visibility
     const applyBufferCheckbox = document.getElementById('applyBuffer');
@@ -636,8 +694,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyBufferToResults() {
         // Get buffer settings
         const applyBuffer = document.getElementById('applyBuffer').checked;
-        const bufferValue = parseFloat(document.getElementById('bufferValue').value) || 0;
-        const roundToNearest = parseInt(document.getElementById('roundToNearest').value) || 100;
+        const vertBuffer = parseFloat(document.getElementById('vertBuffer').value) || 0;
+        const transBuffer = parseFloat(document.getElementById('transBuffer').value) || 0;
+        const longBuffer = parseFloat(document.getElementById('longBuffer').value) || 0;
+        const vertRounding = parseInt(document.getElementById('vertRounding').value) || 0;
+        const transRounding = parseInt(document.getElementById('transRounding').value) || 0;
+        const longRounding = parseInt(document.getElementById('longRounding').value) || 0;
         
         // Get the max resultant values from Django context
         const maxResultantValues = {
@@ -651,43 +713,60 @@ document.addEventListener('DOMContentLoaded', function() {
             {% endfor %}
         };
         
-        // Calculate sum values
-        let sumVert = {{ combined_vert }};
-        let sumTrans = {{ combined_trans }};
-        let sumLong = {{ combined_long }};
-        let sumResultant = {{ combined_sqrt }};
+        // Get the original sum values
+        const originalSumValues = {
+            vert: {{ combined_vert }},
+            trans: {{ combined_trans }},
+            long: {{ combined_long }},
+            resultant: {{ combined_sqrt }}
+        };
         
-        // Apply buffer if enabled
+        // Create processed sum values (initially same as original)
+        let processedSumValues = {...originalSumValues};
+        
+        // Apply buffer and rounding only to sum values if enabled
         if (applyBuffer) {
-            sumVert += bufferValue;
-            sumTrans += bufferValue;
-            sumLong += bufferValue;
+            // Apply buffers to sum values
+            processedSumValues.vert = originalSumValues.vert + vertBuffer;
+            processedSumValues.trans = originalSumValues.trans + transBuffer;
+            processedSumValues.long = originalSumValues.long + longBuffer;
             
-            // Recalculate resultant with buffer
-            sumResultant = Math.sqrt(sumVert**2 + sumTrans**2 + sumLong**2);
+            // Apply rounding to sum values
+            if (vertRounding > 0) {
+                processedSumValues.vert = Math.ceil(processedSumValues.vert / vertRounding) * vertRounding;
+            }
+            if (transRounding > 0) {
+                processedSumValues.trans = Math.ceil(processedSumValues.trans / transRounding) * transRounding;
+            }
+            if (longRounding > 0) {
+                processedSumValues.long = Math.ceil(processedSumValues.long / longRounding) * longRounding;
+            }
             
-            // Round to nearest specified value
-            sumVert = Math.round(sumVert / roundToNearest) * roundToNearest;
-            sumTrans = Math.round(sumTrans / roundToNearest) * roundToNearest;
-            sumLong = Math.round(sumLong / roundToNearest) * roundToNearest;
-            sumResultant = Math.round(sumResultant / roundToNearest) * roundToNearest;
-
+            // Recalculate resultant after buffer and rounding
+            processedSumValues.resultant = Math.sqrt(
+                processedSumValues.vert**2 + 
+                processedSumValues.trans**2 + 
+                processedSumValues.long**2
+            );
         }
         
         // Display buffered results
-        displayBufferedResults(maxResultantValues, {
-            vert: sumVert,
-            trans: sumTrans,
-            long: sumLong,
-            resultant: sumResultant
+        displayBufferedResults(maxResultantValues, processedSumValues, originalSumValues, {
+            applyBuffer,
+            vertBuffer,
+            transBuffer,
+            longBuffer,
+            vertRounding,
+            transRounding,
+            longRounding
         });
     }
     
-    function displayBufferedResults(setValues, sumValues) {
+    function displayBufferedResults(setValues, processedSumValues, originalSumValues, settings) {
         const tableBody = document.querySelector('#bufferedLoadsTable tbody');
         tableBody.innerHTML = '';
         
-        // Add individual set rows
+        // Add individual set rows (unchanged)
         for (const [setNo, values] of Object.entries(setValues)) {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -700,17 +779,46 @@ document.addEventListener('DOMContentLoaded', function() {
             tableBody.appendChild(row);
         }
         
-        // Add sum row
-        const sumRow = document.createElement('tr');
-        sumRow.classList.add('highlight');
-        sumRow.innerHTML = `
-            <td><strong>Sum</strong></td>
-            <td><strong>${sumValues.vert.toFixed(2)}</strong></td>
-            <td><strong>${sumValues.trans.toFixed(2)}</strong></td>
-            <td><strong>${sumValues.long.toFixed(2)}</strong></td>
-            <td><strong>${sumValues.resultant.toFixed(2)}</strong></td>
+        // Add original sum row
+        const originalSumRow = document.createElement('tr');
+        originalSumRow.classList.add('original-sum');
+        originalSumRow.innerHTML = `
+            <td><strong>Original Sum</strong></td>
+            <td><strong>${originalSumValues.vert.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.trans.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.long.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.resultant.toFixed(2)}</strong></td>
         `;
-        tableBody.appendChild(sumRow);
+        tableBody.appendChild(originalSumRow);
+        
+        // Add processed sum row (only if buffer was applied)
+        if (settings.applyBuffer) {
+            const processedSumRow = document.createElement('tr');
+            processedSumRow.classList.add('highlight');
+            processedSumRow.innerHTML = `
+                <td><strong>Processed Sum</strong></td>
+                <td><strong>${processedSumValues.vert.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.trans.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.long.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.resultant.toFixed(2)}</strong></td>
+            `;
+            tableBody.appendChild(processedSumRow);
+        }
+        
+        // Add settings info
+        if (settings.applyBuffer) {
+            const settingsRow = document.createElement('tr');
+            settingsRow.classList.add('settings-info');
+            settingsRow.innerHTML = `
+                <td colspan="5" style="text-align: left; font-style: italic;">
+                    Applied settings: 
+                    Vert: +${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                    Trans: +${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                    Long: +${settings.longBuffer} lbs, Round to ${settings.longRounding}
+                </td>
+            `;
+            tableBody.appendChild(settingsRow);
+        }
         
         // Show results section
         document.getElementById('bufferedResults').style.display = 'block';
