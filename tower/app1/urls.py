@@ -18,6 +18,11 @@ urlpatterns = [
    path('tdeadend/',views.tdeadend,name='tdeadend'), 
    path('tupload1/',views.tupload1,name='tupload1'),
    path('tower_deadend_view1/', views.tower_deadend_view1, name='tower_deadend_view1'),
+   path('tower_deadend_view3/', views.tower_deadend_view3, name='tower_deadend_view3'),
+   path('tower_deadend_view4/', views.tower_deadend_view4, name='tower_deadend_view4'),
+   path('tower_deadend_view5/', views.tower_deadend_view5, name='tower_deadend_view5'),
+
+
    path('tdrop1/',views.tdrop1,name='tdrop1'),
    path('tupload2/',views.tupload2,name='tupload2'),
    path('tdrop2/',views.tdrop2,name='tdrop2'),
@@ -34,6 +39,31 @@ urlpatterns = [
    path('tupload3/',views.tupload3,name='tupload3'),
    path('tupload4/',views.tupload4,name='tupload4'),
    path('tupload5/',views.tupload5,name='tupload5'),
+   
+   path('tdeadend6/',views.tdeadend6,name='tdeadend6'),
+   path('tupload6/',views.tupload6,name='tupload6'),
+   path('t_deadend_view6/', views.t_deadend_view6, name='t_deadend_view6'),
+   
+   path('tdeadend7/',views.tdeadend7,name='tdeadend7'),
+   path('tupload7/',views.tupload7,name='tupload7'),
+   path('t_deadend_view7/', views.t_deadend_view7, name='t_deadend_view7'),
+   
+   path('tdeadend8/',views.tdeadend8,name='tdeadend8'),
+   path('tupload8/',views.tupload8,name='tupload8'),
+   path('t_deadend_view8/', views.t_deadend_view8, name='t_deadend_view8'),
+   
+   path('tdeadend9/',views.tdeadend9,name='tdeadend9'),
+   path('tupload9/',views.tupload9,name='tupload9'),
+   path('t_deadend_view9/', views.t_deadend_view9, name='t_deadend_view9'),
+   
+   path('tdeadend10/',views.tdeadend10,name='tdeadend10'),
+   path('tupload10/',views.tupload10,name='tupload10'),
+   path('t_deadend_view10/', views.t_deadend_view10, name='t_deadend_view10'),
+   
+   path('tdeadend11/',views.tdeadend11,name='tdeadend11'),
+   path('tupload11/',views.tupload11,name='tupload11'),
+   path('t_deadend_view11/', views.t_deadend_view11, name='t_deadend_view11'),
+   
    path('tdrop3/',views.tdrop3,name='tdrop3'),
    path('tdrop4/',views.tdrop4,name='tdrop4'),
    path('tdrop5/',views.tdrop5,name='tdrop5'),
@@ -47,6 +77,13 @@ urlpatterns = [
    path('hdrop2/',views.hdrop2,name='hdrop2'),
    path('h_deadend_view1/', views.h_deadend_view1, name='h_deadend_view1'),
    path('h_deadend_view2/', views.h_deadend_view2, name='h_deadend_view2'),
+   path('hdeadend3/',views.hdeadend3,name='hdeadend3'),
+   path('hupload3/',views.hupload3,name='hupload3'),
+   path('h_deadend_view3/', views.h_deadend_view3, name='h_deadend_view3'),
+   path('hdeadend4/',views.hdeadend4,name='hdeadend4'),
+   path('hupload4/',views.hupload4,name='hupload4'),
+   path('h_deadend_view4/', views.h_deadend_view4, name='h_deadend_view4'),
+
    path('hdata1/',views.hdata1,name='hdata1'),
    path('calculation/', views.calculation_view, name='calculation'),
    path('load-condition/', views.load_condition_view, name='load_condition'),

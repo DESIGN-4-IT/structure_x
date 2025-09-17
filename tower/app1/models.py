@@ -177,7 +177,6 @@ class UploadedFile4(models.Model):
 class TowerDeadend(models.Model):
     CIRCUIT_CHOICES = [
         (0, "0"),
-        (None, "None"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
@@ -202,7 +201,9 @@ class TowerDeadend(models.Model):
 
 
 class TowerDeadend3(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadends3', unique=True)
 
@@ -220,7 +221,9 @@ class TowerDeadend3(models.Model):
         ]
         
 class TowerDeadend4(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadendss', unique=True)
 
@@ -238,7 +241,9 @@ class TowerDeadend4(models.Model):
         ]
         
 class TowerDeadend5(models.Model):
-    CIRCUIT_CHOICES = [(i, str(i)) for i in range(1, 11)]
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+    ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadends5', unique=True)
 
@@ -333,7 +338,6 @@ class tUploadedFile5(models.Model):
 class HDeadend1(models.Model):
     CIRCUIT_CHOICES = [
         (0, "0"),
-        (None, "None"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
@@ -401,14 +405,13 @@ class BufferConfiguration(models.Model):
         
 class HDeadend2(models.Model):
     CIRCUIT_CHOICES = [
-        (0, "0"),
-        (None, "None"),
+        (0, "0"),                                   # ************Here**********
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='h_deadends2',
+        related_name='h_deadends2',                 # ************Here**********
         unique=True
     )
 
@@ -436,4 +439,333 @@ class hUploadedFile2(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure2')
+        ]
+        
+        
+class HDeadend3(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='h_deadends3',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure3')
+        ]      
+
+
+
+class hUploadedFile3(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files3')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure3')
+        ]
+        
+        
+class HDeadend4(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='h_deadends4',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure4')
+        ]      
+
+
+
+class hUploadedFile4(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files4')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure4')
+        ]
+        
+        
+        
+class TDeadend6(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends6',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure6')
+        ]      
+
+
+
+class tUploadedFile6(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files6')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure6')
+        ]
+        
+        
+class TDeadend7(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends7',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure7')
+        ]      
+
+
+
+class tUploadedFile7(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files7')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure7')
+        ]
+        
+        
+class TDeadend8(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends8',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure8')
+        ]      
+
+
+
+class tUploadedFile8(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files8')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure8')
+        ]
+        
+        
+class TDeadend9(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends9',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure9')
+        ]      
+
+
+
+class tUploadedFile9(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files9')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure9')
+        ]
+        
+        
+class TDeadend10(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends10',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure10')
+        ]      
+
+
+
+class tUploadedFile10(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files10')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure10')
+        ]
+        
+        
+class TDeadend11(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),                                   # ************Here**********
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends11',                 # ************Here**********
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure11')
+        ]      
+
+
+
+class tUploadedFile11(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='tuploaded_files11')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='tunique_file_per_structure11')
         ]

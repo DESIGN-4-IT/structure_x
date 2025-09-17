@@ -247,7 +247,7 @@
                     {{ form.num_3_phase_circuits }}
                 </div>
                 <div class="form-group">
-                    <label>Define number of shield wires associated with each other</label>
+                    <label>Define number of shield wires associated with each phase</label>
                     {{ form.num_shield_wires }}
                 </div>
                 <div class="form-group">
@@ -259,7 +259,7 @@
                     {{ form.num_communication_cables }}
                 </div>
                 <button class="save-button" type="submit">Save</button>
-                <a href="{% url 'h_deadend_view2' %}" class="view-button">View</a>   <!-- ********************* -->
+                <a href="{% url 'h_deadend_view2' %}" class="view-button">View</a>   <!-- *********** Here ********** -->
             </form>
         </div>
     </div>
@@ -277,7 +277,7 @@
     
         saveButton.addEventListener("click", function() {
             // Redirect to the upload1 page
-            window.location.href = '/hupload2/';
+            window.location.href = '/hupload2/';        // *************** Here *********** 
         });
     });
 </script>

@@ -205,12 +205,12 @@ class tUploadedFileForm1(forms.ModelForm):
 
 class tUploadedFileForm2(forms.ModelForm):
     class Meta:
-        model = tUploadedFile2
+        model = tUploadedFile2  # Change here
         fields = ('structure', 'file')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        used_structures = tUploadedFile2.objects.values_list('structure_id', flat=True)
+        used_structures = tUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
 
@@ -316,15 +316,15 @@ class HUDeadendForm1(forms.ModelForm):
     
 class HDeadendForm2(forms.ModelForm):
     class Meta:
-        model = HDeadend2
+        model = HDeadend2                # *************** Here ***********
         fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
 
     def __init__(self, *args, **kwargs):
-        super(HDeadendForm2, self).__init__(*args, **kwargs)
+        super(HDeadendForm2, self).__init__(*args, **kwargs)          # *************** Here ***********
         self.fields['structure'].empty_label = "Select Structure"
 
         # Show only structures that don't already have a TowerDeadend
-        used_structures = HDeadend2.objects.values_list('structure', flat=True)
+        used_structures = HDeadend2.objects.values_list('structure', flat=True)     # *************** Here ***********
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         
         
@@ -337,6 +337,271 @@ class HUDeadendForm2(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class HDeadendForm3(forms.ModelForm):
+    class Meta:
+        model = HDeadend3                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(HDeadendForm3, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = HDeadend3.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class HUDeadendForm3(forms.ModelForm):
+    class Meta:
+        model = hUploadedFile3
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = hUploadedFile3.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+    
+class HDeadendForm4(forms.ModelForm):
+    class Meta:
+        model = HDeadend4                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(HDeadendForm4, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = HDeadend4.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class HUDeadendForm4(forms.ModelForm):
+    class Meta:
+        model = hUploadedFile4
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = hUploadedFile4.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm6(forms.ModelForm):
+    class Meta:
+        model = TDeadend6                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm6, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend6.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm6(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile6
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile6.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm7(forms.ModelForm):
+    class Meta:
+        model = TDeadend7                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm7, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend7.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm7(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile7
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile7.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm8(forms.ModelForm):
+    class Meta:
+        model = TDeadend8                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm8, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend8.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm8(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile8
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile8.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm9(forms.ModelForm):
+    class Meta:
+        model = TDeadend9                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm9, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend9.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm9(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile9
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile9.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm10(forms.ModelForm):
+    class Meta:
+        model = TDeadend10               # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm10, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend10.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm10(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile10
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile10.objects.values_list('structure_id', flat=True)
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TDeadendForm11(forms.ModelForm):
+    class Meta:
+        model = TDeadend11                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm11, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend11.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+    
+class TUDeadendForm11(forms.ModelForm):
+    class Meta:
+        model = tUploadedFile11
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        used_structures = tUploadedFile11.objects.values_list('structure_id', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
 
