@@ -1,0 +1,286 @@
+{% extends "app1/base.html" %}
+{% load static %}  <!-- Load static here too for good measure -->
+
+{% block title %}KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+
+    <link rel="stylesheet" href="styles.css">
+    <style>
+    
+
+        /* Main Content Styling */
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 90px 20px 20px; /* Top padding adjusted to leave space for fixed header */
+            background: linear-gradient(to right,rgb(247, 248, 248),rgb(234, 252, 252));
+            min-height: 100vh;
+        }
+
+        /* Form Styling */
+        .form-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 40px 30px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease;
+        }
+
+        .form-container h2 {
+            text-align: center;
+            font-size: 25px;
+            margin-bottom: 22px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f5f7fa;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            border-color: #4facfe;
+            background-color: #ffffff;
+            outline: none;
+        }
+
+        /* Buttons */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .save-button, .view-button {
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            text-align: center;
+        }
+
+        .save-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .view-button {
+            background-color: #1252a7;
+            color: white;
+            text-decoration: none;
+        }
+
+        .save-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .view-button:hover {
+            background-color: #2259a2ff;
+            transform: translateY(-2px);
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .popup {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
+            text-align: center;
+            width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            position: relative;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Ensures content does not overflow */
+        }
+        
+        .popup .popup-header {
+            background-color: #ffec00;
+            color: black;
+            font-size: 12px;
+            padding: 10px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0px 0px 0 0;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: calc(100% + 40px);  /* Ensure it covers full width */
+            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
+            box-sizing: border-box;  /* Prevent overflow beyond the container */
+        }
+        
+        
+        .popup-close {
+            position: absolute;
+            top: 10%;
+            right: 1px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 30px;
+            color: black;
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup h3 {
+            margin: 20px 0;
+            font-size: 14px;
+            color: black;
+        }
+        
+        .popup .popup-btn {
+            padding: 10px 15px; /* Increase padding for better button size */
+            margin: 15px 30px;  /* Increase the margin between buttons */
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 20px;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        
+        .popup-btn.blue {
+            background-color: #1252a7;
+        }
+        
+        .popup-btn.green {
+            background-color: green;
+        }
+        
+        .popup-btn.red {
+            background-color: red;
+        }
+        
+        .popup-btn.yellow {
+            background-color: yellow;
+            color: black;
+        }
+        
+        .popup-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .blur {
+            filter: blur(0.3spx);
+        }
+        
+        
+    </style>
+
+{% endblock %}
+
+{% block content %}
+   
+    
+    <div class="content">
+        <div class="form-container">
+            <h2>Circuit Definition</h2>
+            <form method="POST" id="monopole-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Select Structure</label>
+                    {{ form.structure }}
+                    {% if form.structure.errors %}
+                        <div class="error-message">
+                            {% for error in form.structure.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Define number of 3 - phase circuits</label>
+                    {{ form.num_3_phase_circuits }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of shield wires associated with each phase</label>
+                    {{ form.num_shield_wires }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of 1 - phase circuits</label>
+                    {{ form.num_1_phase_circuits }}
+                </div>
+                <div class="form-group">
+                    <label>Define number of communication cables</label>
+                    {{ form.num_communication_cables }}
+                </div>
+                <button class="save-button" type="submit">Save</button>
+                <a href="{% url 'm_deadend_view12' %}" class="view-button">View</a>   <!-- ********************* -->
+            </form>
+        </div>
+    </div>
+    
+    
+  {% endblock %}
+
+{% block extra_js %}
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const saveButton = document.querySelector(".save-button");
+    
+        saveButton.addEventListener("click", function() {
+            // Redirect to the upload1 page
+            window.location.href = '/mupload12/';          // **********************************
+        });
+    });
+        
+</script>
+    
+  {% endblock %}
+

@@ -16,34 +16,6 @@ from django.http import JsonResponse
 
 from django.db import IntegrityError
 
-def deadend(request):
-    if request.method == 'POST':
-        form = MonopoleDeadendForm(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                return JsonResponse({'status': 'success'})
-            except IntegrityError:
-                form.add_error('structure', 'Data already added for this structure.')
-                return JsonResponse({'status': 'error', 'errors': form.errors})
-        else:
-            return JsonResponse({'status': 'error', 'errors': form.errors})
-    else:
-        form = MonopoleDeadendForm()
-
-    return render(request, 'app1/deadend.html', {'form': form})
-
-
-
-
-
-
-
-def monopole_deadend_view(request):
-    monopoles = MonopoleDeadend.objects.all()
-    return render(request, 'app1/monopole_deadend_view.html', {'monopoles': monopoles})
-
-
 def monopole_deadend_view1(request):
     monopoles = MonopoleDeadend1.objects.all()
     return render(request, 'app1/monopole_deadend_view1.html', {'monopoles': monopoles})
@@ -113,37 +85,6 @@ def tdeadend1(request):
 
 from django.db import IntegrityError
 
-def upload1(request):
-    if request.method == 'POST':
-        form = UploadedFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                form.save()
-                return redirect('upload1')
-            except IntegrityError:
-                form.add_error('structure', 'A file has already been uploaded for this structure.')
-    else:
-        form = UploadedFileForm()
-
-    files = UploadedFile1.objects.all().order_by('-uploaded_at')[:2]  # Limit to 2 recent uploads
-
-    return render(request, 'app1/upload1.html', {'form': form, 'files': files})
-
-def upload2(request):
-    if request.method == 'POST':
-        form = UploadedFileForm2(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                form.save()
-                return redirect('upload2')
-            except IntegrityError:
-                form.add_error('structure', 'A file has already been uploaded for this structure.')
-    else:
-        form = UploadedFileForm2()
-
-    files = UploadedFile3.objects.all().order_by('-uploaded_at')[:2]  # Limit to 2 recent uploads
-
-    return render(request, 'app1/upload2.html', {'form': form, 'files': files})
 
 def hupload(request):
     if request.method == 'POST':
@@ -250,7 +191,7 @@ def drop2(request):
     # AJAX: Get files of a selected structure
     if 'structure_id' in request.GET:
         structure_id = request.GET.get('structure_id')
-        files = UploadedFile3.objects.filter(structure_id=structure_id)
+        files = UploadedFile22.objects.filter(structure_id=structure_id)
         file_data = [{'id': f.id, 'name': os.path.basename(f.file.name)} for f in files]
         return JsonResponse({'files': file_data})
 
@@ -258,7 +199,7 @@ def drop2(request):
     if 'file_id' in request.GET and 'get_full_excel' in request.GET:
         file_id = request.GET.get('file_id')
         try:
-            file = UploadedFile3.objects.get(id=file_id)
+            file = UploadedFile22.objects.get(id=file_id)
             df = pd.read_excel(file.file.path, engine='openpyxl')
             rows = [df.columns.tolist()] + df.fillna('').astype(str).values.tolist()
             return JsonResponse({'rows': rows})
@@ -269,7 +210,7 @@ def drop2(request):
     if 'file_id' in request.GET and 'get_columns' in request.GET:
         file_id = request.GET.get('file_id')
         try:
-            file = UploadedFile3.objects.get(id=file_id)
+            file = UploadedFile22.objects.get(id=file_id)
             df = pd.read_excel(file.file.path, engine='openpyxl')
             columns = [str(col).strip() for col in df.columns if str(col).strip() not in ['', 'nan']]
             return JsonResponse({'columns': columns})
@@ -281,7 +222,7 @@ def drop2(request):
         file_id = request.GET.get('file_id')
         column_name = request.GET.get('column_name')
         try:
-            file = UploadedFile3.objects.get(id=file_id)
+            file = UploadedFile22.objects.get(id=file_id)
             df = pd.read_excel(file.file.path, engine='openpyxl')
             if column_name in df.columns:
                 values = df[column_name].dropna().astype(str).tolist()
@@ -498,6 +439,45 @@ def hdata1(request):
             elif tUploadedFile11.objects.filter(structure=structure).exists():
                 latest_file = tUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
                 file_model = 'tUploadedFile11'
+                
+            elif UploadedFile1.objects.filter(structure=structure).exists():
+                latest_file = UploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'UploadedFile1'
+                
+            elif UploadedFile22.objects.filter(structure=structure).exists():
+                latest_file = UploadedFile22.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'UploadedFile22'
+                
+            elif mUploadedFile5.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile5'
+                
+            elif mUploadedFile6.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile6'
+        
+            elif mUploadedFile7.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile7'
+                
+            elif mUploadedFile8.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile8'
+                
+            elif mUploadedFile9.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile9'
+                
+            elif mUploadedFile10.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile10'
+            
+            elif mUploadedFile11.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile11'
+                
+                
+    
             
             if not latest_file:
                 raise Exception("No uploaded file found for this structure")
@@ -4689,3 +4669,2493 @@ def h_deadend_view2(request):
 def h_deadend_view3(request):
     h = HDeadend3.objects.all()
     return render(request, 'app1/h_deadend_view3.html', {'h': h})
+
+
+
+
+
+# Monopole
+
+def mdeadend1(request):
+    if request.method == 'POST':
+        form = MDeadendForm(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload1/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm()
+
+    return render(request, 'app1/mdeadend1.html', {'form': form})
+
+
+def monopole_deadend_view(request):
+    monopoles = MonopoleDeadend.objects.all()
+    return render(request, 'app1/monopole_deadend_view.html', {'monopoles': monopoles})
+
+
+
+def upload1(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = UploadedFileForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases1(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload1')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+                    
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')  # You might need to create this view
+    else:
+        form = UploadedFileForm()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files1__isnull=False).distinct()  
+      
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = UploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+            
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/upload1.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases1(uploaded_file):
+    try:
+        # Delete existing load cases and groups (non-custom ones)
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        grouped_cases = {}
+        for case in load_cases:
+            prefix = case.split(' ')[0] if ' ' in case else case
+            grouped_cases.setdefault(prefix, []).append(case)
+        
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+
+
+
+
+def upload2(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = UploadedFileForm2(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases2(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload2')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+                    
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')  # You might need to create this view
+    else:
+        form = UploadedFileForm2()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files22__isnull=False).distinct()  
+      
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = UploadedFile22.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+            
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/upload2.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases2(uploaded_file):
+    try:
+        # Delete existing load cases and groups (non-custom ones)
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        grouped_cases = {}
+        for case in load_cases:
+            prefix = case.split(' ')[0] if ' ' in case else case
+            grouped_cases.setdefault(prefix, []).append(case)
+        
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+        
+def mdeadend5(request):
+    if request.method == 'POST':
+        form = MDeadendForm5(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload5/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm5()
+
+    return render(request, 'app1/mdeadend5.html', {'form': form})
+
+def mupload5(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm5(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases5(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload5')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm5()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files5__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload5.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases5(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view5(request):
+    h = MDeadend5.objects.all()
+    return render(request, 'app1/m_deadend_view5.html', {'h': h})
+
+
+def mdeadend6(request):
+    if request.method == 'POST':
+        form = MDeadendForm6(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload6/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm6()
+
+    return render(request, 'app1/mdeadend6.html', {'form': form})
+
+def mupload6(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm6(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases6(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload6')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm6()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files6__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload6.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases6(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view6(request):
+    h = MDeadend6.objects.all()
+    return render(request, 'app1/m_deadend_view6.html', {'h': h})
+
+
+
+
+def mdeadend7(request):
+    if request.method == 'POST':
+        form = MDeadendForm7(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload7/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm7()
+
+    return render(request, 'app1/mdeadend7.html', {'form': form})
+
+def mupload7(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm7(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases7(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload7')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm7()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files7__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload7.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases7(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view7(request):
+    h = MDeadend7.objects.all()
+    return render(request, 'app1/m_deadend_view7.html', {'h': h})
+
+
+def mdeadend8(request):
+    if request.method == 'POST':
+        form = MDeadendForm8(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload8/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm8()
+
+    return render(request, 'app1/mdeadend8.html', {'form': form})
+
+def mupload8(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm8(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases8(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload8')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm8()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files8__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload8.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases8(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view8(request):
+    h = MDeadend8.objects.all()
+    return render(request, 'app1/m_deadend_view8.html', {'h': h})
+
+
+
+def mdeadend9(request):
+    if request.method == 'POST':
+        form = MDeadendForm9(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload9/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm9()
+
+    return render(request, 'app1/mdeadend9.html', {'form': form})
+
+def mupload9(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm9(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases9(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload9')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm9()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files9__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload9.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases9(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view9(request):
+    h = MDeadend9.objects.all()
+    return render(request, 'app1/m_deadend_view9.html', {'h': h})
+
+
+def mdeadend10(request):
+    if request.method == 'POST':
+        form = MDeadendForm10(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload10/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm10()
+
+    return render(request, 'app1/mdeadend10.html', {'form': form})
+
+def mupload10(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm10(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases10(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload10')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm10()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files10__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload10.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases10(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view10(request):
+    h = MDeadend10.objects.all()
+    return render(request, 'app1/m_deadend_view10.html', {'h': h})
+
+
+
+def mdeadend11(request):
+    if request.method == 'POST':
+        form = MDeadendForm11(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload11/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm11()
+
+    return render(request, 'app1/mdeadend11.html', {'form': form})
+
+def mupload11(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm11(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases11(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload11')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm11()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files11__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload11.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases11(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view11(request):
+    h = MDeadend11.objects.all()
+    return render(request, 'app1/m_deadend_view11.html', {'h': h})
+
+
+
+def mdeadend12(request):
+    if request.method == 'POST':
+        form = MDeadendForm12(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload12/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm12()
+
+    return render(request, 'app1/mdeadend12.html', {'form': form})
+
+def mupload12(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm12(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases12(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload12')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm12()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files12__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile12.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload12.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases12(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view12(request):
+    h = MDeadend12.objects.all()
+    return render(request, 'app1/m_deadend_view12.html', {'h': h})
+
+
+
+def mdeadend13(request):
+    if request.method == 'POST':
+        form = MDeadendForm13(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/mupload13/')  # Redirect after successful save
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+        # if error: fall through to render form with errors
+
+    else:
+        form = MDeadendForm13()
+
+    return render(request, 'app1/mdeadend13.html', {'form': form})
+
+def mupload13(request):
+    if request.method == 'POST':
+        # Handle file upload form
+        if 'file' in request.FILES:
+            form = MUDeadendForm13(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    uploaded_file = form.save()
+                    
+                    # Extract load cases from the uploaded file
+                    mextract_load_cases13(uploaded_file)
+                    
+                    messages.success(request, 'File uploaded successfully!')
+                    return redirect('mupload13')
+                except IntegrityError:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+        
+        # Handle custom group creation
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    messages.success(request, f'Custom group "{group_name}" created successfully!')
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Handle the Go button POST request
+        elif 'go_button' in request.POST:
+            button_type = request.POST.get('go_button')
+            load_case_values = request.POST.get('load_case_values', '')
+            
+            # Convert comma-separated string to list
+            if load_case_values:
+                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+            else:
+                load_cases = []
+                
+            selected_values = {
+                'button_type': button_type,  # Store which button was clicked
+                'load_cases': load_cases,
+                'structure_id': request.POST.get('structure_id')
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    else:
+        form = MUDeadendForm13()
+
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files13__isnull=False).distinct()
+
+    # Handle AJAX requests for data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile13.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
+                        else:
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # New: Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
+            # New: Delete a custom group
+            elif request.GET.get('delete_custom_group'):
+                group_name = request.GET.get('group_name')
+                if group_name:
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/mupload13.html', {
+        'form': form,
+        'structures_with_files': structures_with_files
+    })
+
+
+def mextract_load_cases13(uploaded_file):
+    """Extract load cases from the uploaded Excel file and save to database"""
+    try:
+        # Delete only non-custom load cases for this structure
+        LoadCase.objects.filter(
+            structure=uploaded_file.structure, 
+            group__is_custom=False
+        ).delete()
+        LoadCaseGroup.objects.filter(
+            structure=uploaded_file.structure, 
+            is_custom=False
+        ).delete()
+        
+        df = pd.read_excel(uploaded_file.file.path, engine='openpyxl')
+        
+        if 'Load Case Description' not in df.columns:
+            return
+            
+        load_cases = df['Load Case Description'].dropna().unique().tolist()
+        
+        # Group load cases by their prefix
+        grouped_cases = {}
+        for case in load_cases:
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
+        
+        # Save to database
+        for group_name, cases in grouped_cases.items():
+            group = LoadCaseGroup.objects.create(
+                name=group_name,
+                structure=uploaded_file.structure,
+                is_custom=False
+            )
+            
+            for case_name in cases:
+                LoadCase.objects.create(
+                    name=case_name,
+                    group=group,
+                    structure=uploaded_file.structure
+                )
+                
+    except Exception as e:
+        print(f"Error extracting load cases: {e}")
+        
+        
+def m_deadend_view13(request):
+    h = MDeadend13.objects.all()
+    return render(request, 'app1/m_deadend_view13.html', {'h': h})

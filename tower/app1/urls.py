@@ -6,7 +6,7 @@ urlpatterns = [
    path('base/',views.base,name='base'),
 
    path('help/',views.help,name='help'),
-   path('deadend/',views.deadend,name='deadend'), 
+   path('mdeadend1/',views.mdeadend1,name='mdeadend1'), 
    path('monopole_deadend_view/', views.monopole_deadend_view, name='monopole_deadend_view'),
    path('monopole_deadend_view1/', views.monopole_deadend_view1, name='monopole_deadend_view1'),
    path('monopole_deadend_view4/', views.monopole_deadend_view4, name='monopole_deadend_view4'),
@@ -30,8 +30,8 @@ urlpatterns = [
 
 
    path('tdeadend1/',views.tdeadend1,name='tdeadend1'),
-   path('upload1/',views.upload1,name='upload1'),
-   path('upload2/',views.upload2,name='upload2'),
+   path('mupload1/',views.upload1,name='mupload1'),
+   path('mupload2/',views.upload2,name='mupload2'),
    path('mupload4/',views.mupload4,name='mupload4'),
    path('tdeadend3/',views.tdeadend3,name='tdeadend3'),
    path('tdeadend4/',views.tdeadend4,name='tdeadend4'),
@@ -102,6 +102,42 @@ urlpatterns = [
    path('', views.list_structures, name='home'),
    path('add_structures/', views.add_structure, name='add_structure'),
    path('str_delete/<int:structure_id>/', views.delete_structure, name='delete_structure'),
+   
+   
+   path('mdeadend5/',views.mdeadend5,name='mdeadend5'),
+   path('mupload5/',views.mupload5,name='mupload5'),
+   path('m_deadend_view5/', views.m_deadend_view5, name='m_deadend_view5'),
+   
+   path('mdeadend6/',views.mdeadend6,name='mdeadend6'),
+   path('mupload6/',views.mupload6,name='mupload6'),
+   path('m_deadend_view6/', views.m_deadend_view6, name='m_deadend_view6'),
+   
+   path('mdeadend7/',views.mdeadend7,name='mdeadend7'),
+   path('mupload7/',views.mupload7,name='mupload7'),
+   path('m_deadend_view7/', views.m_deadend_view7, name='m_deadend_view7'),
+   
+   path('mdeadend8/',views.mdeadend8,name='mdeadend8'),
+   path('mupload8/',views.mupload8,name='mupload8'),
+   path('m_deadend_view8/', views.m_deadend_view8, name='m_deadend_view8'),
+   
+   path('mdeadend9/',views.mdeadend9,name='mdeadend9'),
+   path('mupload9/',views.mupload9,name='mupload9'),
+   path('m_deadend_view9/', views.m_deadend_view9, name='m_deadend_view9'),
 
+   path('mdeadend10/',views.mdeadend10,name='mdeadend10'),
+   path('mupload10/',views.mupload10,name='mupload10'),
+   path('m_deadend_view10/', views.m_deadend_view10, name='m_deadend_view10'),
+   
+   path('mdeadend11/',views.mdeadend11,name='mdeadend11'),
+   path('mupload11/',views.mupload11,name='mupload11'),
+   path('m_deadend_view11/', views.m_deadend_view11, name='m_deadend_view11'),
+   
+   path('mdeadend12/',views.mdeadend12,name='mdeadend12'),
+   path('mupload12/',views.mupload12,name='mupload12'),
+   path('m_deadend_view12/', views.m_deadend_view12, name='m_deadend_view12'),
+   
+   path('mdeadend13/',views.mdeadend13,name='mdeadend13'),
+   path('mupload13/',views.mupload13,name='mupload13'),
+   path('m_deadend_view13/', views.m_deadend_view13, name='m_deadend_view13'),
    
 ]

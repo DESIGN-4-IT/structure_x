@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page</title>
+
+
+{% load static %}  <!-- Load static here too for good measure -->
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<!-- Load dependencies -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+   
+
+    <style>
+       
+        :root {
+            /* Primary Colors */
+            --primary-blue: #4976b5ff;  /* Deepened primary blue */
+            --dark-blue: #0d3a7a;
+            --light-blue: #e1eaf5;
+            --middle-blue:#1252a7;
+            
+            /* Accent Colors */
+            --accent-yellow: #ffc107;
+            --dark-yellow: #e6a800;
+            --light-yellow: #fff8e6;
+            
+            /* Background Colors */
+            --bg-light: #f8fafc;
+            --bg-medium: #f0f4f8;
+            --bg-dark: #e1e8ed;
+            
+            /* Text Colors */
+            --text-dark: #2d3748;
+            --text-medium: #4a5568;
+            --text-light: #718096;
+            
+            /* UI Colors */
+            --ui-white: #ffffff;
+            --ui-light: #edf2f7;
+            --ui-medium: #e2e8f0;
+            --ui-dark: #cbd5e0;
+            
+            /* Status Colors */
+            --success: #38a169;
+            --warning: #dd6b20;
+            --error: #e53e3e;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            
+            /* Transitions */
+            --transition-fast: all 0.15s ease;
+            --transition-normal: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Spacing */
+            --space-xs: 2.95rem;
+            --space-sm: 0.5rem;
+
+            --space-smm: 0.8rem;
+            --space-mdd: 2rem;
+
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            box-shadow: var(--shadow-lg);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            padding: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+            height: 60px;
+            position: relative; /* Added for better positioning control */
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1; /* Allow it to take available space */
+        }
+
+        .logo img {
+            height: 36px;
+            width: auto;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+            margin-top:2px;
+        }
+
+        .header-title {
+            color: var(--accent-yellow);
+            font-size: 1.25rem;
+            font-weight: 600;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Navigation */
+        .main-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the navigation */
+            flex: 2; /* Take more space to help with centering */
+        }
+
+
+        .menu {
+            display: flex;
+            list-style: none;
+            gap: var(--space-xs);
+            justify-content: center; /* Center menu items */
+            width: 100%; /* Take full width of its container */
+        }
+
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            padding: var(--space-sm) var(--space-md); /* Increased padding */
+            display: block;
+            font-weight: 500;
+            transition: var(--transition-fast);
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            position: relative;
+            margin-top:7px;
+        }
+
+        .menu-link:hover, 
+        .menu-item:hover .menu-link {
+            color: var(--ui-white);
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: var(--accent-yellow);
+            transition: var(--transition-fast);
+        }
+
+        .menu-item:hover .menu-link::after {
+            width: 60%;
+        }
+   
+
+        .menu-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+        }
+
+
+        /* Search Bar */
+        .search {
+            position: relative;
+            display: flex;
+            justify-content: flex-end; /* Push search to the right */
+            flex: 1; /* Allow it to take available space */
+            margin-left:100px;
+        }
+        .search-input {
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            width: 200px;
+            transition: var(--transition-normal);
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--ui-white);
+            backdrop-filter: blur(5px);
+            padding:5px;
+            margin-top:-5px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+            width: 250px;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.3);
+            border-radius: 2px;
+        }
+        
+  :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --light-gray: #f8f9fa;
+        --border-color: #dee2e6;
+        --success-color: #28a745;
+        --warning-color: #ffc107;
+    }
+    
+    .container {
+        max-width: 98%;
+        margin: 0 auto;
+        padding: 15px;
+        background-color: white;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+    }
+    
+    h3 {
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #eee;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+    
+    /* Layout adjustments */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px;
+    }
+    
+    .col-md-4, .col-md-8 {
+        padding: 0 10px;
+        box-sizing: border-box;
+    }
+    
+    /* Left column (controls) - reduced width */
+    .col-md-4 {
+        width: 30%;
+        flex: 0 0 30%;
+        max-width: 30%;
+    }
+    
+    /* Right column (canvas) - increased width */
+    .col-md-8 {
+        width: 70%;
+        flex: 0 0 70%;
+        max-width: 70%;
+    }
+    
+    @media (max-width: 1200px) {
+        .col-md-4 {
+            width: 35%;
+            flex: 0 0 35%;
+            max-width: 35%;
+        }
+        
+        .col-md-8 {
+            width: 65%;
+            flex: 0 0 65%;
+            max-width: 65%;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .col-md-4, .col-md-8 {
+            width: 100%;
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            padding: 12px;
+        }
+    }
+    
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 18px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+    
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: white;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    select:focus {
+        border-color: var(--secondary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    select option {
+        padding: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    select option:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .calculation-btn {
+        margin: 15px 0;
+        padding: 10px 18px;
+        background-color: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .calculation-btn:hover:not(:disabled) {
+        background-color: #2980b9;
+    }
+    
+    .calculation-btn:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
+    
+    .selected-count {
+        margin-left: 12px;
+        font-weight: bold;
+        color: var(--primary-color);
+        background: #f1f8ff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+
+    /* Load Display Table - full width when below */
+    #load-display {
+        background-color: var(--light-gray);
+        padding: 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-top: 20px;
+        width: 100%;
+    }
+    
+    #load-display h5 {
+        margin-top: 0;
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-top: 15px;
+        width: 100%;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 0;
+        font-size: 13px;
+    }
+    
+    .table th {
+        background-color: #e9ecef;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        padding: 10px 8px;
+        border: 1px solid var(--border-color);
+        font-size: 13px;
+    }
+    
+    .table td {
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+    
+    .table th:first-child,
+    .table td:first-child {
+        text-align: center;
+        width: 40px;
+    }
+    
+    .table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .table tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    /* Checkbox styling */
+    .record-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    /* Drag and Drop Feedback */
+    option[draggable="true"] {
+        cursor: grab;
+    }
+    
+    option[draggable="true"]:active {
+        cursor: grabbing;
+    }
+    
+    model-viewer {
+        --poster-color: transparent;
+    }
+    
+    .table tr.highlight {
+        animation: highlight 1.5s;
+    }
+
+    @keyframes highlight {
+        0% { background-color: rgba(255, 220, 0, 0.5); }
+        100% { background-color: transparent; }
+    }
+    
+    .checkbox-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        border-radius: 6px;
+        background: white;
+        margin-bottom: 0;
+    }
+    
+    .checkbox-list label {
+        display: block;
+        cursor: move;
+        padding: 6px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        font-size: 13px;
+    }
+    
+    .checkbox-list label:hover {
+        background-color: #f0f8ff;
+    }
+    
+    .model-viewer-container {
+        width: 100%;
+        height: 550px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #joint-markers-container, 
+    #set-markers-container, 
+    #phase-markers-container,
+    #load-displays-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    
+    .joint-marker {
+        position: absolute;
+        background-color: rgba(255, 255, 255, 0.85);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        transform: translate(-50%, -50%);
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        cursor: move;
+        user-select: none;
+        pointer-events: auto;
+        z-index: 5;
+        transition: all 0.2s;
+    }
+    
+    .joint-marker:hover {
+        background-color: white;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    
+    .set-marker {
+        background-color: rgba(0, 0, 255, 0.15);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 255, 0.5);
+        font-size: 12px;
+        font-weight: 600;
+        color: #0000aa;
+    }
+    
+    .phase-marker {
+        background-color: rgba(0, 255, 0, 0.15);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 128, 0, 0.5);
+        font-size: 12px;
+        font-weight: 600;
+        color: #006600;
+    }
+    
+    .drag-item {
+        display: block;
+        padding: 6px 8px;
+        margin: 4px 0;
+        cursor: move;
+        background-color: var(--light-gray);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+    
+    .drag-item:hover {
+        background-color: #e9ecef;
+        transform: translateX(3px);
+    }
+    
+    .drag-item:active {
+        cursor: grabbing;
+    }
+
+    .load-display {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
+        pointer-events: auto;
+    }
+    
+    .load-display-header {
+        font-weight: 600;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+    
+    .load-display-content div {
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+    
+    .editable {
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: background-color 0.2s;
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .close-btn {
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        color: #999;
+        transition: color 0.2s;
+    }
+    
+    .close-btn:hover {
+        color: var(--accent-color);
+    }
+    
+    .size-controls {
+        position: absolute;
+        top: 8px;
+        right: 30px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .size-btn {
+        width: 22px;
+        height: 22px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    
+    .size-btn:hover {
+        background: #e9ecef;
+    }
+    
+    .value-edit {
+        width: 60px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px;
+        text-align: right;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 992px) {
+        .container {
+            padding: 10px;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .model-viewer-container {
+            height: 450px;
+        }
+        
+        .load-display {
+            width: 180px;
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        .calculation-btn {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .selected-count {
+            display: block;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 8px 6px;
+            font-size: 12px;
+        }
+        
+        .checkbox-list {
+            max-height: 200px;
+        }
+        
+        #load-display {
+            padding: 15px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .model-viewer-container {
+            height: 400px;
+        }
+        
+        .load-display {
+            width: 160px;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        .joint-marker {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        
+        .checkbox-list {
+            max-height: 180px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .model-viewer-container {
+            height: 350px;
+        }
+        
+        .load-display {
+            width: 140px;
+            padding: 6px;
+            font-size: 11px;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 5px 3px;
+            font-size: 11px;
+        }
+        
+        .calculation-btn {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+        
+        .selected-count {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+    }
+    
+    /* Loading state */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    /* Visual feedback for selections */
+    input[type="checkbox"]:checked + span {
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+    
+    /* Custom scrollbar for better aesthetics */
+    .checkbox-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Section headers */
+    .section-header {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    /* Button group styling */
+    .btn-container {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+
+    .joint-marker, .set-marker, .phase-marker {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: auto;
+    cursor: move;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+}
+
+.joint-marker {
+    background: rgba(51, 51, 51, 0.8);
+    color: white;
+}
+
+.set-marker {
+    background: rgba(0, 0, 255, 0.7);
+    color: white;
+}
+
+.phase-marker {
+    background: rgba(0, 255, 0, 0.7);
+    color: white;
+}
+
+.model-viewer-container {
+    position: relative;
+    width: 100%;
+    height: 400px; /* Adjust as needed */
+    overflow: hidden;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#model-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+    </style>
+
+
+</head>
+<body>
+
+    <header>
+        <div class="navbar">
+            <div class="logo-container">
+                <div class="logo">
+                    <a href="#"><img src="{% static 'app1/images/new_logo.png' %}" alt="Logo"></a>
+                </div>
+                <h1 class="header-title">KOmatrix LoadView</h1>
+            </div>
+
+            <nav class="main-nav">
+            
+                <ul class="menu" id="mainMenu">
+                    
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">About</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="{% url 'home' %}" class="menu-link">Services</a>
+                       
+                    </li>
+                   
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Contact Us</a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">Help</a>
+                    </li>
+                </ul>
+
+                <div class="search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Search..." id="searchInput">
+                </div>
+            </nav>
+        </div>
+    </header>
+
+<div class="container">
+    <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
+    
+    <div class="row">
+        <!-- Left side - Selection Options (reduced width) -->
+        <div class="col-md-4">
+            {% if button_type == 'joint_labels' %}
+            <!-- Show only joint labels section when joint labels button was clicked -->
+            <div class="form-group">
+                <label for="joint-labels">Attachment Joint Labels:</label>
+                <div class="checkbox-list" id="joint-labels">
+                    {% for label in joint_labels %}
+                        <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                            <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif button_type == 'set_phase' %}
+            <!-- Show only set/phase sections when set/phase button was clicked -->
+            <div class="form-group">
+                <label for="set-numbers">Set No.:</label>
+                <div class="checkbox-list" id="set-numbers">
+                    {% for num in set_numbers %}
+                        <label draggable="true" class="drag-item" data-type="set" data-value="{{ num }}">
+                            <input type="checkbox" name="set-numbers" value="{{ num }}"> {{ num }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phase-numbers">Phase No.:</label>
+                <div class="checkbox-list" id="phase-numbers">
+                    {% for num in phase_numbers %}
+                        <label draggable="true" class="drag-item" data-type="phase" data-value="{{ num }}">
+                            <input type="checkbox" name="phase-numbers" value="{{ num }}"> {{ num }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right side - 3D Model Viewer (increased width) -->
+        <div class="col-md-8">
+            <div class="model-viewer-container">
+                <canvas id="model-canvas"></canvas>
+                <div id="joint-markers-container"></div>
+                <div id="set-markers-container"></div>
+                <div id="phase-markers-container"></div>
+                <div id="load-displays-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Display Table - now placed below and full width -->
+    <div id="load-display">
+        <h5>Load Values</h5>
+        <div class="btn-container">
+            <button id="calculate-btn" class="calculation-btn" disabled>
+                <span>Calculate Selected Records</span>
+            </button>
+            <span id="selected-count" class="selected-count">0 selected</span>
+        </div>
+        <div class="table-container">
+            <table class="table table-bordered" id="load-table">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        {% for column in all_columns %}
+                            <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Include Three.js library -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+
+
+
+<script>
+    // Load data passed from Django
+    const loadData = JSON.parse('{{ load_data_json|escapejs }}');
+    
+    // Three.js variables
+    let scene, camera, renderer, model, controls;
+    const jointMarkers = {};
+    const selectedJoints = new Set();
+    const loadDisplays = {};
+    const setMarkers = {};
+    const phaseMarkers = {};
+    const selectedSets = new Set();
+    const selectedPhases = new Set();
+    let activeJoint = null;
+    const selectedRecords = new Set();
+    let allTableData = [];
+    const assignedValues = {}; // Track assigned values to tower parts
+
+
+    
+    // Initialize the 3D model viewer
+    function initModelViewer() {
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        
+        // Create camera
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+        
+        // Create renderer
+        const canvas = document.getElementById('model-canvas');
+        renderer = new THREE.WebGLRenderer({ 
+            canvas, 
+            antialias: true,
+            alpha: true // Allow transparency
+        });
+        
+        // Set initial size
+        updateRendererSize();
+        
+        // Add controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+        
+        // Load GLB model
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            "{% static 'app1/images/tower3d.glb' %}",
+            function (gltf) {
+                model = gltf.scene;
+                scene.add(model);
+                
+                // Center the model
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
+                
+                // Auto-rotate
+                model.rotation.y = Math.PI / 4;
+                
+                // Add part selection functionality
+                setupPartSelection(model);
+                
+                // Start animation loop
+                animate();
+            },
+            undefined,
+            function (error) {
+                console.error('Error loading model:', error);
+            }
+        );
+        
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize);
+    }
+    
+
+    function updateRendererSize() {
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        if (canvasContainer && renderer) {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+    }
+
+    // Setup part selection for the tower model
+    function setupPartSelection(model) {
+        model.traverse(function(child) {
+            if (child.isMesh) {
+                // Make parts selectable
+                child.userData.selectable = true;
+                child.userData.originalMaterial = child.material.clone();
+                
+                // Add hover effect
+                child.addEventListener('mouseover', function() {
+                    if (!child.userData.isSelected) {
+                        child.material.emissive = new THREE.Color(0x444444);
+                    }
+                });
+                
+                child.addEventListener('mouseout', function() {
+                    if (!child.userData.isSelected) {
+                        child.material.emissive = new THREE.Color(0x000000);
+                    }
+                });
+                
+                // Add click event for part selection
+                child.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    selectPart(child);
+                });
+            }
+        });
+    }
+
+    // Select a tower part and assign values
+    function selectPart(part) {
+        // Deselect previously selected part
+        model.traverse(function(child) {
+            if (child.isMesh && child.userData.isSelected) {
+                child.userData.isSelected = false;
+                child.material.emissive = new THREE.Color(0x000000);
+            }
+        });
+        
+        // Select new part
+        part.userData.isSelected = true;
+        part.material.emissive = new THREE.Color(0x555500);
+        
+        // Show assigned values if any
+        if (assignedValues[part.uuid]) {
+            showAssignedValues(part);
+        } else {
+            // Show available values for assignment
+            showAvailableValues(part);
+        }
+    }
+
+
+    // Show assigned values for a part
+    function showAssignedValues(part) {
+        // Implementation for showing assigned values
+        console.log("Showing assigned values for part:", part.uuid, assignedValues[part.uuid]);
+    }
+
+    // Show available values for assignment to a part
+    function showAvailableValues(part) {
+        // Implementation for showing available values
+        console.log("Showing available values for part:", part.uuid);
+    }
+
+
+    // Add a marker for a joint on the 3D model
+    function addJointMarker(jointLabel) {
+        if (jointMarkers[jointLabel]) return; // Already exists
+        
+        // Find the load data for this joint
+        const jointLoadData = loadData.find(item => item['Attach. Joint Labels'] === jointLabel);
+        if (!jointLoadData) return;
+        
+        // Create a marker (smaller and without red dot)
+        const geometry = new THREE.SphereGeometry(0.02, 16, 16); // Much smaller
+        const material = new THREE.MeshBasicMaterial({ color: 0x333333 });
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker (you'll need to adjust this based on your model)
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2,
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'joint-marker';
+        markerDiv.textContent = jointLabel;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.cursor = 'move';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.jointLabel = jointLabel;
+        document.getElementById('joint-markers-container').appendChild(markerDiv);
+        
+        // Click handler for the marker
+        markerDiv.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleLoadDisplay(jointLabel);
+        });
+        
+        // Store references
+        jointMarkers[jointLabel] = {
+            mesh: sphere,
+            div: markerDiv,
+            loadData: jointLoadData,
+            isDragging: false,
+            fontSize: 12 // Default font size
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        
+        // Make marker draggable
+        makeJointDraggable(markerDiv, jointLabel);
+    }
+
+    
+    // Toggle load display visibility
+    function toggleLoadDisplay(jointLabel) {
+        if (loadDisplays[jointLabel]) {
+            // Hide if already showing
+            removeLoadDisplay(jointLabel);
+            activeJoint = null;
+        } else {
+            // Show if hidden
+            addLoadDisplay(jointLabel, jointMarkers[jointLabel].mesh.position);
+            activeJoint = jointLabel;
+            
+            // Hide any other active displays
+            Object.keys(loadDisplays).forEach(label => {
+                if (label !== jointLabel) {
+                    removeLoadDisplay(label);
+                }
+            });
+        }
+    }
+    
+    // Make joint marker draggable
+    function makeJointDraggable(element, jointLabel) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            jointMarkers[jointLabel].isDragging = true;
+            
+            // Get the mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Calculate the new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // Set the element's new position
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            
+            // Update the 3D position
+            update3DPositionFromScreen(jointLabel, parseInt(element.style.left), parseInt(element.style.top));
+            
+            // Update load display position if visible
+            if (loadDisplays[jointLabel]) {
+                updateLoadDisplayPosition(
+                    loadDisplays[jointLabel].div, 
+                    jointMarkers[jointLabel].mesh.position
+                );
+            }
+        }
+
+    
+    function closeDragElement() {
+            jointMarkers[jointLabel].isDragging = false;
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    
+    // Update 3D position from screen coordinates
+    function update3DPositionFromScreen(value, type, x, y) {
+        let marker;
+        if (type === 'joint') marker = jointMarkers[value];
+        else if (type === 'set') marker = setMarkers[value];
+        else if (type === 'phase') marker = phaseMarkers[value];
+        else return;
+        
+        const vector = new THREE.Vector3(
+            (x / renderer.domElement.clientWidth) * 2 - 1,
+            -(y / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        marker.mesh.position.copy(vector);
+    }
+    
+    // Add load display for a joint
+    function addLoadDisplay(jointLabel, position) {
+        if (loadDisplays[jointLabel]) return; // Already exists
+        
+        const jointInfo = jointMarkers[jointLabel];
+        if (!jointInfo) return;
+        
+        const displayDiv = document.createElement('div');
+        displayDiv.className = 'load-display';
+        displayDiv.dataset.jointLabel = jointLabel;
+        displayDiv.style.position = 'absolute';
+        displayDiv.style.pointerEvents = 'auto';
+        
+        displayDiv.innerHTML = `
+            <div class="load-display-header">
+                <span>${jointLabel}</span>
+                <span class="close-btn" title="Remove">×</span>
+            </div>
+            <div class="load-display-content">
+                <div>Vert: <span class="editable" data-field="vert">${jointInfo.loadData['Structure Loads Vert. (lbs)'] || '0'}</span> lbs</div>
+                <div>Trans: <span class="editable" data-field="trans">${jointInfo.loadData['Structure Loads Trans. (lbs)'] || '0'}</span> lbs</div>
+                <div>Long: <span class="editable" data-field="long">${jointInfo.loadData['Structure Loads Long. (lbs)'] || '0'}</span> lbs</div>
+            </div>
+            <div class="size-controls">
+                <div class="size-btn" data-action="increase">+</div>
+                <div class="size-btn" data-action="decrease">-</div>
+            </div>
+        `;
+        
+        document.getElementById('load-displays-container').appendChild(displayDiv);
+        
+        // Position the display
+        updateLoadDisplayPosition(displayDiv, position);
+        
+        // Store reference
+        loadDisplays[jointLabel] = {
+            div: displayDiv,
+            position: position
+        };
+        
+        // Add close button event
+        displayDiv.querySelector('.close-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            removeJointMarker(jointLabel);
+            removeLoadDisplay(jointLabel);
+            
+            // Uncheck the checkbox
+            const checkbox = document.querySelector(`input[value="${jointLabel}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                selectedJoints.delete(jointLabel);
+                updateTable(Array.from(selectedJoints));
+            }
+        });
+        
+        // Add size control events
+        displayDiv.querySelector('[data-action="increase"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.min(24, jointMarkers[jointLabel].fontSize + 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        displayDiv.querySelector('[data-action="decrease"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            jointMarkers[jointLabel].fontSize = Math.max(8, jointMarkers[jointLabel].fontSize - 1);
+            jointMarkers[jointLabel].div.style.fontSize = `${jointMarkers[jointLabel].fontSize}px`;
+        });
+        
+        // Add editable fields (same as before)
+        displayDiv.querySelectorAll('.editable').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const field = this.dataset.field;
+                const currentValue = this.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'value-edit';
+                input.value = currentValue;
+                
+                this.textContent = '';
+                this.appendChild(input);
+                input.focus();
+                
+                input.addEventListener('blur', function() {
+                    const newValue = parseFloat(this.value) || 0;
+                    const parent = this.parentElement;
+                    parent.textContent = newValue;
+                    parent.classList.add('editable');
+                    
+                    // Update the data
+                    const jointLabel = parent.closest('.load-display').dataset.jointLabel;
+                    const jointInfo = jointMarkers[jointLabel];
+                    if (jointInfo) {
+                        if (field === 'vert') {
+                            jointInfo.loadData['Structure Loads Vert. (lbs)'] = newValue;
+                        } else if (field === 'trans') {
+                            jointInfo.loadData['Structure Loads Trans. (lbs)'] = newValue;
+                        } else if (field === 'long') {
+                            jointInfo.loadData['Structure Loads Long. (lbs)'] = newValue;
+                        }
+                    }
+                    
+                    // Update the table
+                    updateTable(Array.from(selectedJoints));
+                });
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        this.blur();
+                    }
+                });
+            });
+        });
+        
+        // Make the display draggable
+        makeDraggable(displayDiv, jointLabel);
+    }
+    
+    // Make load display draggable
+    function makeDraggable(element, value, type) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (type === 'joint') jointMarkers[value].isDragging = true;
+            else if (type === 'set') setMarkers[value].isDragging = true;
+            else if (type === 'phase') phaseMarkers[value].isDragging = true;
+            
+            // Get the mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Calculate the new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // Set the element's new position
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            
+            // Update the 3D position
+            update3DPositionFromScreen(value, type, parseInt(element.style.left), parseInt(element.style.top));
+        }
+        
+        function closeDragElement() {
+            if (type === 'joint') jointMarkers[value].isDragging = false;
+            else if (type === 'set') setMarkers[value].isDragging = false;
+            else if (type === 'phase') phaseMarkers[value].isDragging = false;
+            
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    
+    // Convert screen coordinates to 3D position
+    function getPositionFromScreen(x, y) {
+        const vector = new THREE.Vector3(
+            (x / renderer.domElement.clientWidth) * 2 - 1,
+            -(y / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        return vector;
+    }
+    
+    // Remove load display
+    function removeLoadDisplay(jointLabel) {
+        if (!loadDisplays[jointLabel]) return;
+        
+        document.getElementById('load-displays-container').removeChild(loadDisplays[jointLabel].div);
+        delete loadDisplays[jointLabel];
+    }
+    
+    // Update HTML marker position based on 3D position
+    function updateMarkerPosition(mesh, div) {
+        const vector = mesh.position.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+        
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+    }
+    
+    // Update load display position based on 3D position
+    function updateLoadDisplayPosition(div, position) {
+        const vector = position.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+        
+        div.style.left = `${x + 20}px`; // Offset slightly from the marker
+        div.style.top = `${y}px`;
+    }
+    
+    // Remove a joint marker
+    function removeJointMarker(jointLabel) {
+        if (!jointMarkers[jointLabel]) return;
+        
+        scene.remove(jointMarkers[jointLabel].mesh);
+        document.getElementById('joint-markers-container').removeChild(jointMarkers[jointLabel].div);
+        delete jointMarkers[jointLabel];
+    }
+    
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        
+        // Update marker positions
+        for (const jointLabel in jointMarkers) {
+            updateMarkerPosition(jointMarkers[jointLabel].mesh, jointMarkers[jointLabel].div);
+            
+            // Update load display positions if they exist
+            if (loadDisplays[jointLabel]) {
+                updateLoadDisplayPosition(
+                    loadDisplays[jointLabel].div, 
+                    jointMarkers[jointLabel].mesh.position
+                );
+            }
+        }
+        
+        renderer.render(scene, camera);
+    }
+    
+    function onWindowResize() {
+        const container = document.getElementById('model-viewer');
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+    
+    // Clear table
+    function clearTable() {
+        document.getElementById('load-table').getElementsByTagName('tbody')[0].innerHTML = '';
+    }
+
+
+    function handleRecordSelection(e) {
+    const index = parseInt(e.target.dataset.index);
+    const record = allTableData[index];
+    
+    if (e.target.checked) {
+        selectedRecords.add(record);
+    } else {
+        selectedRecords.delete(record);
+    }
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCount = document.getElementById('selected-count');
+    const calculateBtn = document.getElementById('calculate-btn');
+    
+    selectedCount.textContent = `${selectedRecords.size} selected`;
+    calculateBtn.disabled = selectedRecords.size === 0;
+}
+
+// Add event listener for calculate button
+// Update the calculate button event listener
+document.getElementById('calculate-btn').addEventListener('click', function() {
+    if (selectedRecords.size > 0) {
+        // Prepare data for calculation - convert Set to Array
+        const calculationData = Array.from(selectedRecords);
+        
+        // Create a form to submit the data
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '/calculation/';
+        form.target = '_blank';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'calculation_data';
+        input.value = JSON.stringify(calculationData);
+        form.appendChild(input);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+});
+    
+    // Update table with selected labels
+function updateTable() {
+    clearTable();
+    const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
+    
+    // Get all column names from the table headers
+    const columns = Array.from(document.querySelectorAll('#load-table thead th'))
+        .map(th => th.textContent.trim())
+        .filter(col => col !== 'Select'); // Exclude the Select column
+    
+    // Store all table data for later reference
+    allTableData = [];
+    
+    // Add new rows from the filtered data
+    loadData.forEach((item, index) => {
+        const row = tbody.insertRow();
+        allTableData.push(item); // Store reference to this data
+        
+        // Add checkbox cell
+        const checkboxCell = row.insertCell();
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'record-checkbox';
+        checkbox.dataset.index = index;
+        checkbox.addEventListener('change', handleRecordSelection);
+        checkboxCell.appendChild(checkbox);
+        
+        // Add cells for each column
+        columns.forEach(column => {
+            const cell = row.insertCell();
+            cell.textContent = item[column] !== undefined ? item[column] : '';
+        });
+    });
+    
+    // Update selected count
+    updateSelectedCount();
+
+    // Only add joints if we're in joint labels mode and joints are selected
+    {% if button_type == 'joint_labels' %}
+    Array.from(selectedJoints).forEach(label => {
+        const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
+        if (loadInfo) {
+            const newRow = tbody.insertRow();
+            
+            // Add cells for each column
+            columns.forEach(column => {
+                const cell = newRow.insertCell();
+                cell.textContent = loadInfo[column] !== undefined ? loadInfo[column] : '';
+            });
+        }
+    });
+    {% endif %}
+    
+    // Only add sets if we're in set/phase mode and sets are selected
+    {% if button_type == 'set_phase' %}
+    Array.from(selectedSets).forEach(setNum => {
+        // Find all rows with this set number
+        const setData = loadData.filter(item => item['Set No.'] == setNum);
+        
+        if (setData.length > 0) {
+            // Add a header row for the set
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Set ${setNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6f2ff';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this set
+            setData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
+    });
+    
+    // Only add phases if we're in set/phase mode and phases are selected
+    Array.from(selectedPhases).forEach(phaseNum => {
+        // Find all rows with this phase number
+        const phaseData = loadData.filter(item => item['Phase No.'] == phaseNum);
+        
+        if (phaseData.length > 0) {
+            // Add a header row for the phase
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length;
+            headerCell.textContent = `Phase ${phaseNum}`;
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#e6ffe6';
+            headerCell.style.fontWeight = 'bold';
+            
+            // Add all data rows for this phase
+            phaseData.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(column => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[column] !== undefined ? item[column] : '';
+                });
+            });
+        }
+    });
+    {% endif %}
+}
+
+    
+    // Set up event listeners
+    function addMarker(itemType, itemValue) {
+        if (itemType === 'joint') {
+            if (jointMarkers[itemValue]) return;
+            addJointMarker(itemValue);
+        } 
+        else if (itemType === 'set') {
+            if (setMarkers[itemValue]) return;
+            addSetMarker(itemValue);
+        }
+        else if (itemType === 'phase') {
+            if (phaseMarkers[itemValue]) return;
+            addPhaseMarker(itemValue);
+        }
+    }
+
+    // Function to add a set marker
+    function addSetMarker(setNumber) {
+        if (setMarkers[setNumber]) return;
+        
+        const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue for sets
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 1.5, // Position higher for sets
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'set-marker';
+        markerDiv.textContent = `Set ${setNumber}`;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.background = 'rgba(0, 0, 255, 0.7)';
+        markerDiv.style.color = 'white';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.borderRadius = '3px';
+        markerDiv.style.cursor = 'move';
+        markerDiv.dataset.setNumber = setNumber;
+        document.getElementById('set-markers-container').appendChild(markerDiv);
+        
+        setMarkers[setNumber] = {
+            mesh: sphere,
+            div: markerDiv,
+            isDragging: false
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        makeDraggable(markerDiv, setNumber, 'set');
+    }
+
+    // Add a phase marker
+    function addPhaseMarker(phaseNumber) {
+        if (phaseMarkers[phaseNumber]) return;
+        
+        const geometry = new THREE.SphereGeometry(0.03, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green for phases
+        const sphere = new THREE.Mesh(geometry, material);
+        
+        // Position the marker
+        sphere.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 1, // Position mid-level for phases
+            (Math.random() - 0.5) * 2
+        );
+        
+        // Add label (HTML overlay)
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'phase-marker';
+        markerDiv.textContent = `Phase ${phaseNumber}`;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.background = 'rgba(0, 255, 0, 0.7)';
+        markerDiv.style.color = 'white';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.borderRadius = '3px';
+        markerDiv.style.cursor = 'move';
+        markerDiv.dataset.phaseNumber = phaseNumber;
+        document.getElementById('phase-markers-container').appendChild(markerDiv);
+        
+        phaseMarkers[phaseNumber] = {
+            mesh: sphere,
+            div: markerDiv,
+            isDragging: false
+        };
+        
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        makeDraggable(markerDiv, phaseNumber, 'phase');
+    }
+
+    // Set up event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize 3D viewer
+    initModelViewer();
+    updateTable();
+
+    // Handle checkbox changes for all types
+    ['joint', 'set', 'phase'].forEach(type => {
+        const container = document.getElementById(`${type}-${type === 'joint' ? 'labels' : 'numbers'}`);
+        if (container) {
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const itemValue = this.value;
+                    
+                    if (type === 'joint') {
+                        if (this.checked) {
+                            selectedJoints.add(itemValue);
+                            addMarker('joint', itemValue);
+                        } else {
+                            selectedJoints.delete(itemValue);
+                            removeJointMarker(itemValue);
+                        }
+                    } 
+                    else if (type === 'set') {
+                        if (this.checked) {
+                            selectedSets.add(itemValue);
+                            addMarker('set', itemValue);
+                        } else {
+                            selectedSets.delete(itemValue);
+                            if (setMarkers[itemValue]) {
+                                scene.remove(setMarkers[itemValue].mesh);
+                                document.getElementById('set-markers-container').removeChild(setMarkers[itemValue].div);
+                                delete setMarkers[itemValue];
+                            }
+                        }
+                    }
+                    else if (type === 'phase') {
+                        if (this.checked) {
+                            selectedPhases.add(itemValue);
+                            addMarker('phase', itemValue);
+                        } else {
+                            selectedPhases.delete(itemValue);
+                            if (phaseMarkers[itemValue]) {
+                                scene.remove(phaseMarkers[itemValue].mesh);
+                                document.getElementById('phase-markers-container').removeChild(phaseMarkers[itemValue].div);
+                                delete phaseMarkers[itemValue];
+                            }
+                        }
+                    }
+                    
+                    updateTable();
+                });
+            });
+        }
+    });
+
+    // Make labels draggable
+    document.querySelectorAll('.drag-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('type', this.dataset.type);
+            e.dataTransfer.setData('value', this.dataset.value);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    });
+    
+    // Set up drop zone on model viewer
+    const modelCanvas = document.getElementById('model-canvas');
+    modelCanvas.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    
+    modelCanvas.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const itemType = e.dataTransfer.getData('type');
+        const itemValue = e.dataTransfer.getData('value');
+        
+        // Find the corresponding checkbox and check it
+        let checkbox;
+        if (itemType === 'joint') {
+            checkbox = document.querySelector(`input[name="joint-labels"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+        else if (itemType === 'set') {
+            checkbox = document.querySelector(`input[name="set-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+        else if (itemType === 'phase') {
+            checkbox = document.querySelector(`input[name="phase-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        }
+    });
+    
+    // Add responsive behavior
+    window.addEventListener('resize', function() {
+        updateRendererSize();
+        
+        // Update all marker positions
+        for (const label in jointMarkers) {
+            updateMarkerPosition(jointMarkers[label].mesh, jointMarkers[label].div);
+        }
+        for (const setNum in setMarkers) {
+            updateMarkerPosition(setMarkers[setNum].mesh, setMarkers[setNum].div);
+        }
+        for (const phaseNum in phaseMarkers) {
+            updateMarkerPosition(phaseMarkers[phaseNum].mesh, phaseMarkers[phaseNum].div);
+        }
+        
+        // Update load display positions
+        for (const label in loadDisplays) {
+            updateLoadDisplayPosition(loadDisplays[label].div, jointMarkers[label].mesh.position);
+        }
+    });
+});
+        
+       
+</script>
+
+
+{% comment %} this js is for header bar  {% endcomment %}
+   
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchIcon = document.querySelector('.search-icon');
+    
+    // Debounce function to limit search frequency
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+    
+    // Function to search and highlight only matching text
+    function searchCurrentPage(term) {
+        // Remove all previous highlights
+        removeHighlights();
+        
+        if (!term.trim()) return;
+        
+        // Get only the main content area (exclude header and sidebar)
+        const mainContent = document.querySelector('.main-content');
+        
+        // Create a regular expression for case-insensitive matching
+        const regex = new RegExp(term, 'gi');
+        
+        // Walk through all text nodes in main content
+        const walker = document.createTreeWalker(
+            mainContent,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        let found = false;
+        
+        while (node = walker.nextNode()) {
+            // Skip empty nodes or nodes in script/style elements
+            if (!node.nodeValue.trim() || 
+                node.parentNode.tagName === 'SCRIPT' || 
+                node.parentNode.tagName === 'STYLE') {
+                continue;
+            }
+            
+            const matches = node.nodeValue.match(regex);
+            if (matches) {
+                const span = document.createElement('span');
+                span.className = 'search-highlight';
+                
+                // Replace each match with a highlighted span
+                const newText = node.nodeValue.replace(regex, match => 
+                    `<span class="search-highlight">${match}</span>`
+                );
+                
+                // Create a temporary element to parse the HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = newText;
+                
+                // Replace the text node with the new content
+                const parent = node.parentNode;
+                while (temp.firstChild) {
+                    parent.insertBefore(temp.firstChild, node);
+                }
+                parent.removeChild(node);
+                
+                if (!found) {
+                    // Scroll to first match
+                    const firstHighlight = document.querySelector('.search-highlight');
+                    if (firstHighlight) {
+                        firstHighlight.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        found = true;
+                    }
+                }
+            }
+        }
+        
+        if (!found && term.length > 0) {
+            showNoResultsMessage(term);
+        }
+    }
+    
+    // Remove all highlights and restore original text
+    function removeHighlights() {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.replaceChild(
+                document.createTextNode(highlight.textContent),
+                highlight
+            );
+            // Normalize to merge adjacent text nodes
+            parent.normalize();
+        });
+        
+        // Remove any existing "no results" message
+        const existingMessage = document.getElementById('search-no-results');
+        if (existingMessage) existingMessage.remove();
+    }
+    
+    // Show temporary "no results" message
+    function showNoResultsMessage(term) {
+        const message = document.createElement('div');
+        message.id = 'search-no-results';
+        message.textContent = `No results found for "${term}"`;
+        message.style.position = 'fixed';
+        message.style.bottom = '20px';
+        message.style.right = '20px';
+        message.style.backgroundColor = 'var(--error)';
+        message.style.color = 'white';
+        message.style.padding = '10px 20px';
+        message.style.borderRadius = 'var(--radius-md)';
+        message.style.boxShadow = 'var(--shadow-md)';
+        message.style.zIndex = '2000';
+        message.style.animation = 'fadeIn 0.3s ease';
+        
+        document.body.appendChild(message);
+        
+        // Remove message after 3 seconds
+        setTimeout(() => {
+            message.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    }
+    
+    // Add styles for highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.5);
+            border-radius: 2px;
+            padding: 0 2px;
+            color: #000;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Event listener with debounce
+    searchInput.addEventListener('input', debounce(function(e) {
+        const term = e.target.value.trim();
+        searchCurrentPage(term);
+        
+        // Optional: If you want to also search server-side:
+        if (term.length > 2) {
+            fetch('/search/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: `search_term=${encodeURIComponent(term)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server results:', data.results);
+                // Handle server results if needed
+            });
+        }
+    }, 300));
+    
+    // Click on search icon to focus input
+    searchIcon.addEventListener('click', function() {
+        searchInput.focus();
+    });
+    
+    // Clear search when clicking Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            removeHighlights();
+        }
+    });
+});
+</script>
+
+ </body>
+</html>
+

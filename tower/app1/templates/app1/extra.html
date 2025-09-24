@@ -1,2 +1,520 @@
 
+this is js code of tower,h frame and monopole section realted popups 
 
+so i wanted to modify some backend after click on backend button or close mart in popup if previous we have popup
+then in some section previous popup not shows 
+in this all section we have so many popups i implement correct backend for all popup only i wanted to chnages 
+is if previously any popup exist then shows that popup when i click on close mark or back arrow
+
+this is complete js code 
+"  {% comment %} tower  {% endcomment %}
+<script>
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popups = document.querySelectorAll('.popup');
+    const mainContent = document.querySelector('.content');
+
+    let popupStack = []; // To keep track of open popups
+
+    // Function to show a popup by ID
+    function showPopup(id) {
+        popups.forEach(popup => popup.style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+        popupStack.push(id);
+    }
+
+    // Function to get popup index by ID
+    function getPopupIndex(id) {
+        for (let i = 0; i < popups.length; i++) {
+            if (popups[i].id === id) return i;
+        }
+        return -1;
+    }
+
+    // Open the first popup
+    const structureSelect = document.getElementById('structure-select');
+    if (structureSelect) {
+        structureSelect.addEventListener('change', function () {
+            if (structureSelect.value === 'towers') {
+                popupOverlay.style.display = 'flex';
+                popups.forEach((popup) => popup.style.display = 'none');
+                document.getElementById('popup1').style.display = 'block';
+                mainContent.classList.add('blur');
+                popupStack = ['popup1'];
+            } else {
+                popupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                popupStack = [];
+            }
+        });
+    }
+
+    // Close popup and show previous one if available
+    document.querySelectorAll('.popup-close').forEach((closeBtn) => {
+        closeBtn.addEventListener('click', function () {
+            const currentPopup = this.closest('.popup');
+            currentPopup.style.display = 'none';
+            popupStack.pop(); // Remove the current popup from the stack
+
+            if (popupStack.length > 0) {
+                const previousPopupId = popupStack[popupStack.length - 1];
+                document.getElementById(previousPopupId).style.display = 'block';
+            } else {
+                popupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+            }
+        });
+    });
+
+    // Transition between popups
+    document.getElementById('deadend-btn').addEventListener('click', function () {
+        showPopup('popup2');
+    });
+
+    // Fix for tangent button
+    document.getElementById('tangent-btn').addEventListener('click', function () {
+        showPopup('popup7');
+    });
+
+    // Handle Yes button in popup2
+    document.getElementById('yes-btn1').addEventListener('click', function () {
+        showPopup('popup3');
+    });
+
+    // Handle No button in popup2
+    document.getElementById('no-btn1').addEventListener('click', function () {
+        showPopup('popup4');
+    });
+
+    // Handle Yes button in popup4
+    document.getElementById('yes-btn2').addEventListener('click', function () {
+        window.location.href = '/tdeadend/';
+    });
+
+    // Handle No button in popup4
+    document.getElementById('no-btn2').addEventListener('click', function () {
+        showPopup('popup5');
+    });
+
+    // Handle buttons in popup3
+    document.getElementById('vertical-btnt1').addEventListener('click', function () {
+        showPopup('popup6');
+    });
+
+    document.getElementById('delta-btnt1').addEventListener('click', function () {
+        showPopup('popup61');
+    });
+
+    document.getElementById('horizontal-btnt1').addEventListener('click', function () {
+        showPopup('popup62');
+    });
+
+    // Handle buttons in popup6
+    document.getElementById('monopole-post-btn1').addEventListener('click', function () {
+        window.location.href = '/tdeadend3/';
+    });
+
+    document.getElementById('monopole-brace-btn1').addEventListener('click', function () {
+        window.location.href = '/tdeadend3/';
+    });
+
+    // Handle buttons in popup61
+    document.getElementById('monopole-post-btn2').addEventListener('click', function () {
+        window.location.href = '/tdeadend4/';
+    });
+
+    document.getElementById('monopole-brace-btn2').addEventListener('click', function () {
+        window.location.href = '/tdeadend4/';
+    });
+
+    // Handle buttons in popup62
+    document.getElementById('monopole-post-btn3').addEventListener('click', function () {
+        window.location.href = '/tdeadend5/';
+    });
+
+    document.getElementById('monopole-brace-btn3').addEventListener('click', function () {
+        window.location.href = '/tdeadend5/';
+    });
+
+    // Handle Yes button in popup7
+    document.getElementById('yes-btn3').addEventListener('click', function () {
+        showPopup('popup8');
+    });
+
+    // Handle No button in popup7
+    document.getElementById('no-btn3').addEventListener('click', function () {
+        showPopup('popup9');
+    });
+
+    // Handle buttons in popup8
+    document.getElementById('monopole-post-btni').addEventListener('click', function () {
+        showPopup('popup10');
+    });
+
+    document.getElementById('monopole-brace-btnv').addEventListener('click', function () {
+        showPopup('popup10');
+    });
+
+    // Handle buttons in popup9
+    document.getElementById('monopole-post-btn11').addEventListener('click', function () {
+        showPopup('popup11');
+    });
+
+    document.getElementById('monopole-brace-btn11').addEventListener('click', function () {
+        showPopup('popup11');
+    });
+
+    // Handle buttons in popup10
+    document.getElementById('vertical-btnt2').addEventListener('click', function () {
+        showPopup('popup63');
+    });
+
+    document.getElementById('delta-btnt2').addEventListener('click', function () {
+        showPopup('popup64');
+    });
+
+    document.getElementById('horizontal-btnt2').addEventListener('click', function () {
+        showPopup('popup65');
+    });
+
+    // Handle buttons in popup11
+    document.getElementById('vertical-btnt3').addEventListener('click', function () {
+        showPopup('popup66');
+    });
+
+    document.getElementById('delta-btnt3').addEventListener('click', function () {
+        showPopup('popup67');
+    });
+
+    document.getElementById('horizontal-btnt3').addEventListener('click', function () {
+        showPopup('popup68');
+    });
+
+    // Add event handlers for the new popups (63-68)
+    document.getElementById('monopole-post-btn63').addEventListener('click', function () {
+        window.location.href = '/tdeadend6/';
+    });
+
+    document.getElementById('monopole-brace-btn63').addEventListener('click', function () {
+        window.location.href = '/tdeadend6/';
+    });
+
+    document.getElementById('monopole-post-btn64').addEventListener('click', function () {
+        window.location.href = '/tdeadend7/';
+    });
+
+    document.getElementById('monopole-brace-btn64').addEventListener('click', function () {
+        window.location.href = '/tdeadend7/';
+    });
+
+    document.getElementById('monopole-post-btn65').addEventListener('click', function () {
+        window.location.href = '/tdeadend8/';
+    });
+
+    document.getElementById('monopole-brace-btn65').addEventListener('click', function () {
+        window.location.href = '/tdeadend8/';
+    });
+
+    document.getElementById('monopole-post-btn66').addEventListener('click', function () {
+        window.location.href = '/tdeadend9/';
+    });
+
+    document.getElementById('monopole-brace-btn66').addEventListener('click', function () {
+        window.location.href = '/tdeadend9/';
+    });
+
+    document.getElementById('monopole-post-btn67').addEventListener('click', function () {
+        window.location.href = '/tdeadend10/';
+    });
+
+    document.getElementById('monopole-brace-btn67').addEventListener('click', function () {
+        window.location.href = '/tdeadend10/';
+    });
+
+    document.getElementById('monopole-post-btn68').addEventListener('click', function () {
+        window.location.href = '/tdeadend11/';
+    });
+
+    document.getElementById('monopole-brace-btn68').addEventListener('click', function () {
+        window.location.href = '/tdeadend11/';
+    });
+</script>
+
+
+                    {% comment %} Monopole section  {% endcomment %}
+    
+    <script>
+        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
+        const monopolePopups = document.querySelectorAll('#monopole-popup-overlay .popup'); // Scope to monopole popups only
+        let monopolePopupStack = [];
+
+        document.getElementById('structure-select').addEventListener('change', function () {
+            if (this.value === 'monopoles') {
+                monopolePopupOverlay.style.display = 'flex';
+                monopolePopups.forEach((popup) => popup.style.display = 'none');
+                monopolePopups[0].style.display = 'block'; // Show the first monopole popup
+                mainContent.classList.add('blur');
+                monopolePopupStack = [0];
+            } else {
+                monopolePopupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                monopolePopupStack = [];
+            }
+        });
+
+        // Close button for each popup
+        document.querySelectorAll('#monopole-popup-overlay .popup-close').forEach((closeBtn, index) => {
+            closeBtn.addEventListener('click', function () {
+                document.getElementById(`monopole-popup${index + 1}`).style.display = 'none'; // Hide the current popup
+                monopolePopupStack.pop(); // Remove current popup from the stack
+                if (monopolePopupStack.length > 0) {
+                    document.getElementById(`monopole-popup${monopolePopupStack[monopolePopupStack.length - 1] + 1}`).style.display = 'block'; // Show the previous popup
+                } else {
+                    monopolePopupOverlay.style.display = 'none'; // Hide overlay if no popups left
+                    mainContent.classList.remove('blur'); // Remove blur from main content
+                }
+            });
+        });
+
+        // Event listener for the "Deadend" button in the first popup
+        document.getElementById('monopole-deadend-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup1').style.display = 'none'; // Hide the first popup
+            document.getElementById('monopole-popup2').style.display = 'block'; // Show the second popup
+            monopolePopupStack.push(1); // Add second popup to the stack
+        });
+
+        // Event listener for the "Yes" button in the second popup
+        document.getElementById('monopole-yes-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup2').style.display = 'none'; // Hide the second popup
+            document.getElementById('monopole-popup3').style.display = 'block'; // Show the third popup
+            monopolePopupStack.push(2); // Add third popup to the stack
+        });
+
+        // Event listener for the "No" button in the second popup
+        document.getElementById('monopole-no-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup2').style.display = 'none'; // Hide the second popup
+            document.getElementById('monopole-popup4').style.display = 'block'; // Show the fourth popup
+            monopolePopupStack.push(3); // Add fourth popup to the stack
+        });
+
+        // Event listener for the "Yes" button in the fourth popup
+        document.getElementById('monopole-inline-yes-btn').addEventListener('click', function () {
+            window.location.href = '/mdeadend1/'; // Redirect to the specified URL
+        });
+
+        // Event listener for the "No" button in the fourth popup
+        document.getElementById('monopole-inline-no-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup4').style.display = 'none'; // Hide the fourth popup
+            document.getElementById('monopole-popup5').style.display = 'block'; // Show the fifth popup
+            monopolePopupStack.push(4); // Add fifth popup to the stack
+        });
+
+        // Event listener for the "Vertical" button in the third popup
+        document.getElementById('monopole-vertical-btn').addEventListener('click', function () {
+            window.location.href = '/mdeadend5/'; // Redirect to the specified URL for Vertical
+        });
+
+        // Event listener for the "Delta" button in the third popup
+        document.getElementById('monopole-delta-btn').addEventListener('click', function () {
+            window.location.href = '/mdeadend6/'; // Redirect to the specified URL for Delta
+        });
+
+        // Event listener for the "Horizontal" button in the third popup
+        document.getElementById('monopole-horizontal-btn').addEventListener('click', function () {
+            window.location.href = '/mdeadend7/'; // Redirect to the specified URL for Horizontal
+        });
+        
+        // Event listener for the "Tangent" button in the first popup
+        document.getElementById('monopole-tangent-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup1').style.display = 'none'; // Hide the first popup
+            document.getElementById('monopole-popup6').style.display = 'block'; // Show the new "Does the structure have arms?" popup
+            monopolePopupStack.push(5); // Add the new popup to the stack
+        });
+
+        // Event listener for the "Yes" button in the Tangent popup (arms question)
+        document.getElementById('monopole-yes-tangent-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup6').style.display = 'none'; // Hide the arms question popup
+            document.getElementById('monopole-popup7').style.display = 'block'; // Show the "Select insulator type" popup for I-String/V-String
+            monopolePopupStack.push(6); // Add this popup to the stack
+        });
+
+        // Event listener for the "No" button in the Tangent popup (arms question)
+        document.getElementById('monopole-no-tangent-btn').addEventListener('click', function () {
+            document.getElementById('monopole-popup6').style.display = 'none'; // Hide the arms question popup
+            document.getElementById('monopole-popup8').style.display = 'block'; // Show the "Select insulator type" popup for Post/Brace Post
+            monopolePopupStack.push(7); // Add this popup to the stack
+        });
+
+       // Event listener for the "I-String" button and "V-String" button
+       document.getElementById('monopole-istring-btn').addEventListener('click', function() {
+            document.getElementById('monopole-popup7').style.display = 'none';
+            document.getElementById('monopole-popup10').style.display = 'block'; // Show new popup10
+            monopolePopupStack.push(9); // Add to stack (popup10 is the 10th element)
+        });
+
+        document.getElementById('monopole-vstring-btn').addEventListener('click', function() {
+            document.getElementById('monopole-popup7').style.display = 'none';
+            document.getElementById('monopole-popup10').style.display = 'block'; // Show new popup10
+            monopolePopupStack.push(9); // Add to stack
+        });
+
+        // Event listener for the "Post insulator" button and Brace post insulator
+        document.getElementById('monopole-post-btnmm').addEventListener('click', function() {
+            document.getElementById('monopole-popup8').style.display = 'none';
+            document.getElementById('monopole-popup11').style.display = 'block'; // Show new popup11
+            monopolePopupStack.push(10); // Add to stack (popup11 is the 11th element)
+        });
+
+        document.getElementById('monopole-brace-btnmm').addEventListener('click', function() {
+            document.getElementById('monopole-popup8').style.display = 'none';
+            document.getElementById('monopole-popup11').style.display = 'block'; // Show new popup11
+            monopolePopupStack.push(10); // Add to stack
+        });
+
+        // Event listeners for buttons in popup10
+        document.getElementById('monopole-vertical-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend8/';
+        });
+
+        document.getElementById('monopole-delta-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend9/';
+        });
+
+        document.getElementById('monopole-horizontal-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend10/';
+        });
+
+        // Event listeners for buttons in popup11
+        document.getElementById('monopole-vertical-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend11/';
+        });
+
+        document.getElementById('monopole-delta-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend12/';
+        });
+
+        document.getElementById('monopole-horizontal-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend13/';
+        });
+
+
+    </script>
+    
+
+                                {% comment %} hframe {% endcomment %}
+    <script>
+        const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
+        const hframePopups = document.querySelectorAll('#hframe-popup-overlay .popup'); // Scope to h-frame popups only
+        let hframePopupStack = [];
+    
+        document.getElementById('structure-select').addEventListener('change', function () {
+            if (this.value === 'hframes') {
+                hframePopupOverlay.style.display = 'flex';
+                hframePopups.forEach((popup) => popup.style.display = 'none');
+                hframePopups[0].style.display = 'block'; // Show the first h-frame popup
+                mainContent.classList.add('blur');
+                hframePopupStack = [0];
+            } else {
+                hframePopupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                hframePopupStack = [];
+            }
+        });
+    
+        document.querySelectorAll('#hframe-popup-overlay .popup-close').forEach((closeBtn, index) => {
+            closeBtn.addEventListener('click', function () {
+                hframePopups[index].style.display = 'none';
+                hframePopupStack.pop();
+                if (hframePopupStack.length > 0) {
+                    hframePopups[hframePopupStack[hframePopupStack.length - 1]].style.display = 'block';
+                } else {
+                    hframePopupOverlay.style.display = 'none';
+                    mainContent.classList.remove('blur');
+                }
+            });
+        });
+    
+        // Functionality for the Deadend button
+        document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
+            hframePopups[0].style.display = 'none';
+            hframePopups[1].style.display = 'block'; // Show the second popup for insulator type
+            hframePopupStack.push(1);
+        });
+    
+        // Functionality for the Tangent button
+        document.getElementById('hframe-tangent-btn').addEventListener('click', function () {
+            hframePopups[0].style.display = 'none'; // Hide the first popup
+            hframePopups[2].style.display = 'block'; // Show the third popup for configuration
+            hframePopupStack.push(2);
+        });
+    
+        // Functionality for the Vertical button in the second popup
+        document.getElementById('vertical-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            // Redirect to the specified URL for deadend
+            window.location.href = '/hdeadend1/'; // Change this URL to the destination page
+        });
+    
+        // Functionality for the Horizontal button in the second popup
+        document.getElementById('horizontal-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            // Add redirection or any action needed for horizontal
+        window.location.href = '/hdeadend3/'; // Change this URL to the destination page
+
+        });
+    
+        // Functionality for the configuration buttons in the third popup
+        document.getElementById('configuration-vertical-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3); // Add the fourth popup to the stack
+        });
+    
+        document.getElementById('configuration-horizontal-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3);
+        });
+    
+        // Functionality for the Post Insulator button in the fourth popup
+        document.getElementById('post-insulator-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            // Handle post insulator action here
+            window.location.href = '/hdeadend2/';
+            // Add any additional action or redirect if needed
+        });
+    
+        // Functionality for the V-String button in the fourth popup
+        document.getElementById('v-string-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            // Handle post insulator action here
+            window.location.href = '/hdeadend4/';
+            // Add any additional action or redirect if needed
+        });
+    </script>
+    
+     <script>
+        // Add some interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const structureSelect = document.getElementById('structure-select');
+            
+            structureSelect.addEventListener('change', function() {
+                if (this.value) {
+                    this.style.borderColor = '#3498db';
+                    this.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.2)';
+                }
+            });
+            
+            // Add confirmation to delete buttons
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (!confirm('Are you sure you want to delete this structure?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+ 
+{% endblock %}
+"

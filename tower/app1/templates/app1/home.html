@@ -723,7 +723,25 @@
     <button class="popup-btn red" id="monopole-brace-btnmm">Brace Post insulator</button>
 </div>
 
+<div class="popup" id="monopole-popup10">
+    <div class="popup-header">
+        <span class="popup-close">&times;</span>
+        <h3>Select Configuration</h3>
+    </div>
+    <button class="popup-btn blue" id="monopole-vertical-btn11">Vertical</button>
+    <button class="popup-btn green" id="monopole-delta-btn11">Delta</button>
+    <button class="popup-btn red" id="monopole-horizontal-btn11">Horizontal</button>
+</div>
 
+<div class="popup" id="monopole-popup11">
+    <div class="popup-header">
+        <span class="popup-close">&times;</span>
+        <h3>Select Configuration</h3>
+    </div>
+    <button class="popup-btn blue" id="monopole-vertical-btn22">Vertical</button>
+    <button class="popup-btn green" id="monopole-delta-btn22">Delta</button>
+    <button class="popup-btn red" id="monopole-horizontal-btn22">Horizontal</button>
+</div>
 
 </div>
 
@@ -1008,8 +1026,8 @@
     });
 </script>
 
-<script></script>
 
+                    {% comment %} Monopole section  {% endcomment %}
     
     <script>
         const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
@@ -1067,7 +1085,7 @@
 
         // Event listener for the "Yes" button in the fourth popup
         document.getElementById('monopole-inline-yes-btn').addEventListener('click', function () {
-            window.location.href = '/deadend/'; // Redirect to the specified URL
+            window.location.href = '/mdeadend1/'; // Redirect to the specified URL
         });
 
         // Event listener for the "No" button in the fourth popup
@@ -1079,17 +1097,17 @@
 
         // Event listener for the "Vertical" button in the third popup
         document.getElementById('monopole-vertical-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Vertical
+            window.location.href = '/mdeadend5/'; // Redirect to the specified URL for Vertical
         });
 
         // Event listener for the "Delta" button in the third popup
         document.getElementById('monopole-delta-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Delta
+            window.location.href = '/mdeadend6/'; // Redirect to the specified URL for Delta
         });
 
         // Event listener for the "Horizontal" button in the third popup
         document.getElementById('monopole-horizontal-btn').addEventListener('click', function () {
-            window.location.href = '/mdeadend4/'; // Redirect to the specified URL for Horizontal
+            window.location.href = '/mdeadend7/'; // Redirect to the specified URL for Horizontal
         });
         
         // Event listener for the "Tangent" button in the first popup
@@ -1113,30 +1131,56 @@
             monopolePopupStack.push(7); // Add this popup to the stack
         });
 
-       // Event listener for the "I-String" button
-        document.getElementById('monopole-istring-btn').addEventListener('click', function () {
-            document.getElementById('monopole-popup7').style.display = 'none'; // Hide the current popup
-            document.getElementById('monopole-popup3').style.display = 'block'; // Show the "Select Configuration" popup
+       // Event listener for the "I-String" button and "V-String" button
+       document.getElementById('monopole-istring-btn').addEventListener('click', function() {
+            document.getElementById('monopole-popup7').style.display = 'none';
+            document.getElementById('monopole-popup10').style.display = 'block'; // Show new popup10
+            monopolePopupStack.push(9); // Add to stack (popup10 is the 10th element)
         });
 
-        // Event listener for the "Post insulator" button
-        document.getElementById('monopole-post-btnmm').addEventListener('click', function () {
-            document.getElementById('monopole-popup8').style.display = 'none'; // Hide the "Select Insulator Type" popup
-            document.getElementById('monopole-popup9').style.display = 'block'; // Show the "Select Configuration" popup
+        document.getElementById('monopole-vstring-btn').addEventListener('click', function() {
+            document.getElementById('monopole-popup7').style.display = 'none';
+            document.getElementById('monopole-popup10').style.display = 'block'; // Show new popup10
+            monopolePopupStack.push(9); // Add to stack
         });
 
-        // Event listener for the "V-String" button (No further action, just close popup)
-        document.getElementById('monopole-vstring-btn').addEventListener('click', function () {
-            document.getElementById('monopole-popup7').style.display = 'none'; // Close the current popup without opening a new one
-            document.getElementById('monopole-popup3').style.display = 'block'; // Show the "Select Configuration" popup
-
+        // Event listener for the "Post insulator" button and Brace post insulator
+        document.getElementById('monopole-post-btnmm').addEventListener('click', function() {
+            document.getElementById('monopole-popup8').style.display = 'none';
+            document.getElementById('monopole-popup11').style.display = 'block'; // Show new popup11
+            monopolePopupStack.push(10); // Add to stack (popup11 is the 11th element)
         });
 
-        // Event listener for the "Brace Post insulator" button (No further action, just close popup)
-        document.getElementById('monopole-brace-btnmm').addEventListener('click', function () {
-            document.getElementById('monopole-popup8').style.display = 'none'; // Close the current popup without opening a new one
-            document.getElementById('monopole-popup3').style.display = 'block'; // Show the "Select Configuration" popup
+        document.getElementById('monopole-brace-btnmm').addEventListener('click', function() {
+            document.getElementById('monopole-popup8').style.display = 'none';
+            document.getElementById('monopole-popup11').style.display = 'block'; // Show new popup11
+            monopolePopupStack.push(10); // Add to stack
+        });
 
+        // Event listeners for buttons in popup10
+        document.getElementById('monopole-vertical-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend8/';
+        });
+
+        document.getElementById('monopole-delta-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend9/';
+        });
+
+        document.getElementById('monopole-horizontal-btn11').addEventListener('click', function() {
+            window.location.href = '/mdeadend10/';
+        });
+
+        // Event listeners for buttons in popup11
+        document.getElementById('monopole-vertical-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend11/';
+        });
+
+        document.getElementById('monopole-delta-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend12/';
+        });
+
+        document.getElementById('monopole-horizontal-btn22').addEventListener('click', function() {
+            window.location.href = '/mdeadend13/';
         });
 
 
