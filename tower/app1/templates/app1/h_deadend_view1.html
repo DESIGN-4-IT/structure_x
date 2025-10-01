@@ -8,10 +8,6 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         
-
-       
-
-    
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -142,6 +138,18 @@
             background-color: #f9f9f9;
         }
 
+        .update-link {
+            background-color: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .update-link:hover {
+            background-color: #f57c00;
+        }
         
         
     </style>
@@ -161,6 +169,7 @@
                 <th>Shield Wires</th>
                 <th>1-Phase Circuits</th>
                 <th>Communication Cables</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -172,6 +181,9 @@
                 <td>{{ monopole.num_shield_wires }}</td>
                 <td>{{ monopole.num_1_phase_circuits }}</td>
                 <td>{{ monopole.num_communication_cables }}</td>
+                <td>
+                    <a href="{% url 'h_deadend1_update' monopole.id %}" class="update-link">Update</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -70,18 +70,33 @@ urlpatterns = [
 
 
    path('hdeadend1/',views.hdeadend1,name='hdeadend1'),
+   path('hdeadend1/update/<int:pk>/', views.hdeadend1_update, name='h_deadend1_update'),
+
    path('hupload1/',views.hupload1,name='hupload1'),
+   path('hupload1/update/', views.hupload1_update, name='hupload1_update'),
+
    path('hdrop1/',views.hdrop1,name='hdrop1'),
    path('hdeadend2/',views.hdeadend2,name='hdeadend2'),
+   path('hdeadend2/update/<int:pk>/', views.hdeadend2_update, name='h_deadend2_update'),
+
    path('hupload2/',views.hupload2,name='hupload2'),
+   path('hupload2/update/', views.hupload2_update, name='hupload2_update'),
+
    path('hdrop2/',views.hdrop2,name='hdrop2'),
    path('h_deadend_view1/', views.h_deadend_view1, name='h_deadend_view1'),
    path('h_deadend_view2/', views.h_deadend_view2, name='h_deadend_view2'),
    path('hdeadend3/',views.hdeadend3,name='hdeadend3'),
+   path('hdeadend3/update/<int:pk>/', views.hdeadend3_update, name='h_deadend3_update'),
+
    path('hupload3/',views.hupload3,name='hupload3'),
+   path('hupload3/update/', views.hupload3_update, name='hupload3_update'),
+
    path('h_deadend_view3/', views.h_deadend_view3, name='h_deadend_view3'),
    path('hdeadend4/',views.hdeadend4,name='hdeadend4'),
+   path('hdeadend4/update/<int:pk>/', views.hdeadend4_update, name='h_deadend4_update'),
+
    path('hupload4/',views.hupload4,name='hupload4'),
+   path('hupload4/update/', views.hupload4_update, name='hupload4_update'),
    path('h_deadend_view4/', views.h_deadend_view4, name='h_deadend_view4'),
 
    path('hdata1/',views.hdata1,name='hdata1'),

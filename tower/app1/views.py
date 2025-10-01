@@ -3617,6 +3617,24 @@ def hdeadend1(request):
 
     return render(request, 'app1/hdeadend1.html', {'form': form})
 
+
+def hdeadend1_update(request, pk):
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(HDeadend1, pk=pk)
+    
+    if request.method == 'POST':
+        form = HDeadendForm1UpdateForm(request.POST, instance=hdeadend)
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/h_deadend_view1/')  # Redirect after successful update
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = HDeadendForm1UpdateForm(instance=hdeadend)
+
+    return render(request, 'app1/hdeadend1_update.html', {'form': form, 'hdeadend': hdeadend})
+
 def hupload1(request):
     if request.method == 'POST':
         # Handle file upload form
@@ -3773,7 +3791,44 @@ def hupload1(request):
         'structures_with_files': structures_with_files
     })
 
+def hupload1_update(request):
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = HUDeadendUpdateForm1(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = hUploadedFile1.objects.get(structure=structure)
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases(uploaded_file)
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('hupload1_update')
+                
+            except hUploadedFile1.DoesNotExist:
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = HUDeadendUpdateForm1()
 
+    return render(request, 'app1/hupload1_update.html', {
+        'form': form
+    })
+    
 def extract_load_cases(uploaded_file):
     """Extract load cases from the uploaded Excel file and save to database"""
     try:
@@ -3951,6 +4006,23 @@ def hdeadend2(request):
 
     return render(request, 'app1/hdeadend2.html', {'form': form})      # ********** Here **********
 
+def hdeadend2_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(HDeadend2, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = HDeadendForm2UpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/h_deadend_view2/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = HDeadendForm2UpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/hdeadend2_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
 def hupload2(request):
     if request.method == 'POST':
         # Handle file upload form
@@ -4109,7 +4181,45 @@ def hupload2(request):
         'structures_with_files2': structures_with_files2
     })
 
+def hupload2_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = HUDeadendUpdateForm2(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = hUploadedFile2.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases2(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('hupload2_update')    # Change here 
+                
+            except hUploadedFile2.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = HUDeadendUpdateForm2()         # Change here 
 
+    return render(request, 'app1/hupload2_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
 def extract_load_cases2(uploaded_file):
     try:
         LoadCase.objects.filter(
@@ -4164,6 +4274,24 @@ def hdeadend3(request):
         form = HDeadendForm3()
 
     return render(request, 'app1/hdeadend3.html', {'form': form})
+
+def hdeadend3_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(HDeadend3, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = HDeadendForm3UpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/h_deadend_view3/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = HDeadendForm3UpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/hdeadend3_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
 
 def hupload3(request):
     if request.method == 'POST':
@@ -4321,7 +4449,44 @@ def hupload3(request):
         'structures_with_files': structures_with_files
     })
 
+def hupload3_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = HUDeadendUpdateForm3(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = hUploadedFile3.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                hextract_load_cases3(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('hupload3_update')    # Change here 
+                
+            except hUploadedFile3.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = HUDeadendUpdateForm3()         # Change here 
 
+    return render(request, 'app1/hupload3_update.html', {         # Change here 
+        'form': form
+    })
+    
 def hextract_load_cases3(uploaded_file):
     """Extract load cases from the uploaded Excel file and save to database"""
     try:
@@ -4388,6 +4553,23 @@ def hdeadend4(request):
         form = HDeadendForm4()
 
     return render(request, 'app1/hdeadend4.html', {'form': form})
+
+def hdeadend4_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(HDeadend4, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = HDeadendForm4UpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/h_deadend_view4/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = HDeadendForm4UpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/hdeadend4_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 def hupload4(request):
     if request.method == 'POST':
@@ -4545,6 +4727,43 @@ def hupload4(request):
         'structures_with_files': structures_with_files
     })
 
+def hupload4_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = HUDeadendUpdateForm4(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = hUploadedFile4.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                hextract_load_cases4(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('hupload4_update')    # Change here 
+                
+            except hUploadedFile4.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = HUDeadendUpdateForm4()         # Change here 
+
+    return render(request, 'app1/hupload4_update.html', {         # Change here 
+        'form': form
+    })
 
 def hextract_load_cases4(uploaded_file):
     """Extract load cases from the uploaded Excel file and save to database"""
