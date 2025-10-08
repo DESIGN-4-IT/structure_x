@@ -55,206 +55,276 @@
         } {% endcomment %}
     
         :root {
-            --primary: #4976b5ff;
-            --secondary: #1252a7;
-            --accent: #e74c3c;
-            --light: #ecf0f1;
-            --dark: #0d3a7a;
-            --success: #2ecc71;
-            --warning: #f39c12;
-            --info: #1252a7;
-            --danger: #e74c3c;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
-        }
+        --primary: #4976b5ff;
+        --secondary: #1252a7;
+        --accent: #e74c3c;
+        --light: #ecf0f1;
+        --dark: #0d3a7a;
+        --success: #2ecc71;
+        --warning: #f39c12;
+        --info: #1252a7;
+        --danger: #e74c3c;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
+    .content {
+        display: flex;
+        justify-content: space-around;
+        padding: 20px;
+        flex-grow: 1;
+        margin-bottom: 60px;
+        margin-top: 80px;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
 
+    .panel {
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 0;
+        width: 45%;
+        min-width: 320px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .panel-header {
+        background: linear-gradient(135deg, var(--secondary), var(--primary));
+        color: white;
+        padding: 18px 20px;
+        font-weight: 600;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .panel-body {
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin: 15px 0;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .structure-list {
+        margin-top: 15px;
+        flex-grow: 1;
+        overflow-y: auto;
+        max-height: 300px;
+        padding-right: 5px;
+    }
+
+    .structure-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to right, #f8f9fa, #e9ecef);
+        padding: 12px 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border-left: 4px solid var(--secondary);
+        transition: var(--transition);
+    }
+
+    .structure-item:hover {
+        background: linear-gradient(to right, #e9ecef, #dee2e6);
+        transform: translateX(5px);
+    }
+
+    .delete-btn {
+        color: var(--danger);
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .delete-btn:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+        transform: scale(1.1);
+    }
+
+    select {
+        width: 100%;
+        padding: 12px 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        background-color: white;
+        color: var(--dark);
+        font-weight: 500;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 18px;
+        transition: var(--transition);
+    }
+
+    select:focus {
+        outline: none;
+        border-color: var(--secondary);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    option {
+        background-color: white;
+        color: var(--dark);
+        padding: 10px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .panel-icon {
+        font-size: 1.5rem;
+    }
+    
+    /* New styles for Group Structures panel */
+    .group-list-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        max-height: 300px;
+        padding-right: 5px;
+        margin-bottom: 15px;
+    }
+
+    .group-item {
+        background-color: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+    }
+
+    .group-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .group-name-text {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--dark);
+    }
+
+    .group-delete-btn {
+        color: var(--danger);
+        font-size: 1rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: var(--transition);
+    }
+
+    .group-delete-btn:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+        transform: scale(1.1);
+    }
+
+    .group-structures-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .structure-tag {
+        background-color: var(--info);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    /* Media Queries */
+    @media (max-width: 992px) {
         .content {
-            display: flex;
-            justify-content: space-around;
-            padding: 20px;
-            flex-grow: 1;
-            margin-bottom: 60px;
-            margin-top: 80px;
-            gap: 30px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
         }
-
+        
         .panel {
-            background-color: #fff;
-            border-radius: 12px;
-            padding: 0;
-            width: 45%;
-            min-width: 320px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            transition: var(--transition);
+            width: 90%;
+            margin-bottom: 30px;
         }
+    }
 
-        .panel:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .panel-header {
-            background: linear-gradient(135deg, var(--secondary), var(--primary));
-            color: white;
-            padding: 18px 20px;
-            font-weight: 600;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .panel-body {
-            padding: 20px;
-        }
-
-        .btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
+    @media (max-width: 576px) {
+        .panel {
             width: 100%;
-            font-weight: 600;
-            transition: var(--transition);
         }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        .structure-list {
-            margin-top: 15px;
-        }
-
-        .structure-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(to right, #f8f9fa, #e9ecef);
-            padding: 12px 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 4px solid var(--secondary);
-            transition: var(--transition);
-        }
-
-        .structure-item:hover {
-            background: linear-gradient(to right, #e9ecef, #dee2e6);
-            transform: translateX(5px);
-        }
-
-        .delete-btn {
-            color: var(--danger);
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition);
-        }
-
-        .delete-btn:hover {
-            background-color: rgba(231, 76, 60, 0.1);
-            transform: scale(1.1);
-        }
-
-        select {
-            width: 100%;
-            padding: 12px 15px;
-            margin-top: 15px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-            background-color: white;
-            color: var(--dark);
-            font-weight: 500;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 15px center;
-            background-size: 18px;
-            transition: var(--transition);
-        }
-
-        select:focus {
-            outline: none;
-            border-color: var(--secondary);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        option {
-            background-color: white;
-            color: var(--dark);
+        
+        .content {
             padding: 10px;
+            margin-top: 30px;
         }
-
-        .group-name {
-            background: linear-gradient(to right, #ffeaa7, #fab1a0);
-            padding: 6px;
-            margin: 10px 0;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-            color: var(--dark);
-            border-left: 4px solid var(--warning);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-            font-style: italic;
-        }
-
-        @media (max-width: 992px) {
-            .content {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .panel {
-                width: 90%;
-                margin-bottom: 30px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .panel {
-                width: 100%;
-            }
-            
-            .content {
-                padding: 10px;
-                margin-top: 30px;
-            }
-        }
-
-        .panel-icon {
-            font-size: 1.5rem;
-        }
+    }
 
     
         .popup-overlay {
@@ -360,29 +430,6 @@
             filter: blur(0.3spx);
         }
         
-        .structure-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background-color: #fff;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Style for the delete button */
-        .delete-btn {
-            color: #ff0000;
-            font-size: 18px;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        
-        .delete-btn:hover {
-            color: #cc0000;
-        }
-        
     </style>
 
 
@@ -430,23 +477,41 @@
                 Group Structures
             </div>
             <div class="panel-body">
-                <button class="btn">
-                    <i class="fas fa-plus-circle"></i> Select Structures to Add
-                </button>
-                <div class="group-name">
-                    <i class="fas fa-tag"></i> GroupName_xyz
-                </div>
-                
                 <select id="structure-select">
                     <option value="">Select Structure Type For Group</option>
                     <option value="towers">Towers</option>
                     <option value="hframes">H-Frames</option>
                     <option value="monopoles">Monopoles</option>
                 </select>
+                
+                <div class="group-list-container" id="groupListContainer"> {# Added ID for JS access #}
+                    {% for group in groups %}
+                        <div class="group-item" id="group-{{ group.id }}"> {# Added ID for JS access #}
+                            <div class="group-header">
+                                <span class="group-name-text">{{ group.name }}</span>
+                                <button type="button" class="group-delete-btn" title="Delete Group" data-group-id="{{ group.id }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="group-structures-tags">
+                                {% for structure in group.structures.all %}
+                                    <span class="structure-tag">{{ structure.structure }}</span>
+                                {% empty %}
+                                    <span class="empty-state">No structures in this group.</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state" id="noGroupsState">No groups created yet.</div> {# Added ID for JS access #}
+                    {% endfor %}
+                </div>
+
+                <button class="btn" onclick="window.location.href='{% url 'add_group' %}'">
+                    <i class="fas fa-plus-circle"></i> Create Structure Group
+                </button>
             </div>
         </div>
     </div>
-    
 
 
 
@@ -1303,5 +1368,114 @@
         });
     </script>
  
+    {% comment %} to delete selected groups  {% endcomment %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const groupListContainer = document.getElementById('groupListContainer');
+        const noGroupsState = document.getElementById('noGroupsState');
+
+        // Function to handle group deletion
+        function handleDeleteGroup(event) {
+            // Find the closest ancestor that is the delete button
+            const deleteButton = event.target.closest('.group-delete-btn');
+
+            // If a delete button was clicked
+            if (deleteButton) {
+                const groupId = deleteButton.dataset.groupId;
+                const groupItem = document.getElementById(`group-${groupId}`);
+                const groupName = groupItem ? groupItem.querySelector('.group-name-text').textContent : `Group ID: ${groupId}`;
+
+
+                if (confirm(`Are you sure you want to delete "${groupName}"?`)) {
+                    console.log(`Simulating deletion of group: ${groupName} (ID: ${groupId})`);
+                    
+                    if (groupItem) {
+                        groupItem.remove();
+                        console.log(`Group with ID: ${groupId} removed from UI.`);
+
+                        // Check if there are any groups left in the container
+                        // Filter out non-element nodes (like text nodes) to accurately count group items
+                        const remainingGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
+
+                        if (remainingGroupItems.length === 0) {
+                            // If no groups left, ensure the empty state message is visible
+                            if (!noGroupsState) {
+                                // If empty state element doesn't exist, create it
+                                const newEmptyState = document.createElement('div');
+                                newEmptyState.className = 'empty-state';
+                                newEmptyState.id = 'noGroupsState'; // Assign ID for future reference
+                                newEmptyState.textContent = 'No groups created yet.';
+                                groupListContainer.appendChild(newEmptyState);
+                            } else {
+                                // If empty state element exists, just make it visible
+                                noGroupsState.style.display = 'block';
+                            }
+                        } else {
+                            // If groups still exist, ensure empty state is hidden
+                            if (noGroupsState) {
+                                noGroupsState.style.display = 'none';
+                            }
+                        }
+                    } else {
+                        console.warn(`Group item with ID group-${groupId} not found in DOM.`);
+                    }
+
+                    // --- REAL BACKEND DELETION (Conceptual) ---
+                    fetch(`/delete_structure_group/${groupId}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            if (groupItem) {
+                                groupItem.remove();
+                                const remainingGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
+                                if (remainingGroupItems.length === 0) {
+                                    if (noGroupsState) noGroupsState.style.display = 'block';
+                                    else {
+                                        const newEmptyState = document.createElement('div');
+                                        newEmptyState.className = 'empty-state';
+                                        newEmptyState.id = 'noGroupsState';
+                                        newEmptyState.textContent = 'No groups created yet.';
+                                        groupListContainer.appendChild(newEmptyState);
+                                    }
+                                }
+                            }
+                        } else {
+                            alert('Failed to delete group: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Network error:', error);
+                        alert('An error occurred while trying to delete the group.');
+                    });
+                }
+            }
+        }
+
+        // Use event delegation on the groupListContainer
+        groupListContainer.addEventListener('click', handleDeleteGroup);
+        
+        // Initial check for empty state on load
+        const initialGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
+        if (initialGroupItems.length === 0) {
+             if (noGroupsState) noGroupsState.style.display = 'block';
+             else {
+                // If noGroupsState doesn't exist but there are no groups, create it
+                const newEmptyState = document.createElement('div');
+                newEmptyState.className = 'empty-state';
+                newEmptyState.id = 'noGroupsState';
+                newEmptyState.textContent = 'No groups created yet.';
+                groupListContainer.appendChild(newEmptyState);
+             }
+        } else {
+             if (noGroupsState) noGroupsState.style.display = 'none'; // Hide if there are groups
+        }
+    });
+</script>
 {% endblock %}
 

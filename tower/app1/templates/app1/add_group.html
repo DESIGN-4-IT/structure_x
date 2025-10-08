@@ -1,0 +1,228 @@
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ============ Panel Styles ============ */
+.panel {
+    max-width: 600px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-top:80px;
+
+}
+
+.panel-header {
+    background: linear-gradient(135deg, #004aad, #0078d4);
+    color: #fff;
+    padding: 16px 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-body {
+    padding: 25px;
+    min-height: 400px;
+}
+
+/* ============ Form Layout ============ */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    transition: 0.3s;
+    background: #fff;
+}
+
+input[type="text"]:focus {
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0,120,212,0.2);
+    outline: none;
+}
+
+/* ============ Dropdown Checkbox Styles ============ */
+.dropdown-checkbox {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #fff;
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.dropdown-btn:hover {
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0,120,212,0.1);
+}
+
+.dropdown-btn::after {
+    content: "▼";
+    font-size: 0.8rem;
+    color: #555;
+}
+
+/* Dropdown List */
+.dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    max-height: 180px;
+    overflow-y: auto;
+    display: none;
+    z-index: 20;
+}
+
+.dropdown-list label {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-list label:hover {
+    background: #f2f8ff;
+}
+
+.dropdown-list input[type="checkbox"] {
+    margin-right: 10px;
+    accent-color: #0078d4;
+}
+
+/* ============ Button ============ */
+.btn {
+    background: #0078d4;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top:50px;
+    transition: background 0.3s ease;
+}
+
+.btn:hover {
+    background: #005fa3;
+}
+
+/* ============ Responsive Design ============ */
+@media (max-width: 768px) {
+    .panel {
+        margin: 20px;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .dropdown-list {
+        max-height: 160px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header">
+        <i class="fas fa-layer-group"></i>
+        Create a New Structure Group
+    </div>
+    <div class="panel-body">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-field">
+                <label for="id_name">Group Name</label>
+                {{ form.name }}
+            </div>
+
+            <div class="form-field">
+                <label>Select Structures</label>
+                <div class="dropdown-checkbox">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown()">Select Structures</button>
+                    <div class="dropdown-list" id="dropdownList">
+                        {% for structure in form.structures.field.queryset %}
+                            <label>
+                                <input type="checkbox" name="structures" value="{{ structure.id }}">
+                                {{ structure.structure }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+
+            <button type="submit" class="btn">
+                <i class="fas fa-save"></i> Save Group
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleDropdown() {
+    const dropdown = document.getElementById("dropdownList");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+}
+
+// Close dropdown when clicking outside
+window.addEventListener("click", function(e) {
+    const dropdown = document.getElementById("dropdownList");
+    const button = document.querySelector(".dropdown-btn");
+    if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = "none";
+    }
+});
+</script>
+
+{% endblock %}

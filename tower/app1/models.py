@@ -6,6 +6,12 @@ class ListOfStructure(models.Model):
     def __str__(self):
         return self.structure
 
+class StructureGroup(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    structures = models.ManyToManyField(ListOfStructure, related_name='groups')
+
+    def __str__(self):
+        return self.name
 
 # models.py
 from django.db import models

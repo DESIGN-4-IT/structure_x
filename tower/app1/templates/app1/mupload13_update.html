@@ -1,0 +1,230 @@
+{% extends "app1/base.html" %}
+{% load static %}  <!-- Load static here too for good measure -->
+
+{% block title %}KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+
+<style>
+.content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    margin-top: 80px;
+    min-height: calc(100vh - 80px);
+}
+
+/* Form container */
+.form-container {
+    background-color: #fff;
+    border: 1px solid #e1e4e8;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    width: 90%;
+    max-width: 800px;
+    transition: all 0.3s ease;
+}
+
+/* Heading */
+h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1252a7;
+    font-weight: 600;
+    font-size: 28px;
+}
+
+/* Upload section layout */
+.upload-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* Upload box style */
+.upload-box {
+    padding: 25px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    text-align: center;
+    background-color: #fafafa;
+    width: 100%;
+    max-width: 500px;
+    transition: all 0.3s ease;
+}
+
+.upload-box:hover {
+    border-color: #1252a7;
+    background-color: #f8f9ff;
+}
+
+.upload-box p {
+    margin: 12px 0;
+    font-weight: 500;
+    color: #444;
+}
+
+/* Form fields */
+.upload-box select,
+.upload-box input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: border-color 0.3s;
+    background-color: white;
+}
+
+.upload-box select:focus,
+.upload-box input[type="file"]:focus {
+    border-color: #1252a7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
+}
+
+/* Upload button */
+.upload-button {
+    margin-top: 20px;
+    width: 100%;
+    background-color: #1252a7;
+    color: white;
+    padding: 12px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.upload-button:hover {
+    background-color: #0e4285;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.upload-button:active {
+    transform: translateY(0);
+}
+
+/* Error and success messages */
+.error-message {
+    color: #d9534f;
+    background: #f8d7da;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    border: 1px solid #f5c6cb;
+    text-align: left;
+    font-size: 14px;
+}
+
+.success-message {
+    color: #155724;
+    background: #d4edda;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    border: 1px solid #c3e6cb;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Back link */
+.upload-box a {
+    color: #1252a7;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.upload-box a:hover {
+    color: #0e4285;
+    text-decoration: underline;
+}
+
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .content {
+        margin-top: 60px;
+        padding: 15px;
+    }
+    
+    .form-container {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .upload-box {
+        padding: 20px;
+    }
+    
+    h2 {
+        font-size: 24px;
+    }
+}
+</style>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="content">
+    <div class="form-container">
+        <h2>Update Existing File</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags %}{{ message.tags }}-message{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-section">
+                <div class="upload-box">
+                    <p>Select Structure</p>
+                    {{ form.structure }}
+                    {% if form.structure.errors %}
+                        <div class="error-message">
+                            {% for error in form.structure.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <p>Select New File</p>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                        <div class="error-message">
+                            {% for error in form.file.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="upload-button">Update File</button>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="{% url 'mupload13' %}" style="color: #1252a7; text-decoration: none; font-weight: 500;">
+                            ← Back to Upload Page
+                        </a>              <!-- Change here -->
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}

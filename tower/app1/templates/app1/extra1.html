@@ -1,13 +1,21 @@
-The dragging works smoothly, but the user still can’t properly set or fix the selected value. 
-When a value is selected, it keeps dragging with the mouse cursor continuously. 
-After clicking to place it and dragging away, the value still follows the cursor. 
-The user needs to zoom the 3D model and reselect the value to assign it. After one click, 
-the drag should start, and on the next click, the drag should stop. Check the code and modify it correctly. 
-I want only the modified code in the response, with hints about where changes were made and what was added. 
-What I need:
-Clear hints on where to apply the changes. 
-don't return complete code in response
-this is complete code 
+Act as an experienced frontend developer.
+I want to enhance a 3D tower canvas page to make it fully responsive and user-friendly with advanced drag-and-drop functionality.
+Current setup:
+Users can assign a selected value to any part of the 3D tower using drag functionality.
+A grid system exists to help align values, but users still have difficulty placing them accurately.
+Required improvements:
+Improve drag functionality so that selected values can be moved smoothly, precisely, and easily in any direction.
+Add six-direction movement (left, right, top, bottom, front, back) using four arrow buttons to move values along the other axes.
+Implement two drop options for placing values into the canvas:
+Option 1: The user selects any part of the 3D tower (or a position) and then selects a value. The value should drop into the selected position.
+Option 2: The user can freely drag and drop values anywhere in the canvas container.
+Ensure the drag, arrow-movement, and drop functionalities work together seamlessly and remain responsive on different screen sizes.
+Maintain grid snapping for precise placement while allowing smooth manual adjustments.
+Output requirement:
+Provide only the modified or new HTML, CSS, and JavaScript code required to implement these functionalities.
+Include clear hints/comments in the code explaining the changes.
+Ensure the code is clean, modular, and easy to integrate into the existing page.
+this is html file 
 "<div class="container">
     <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
     
@@ -55,6 +63,11 @@ this is complete code
         <!-- Right side - 3D Model Viewer (increased width) -->
         <div class="col-md-8">
             <div class="model-viewer-container">
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                    <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
+                        Hide Grid
+                    </button>
+                </div>
                 <canvas id="model-canvas"></canvas>
                 <div id="joint-markers-container"></div>
                 <div id="set-markers-container"></div>
@@ -73,6 +86,8 @@ this is complete code
             </button>
             <span id="selected-count" class="selected-count">0 selected</span>
         </div>
+
+
         <div class="table-container">
             <table class="table table-bordered" id="load-table">
                 <thead>
@@ -95,7 +110,7 @@ this is complete code
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
 
 
 <script>
@@ -118,18 +133,22 @@ this is complete code
     let combinationCounter = 0; // Counter to make each combination unique
     
     let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
-    let isDragging3DLabel = false; // Flag to indicate if an assigned 3D label is being dragged
-    let dragOffset = new THREE.Vector3(); // Offset for dragging 3D labels
-    let selected3DLabel = null;
-    let dragPlane = new THREE.Plane(); // NEW: A plane for smoother dragging
-    let intersectionPoint = new THREE.Vector3();
-
+    
+    let gridHelpers = []; // Array to store all grid helpers
+    let isGridVisible = true;
+    let transformControls;
+    let selectedObject = null;
+    
     // Initialize the 3D model viewer
         // Initialize the 3D model viewer
     function initModelViewer() {
         // Create scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f0f0);
+
+        // Add axes helper
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
 
         // Create camera
         const canvasContainer = document.querySelector('.model-viewer-container');
@@ -146,6 +165,7 @@ this is complete code
 
         // Set initial size
         updateRendererSize();
+        initTransformControls();
 
         // Add controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -183,6 +203,9 @@ this is complete code
                 const size = box.getSize(new THREE.Vector3());
                 model.position.sub(center);
 
+                // Create 3D grid cage around the model
+                create3DGridCage(box);
+
                 // Auto-rotate
                 model.rotation.y = Math.PI / 4;
 
@@ -195,22 +218,110 @@ this is complete code
             }
         );
 
+        
         // Handle window resize
         window.addEventListener('resize', onWindowResize);
 
-        // NEW: Event Listeners for placing labels on the 3D model
         renderer.domElement.addEventListener('click', onCanvasClick);
-        renderer.domElement.addEventListener('mousemove', onCanvasMouseMove); // For draggable assigned labels
-        renderer.domElement.addEventListener('mouseup', onCanvasMouseUp); // For draggable assigned labels
+    }
+
+    function initTransformControls() {
+        // Create transform controls
+        transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        transformControls.setSize(0.8);
+        transformControls.addEventListener('dragging-changed', function(event) {
+            controls.enabled = !event.value;
+        });
+        
+        // Hide initially
+        transformControls.visible = false;
+        scene.add(transformControls);
+    }
+
+    function toggleGrid() {
+        isGridVisible = !isGridVisible;
+        
+        gridHelpers.forEach(grid => {
+            grid.visible = isGridVisible;
+        });
+        
+        // Update button text
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+        if (gridToggleBtn) {
+            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
+            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
+        }
+    }
+
+    // Function to clear all grids
+    function clearAllGrids() {
+        gridHelpers.forEach(grid => {
+            scene.remove(grid);
+        });
+        gridHelpers = [];
+    }
+
+    // Function to create 3D grid cage
+    function create3DGridCage(boundingBox) {
+        const size = boundingBox.getSize(new THREE.Vector3());
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        
+        // Make grid slightly larger than model
+        const gridSize = Math.max(size.x, size.y, size.z) * 1.2;
+        const gridDivisions = 20;
+        
+        // Clear any existing grids
+        clearAllGrids();
+        
+        // Create grids on different planes
+        
+        // XY Plane (front/back)
+        const gridXY1 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY1.position.set(center.x, center.y, boundingBox.min.z - 1);
+        gridXY1.rotation.x = Math.PI / 2;
+        scene.add(gridXY1);
+        gridHelpers.push(gridXY1);
+        
+        const gridXY2 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY2.position.set(center.x, center.y, boundingBox.max.z + 1);
+        gridXY2.rotation.x = Math.PI / 2;
+        scene.add(gridXY2);
+        gridHelpers.push(gridXY2);
+        
+        // XZ Plane (ground/top)
+        const gridXZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ1.position.set(center.x, boundingBox.min.y - 1, center.z);
+        scene.add(gridXZ1);
+        gridHelpers.push(gridXZ1);
+        
+        const gridXZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ2.position.set(center.x, boundingBox.max.y + 1, center.z);
+        scene.add(gridXZ2);
+        gridHelpers.push(gridXZ2);
+        
+        // YZ Plane (left/right)
+        const gridYZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ1.position.set(boundingBox.min.x - 1, center.y, center.z);
+        gridYZ1.rotation.z = Math.PI / 2;
+        scene.add(gridYZ1);
+        gridHelpers.push(gridYZ1);
+        
+        const gridYZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ2.position.set(boundingBox.max.x + 1, center.y, center.z);
+        gridYZ2.rotation.z = Math.PI / 2;
+        scene.add(gridYZ2);
+        gridHelpers.push(gridYZ2);
+        
+        isGridVisible = true;
     }
     
 
         // NEW: Handle clicks on the 3D canvas for assigning labels
     function onCanvasClick(event) {
-        // Only proceed if a label is being "dropped" from the sidebar
-        if (!currentDroppingItem) return;
-
         event.preventDefault();
+
+        // If we're using transform controls, don't process other clicks
+        if (transformControls.dragging) return;
 
         const canvas = renderer.domElement;
         const rect = canvas.getBoundingClientRect();
@@ -219,86 +330,134 @@ this is complete code
 
         raycaster.setFromCamera(mouse, camera);
 
+        // If a label is being dropped from sidebar, place it
+        if (currentDroppingItem) {
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                const intersection = intersects[0];
+                const point = intersection.point;
+
+                const itemType = currentDroppingItem.type;
+                const itemValue = currentDroppingItem.value;
+
+                if (itemType === 'joint') {
+                    addJointMarker(itemValue, point);
+                } else if (itemType === 'set' || itemType === 'phase') {
+                    if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                        showSelectionRequiredMessage();
+                        return;
+                    }
+                    const currentSet = Array.from(selectedSets).pop();
+                    const currentPhase = Array.from(selectedPhases).pop();
+                    addSetPhaseMarker(currentSet, currentPhase, point);
+                }
+
+                // Check the source checkbox after dropping
+                const checkbox = document.querySelector(`input[name="${itemType === 'joint' ? 'joint-labels' : (itemType === 'set' ? 'set-numbers' : 'phase-numbers')}"][value="${itemValue}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    const changeEvent = new Event('change');
+                    checkbox.dispatchEvent(changeEvent);
+                }
+
+                currentDroppingItem = null;
+                renderer.domElement.style.cursor = 'grab';
+            }
+            return;
+        }
+
+        // Handle selection of markers for transform controls
         const intersects = raycaster.intersectObjects(scene.children, true);
+        
+        // First, check if we clicked on transform controls
+        const transformControlIntersects = raycaster.intersectObject(transformControls, true);
+        if (transformControlIntersects.length > 0) {
+            return; // Let transform controls handle the click
+        }
 
-        if (intersects.length > 0) {
-            const intersection = intersects[0];
-            const point = intersection.point; // The 3D point on the model
-
-            const itemType = currentDroppingItem.type;
-            const itemValue = currentDroppingItem.value;
-
-            if (itemType === 'joint') {
-                addJointMarker(itemValue, point);
-            } else if (itemType === 'set' || itemType === 'phase') {
-                // For set/phase, we create a combination, so we need both to be selected
-                if (selectedSets.size === 0 || selectedPhases.size === 0) {
-                    showSelectionRequiredMessage();
+        // Then check if we clicked on a marker
+        let foundMarker = false;
+        
+        // Check joint markers
+        Object.keys(jointMarkers).forEach(label => {
+            if (jointMarkers[label].mesh === intersects[0]?.object) {
+                selectObjectForTransform(jointMarkers[label].mesh, label, 'joint');
+                foundMarker = true;
+                return;
+            }
+        });
+        
+        // Check set-phase markers
+        if (!foundMarker) {
+            Object.keys(setMarkers).forEach(id => {
+                if (setMarkers[id].mesh === intersects[0]?.object) {
+                    selectObjectForTransform(setMarkers[id].mesh, id, 'set-phase');
+                    foundMarker = true;
                     return;
                 }
-                const currentSet = Array.from(selectedSets).pop();
-                const currentPhase = Array.from(selectedPhases).pop();
-                addSetPhaseMarker(currentSet, currentPhase, point);
-            }
+            });
+        }
 
-            // Uncheck the source checkbox after dropping
-            const checkbox = document.querySelector(`input[name="${itemType === 'joint' ? 'joint-labels' : (itemType === 'set' ? 'set-numbers' : 'phase-numbers')}"][value="${itemValue}"]`);
-            if (checkbox) {
-                checkbox.checked = true; // Ensure it's checked when placed on model
-                const changeEvent = new Event('change');
-                checkbox.dispatchEvent(changeEvent);
-            }
-
-            currentDroppingItem = null; // Reset
-            renderer.domElement.style.cursor = 'grab'; // Restore default cursor
+        // If clicked on empty space, deselect
+        if (!foundMarker && intersects.length > 0) {
+            deselectObject();
         }
     }
 
-    // NEW: Handle mouse move for dragging existing labels on the 3D canvas
-    function onCanvasMouseMove(event) {
-        if (!isDragging3DLabel || !selected3DLabel) return;
+    function deselectObject() {
+        if (selectedObject) {
+            transformControls.detach();
+            transformControls.visible = false;
+            hideSelectionHighlight(selectedObject.object);
+            selectedObject = null;
+        }
+    }
 
-        event.preventDefault();
+    // NEW: Show selection highlight
+    function showSelectionHighlight(object) {
+        // You can add visual feedback here, like changing color or adding outline
+        if (object.material) {
+            object.userData.originalColor = object.material.color.clone();
+            object.material.color.set(0xffff00); // Yellow highlight
+        }
+    }
 
-        const canvas = renderer.domElement;
-        const rect = canvas.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    // NEW: Hide selection highlight
+    function hideSelectionHighlight(object) {
+        if (object.material && object.userData.originalColor) {
+            object.material.color.copy(object.userData.originalColor);
+        }
+    }
 
-        raycaster.setFromCamera(mouse, camera);
-
-        // NEW: Intersect with the drag plane instead of the complex model
-        const newPointOnPlane = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(dragPlane, newPointOnPlane)) {
-            const newPosition = newPointOnPlane.add(dragOffset);
-
-            const value = selected3DLabel.dataset.jointLabel || selected3DLabel.dataset.combinedId;
-            const type = selected3DLabel.classList.contains('joint-marker') ? 'joint' : 'set-phase';
-
-            let markerRef;
-            if (type === 'joint') markerRef = jointMarkers[value];
-            else if (type === 'set-phase') markerRef = setMarkers[value];
-
-            if (markerRef) {
-                markerRef.mesh.position.copy(newPosition);
-                // Update HTML div position immediately during drag
-                updateMarkerPosition(markerRef.mesh, markerRef.div);
+    // NEW: Select object for transform controls
+    function selectObjectForTransform(object, value, type) {
+        // Deselect previous
+        deselectObject();
+        
+        // Select new object
+        selectedObject = { object, value, type };
+        transformControls.attach(object);
+        transformControls.visible = true;
+        
+        // Add change listener to update HTML position
+        transformControls.addEventListener('change', function() {
+            const marker = type === 'joint' ? jointMarkers[value] : setMarkers[value];
+            if (marker && marker.div) {
+                updateMarkerPosition(object, marker.div);
+                
                 // Update load display if applicable
                 if (type === 'joint' && loadDisplays[value]) {
-                    updateLoadDisplayPosition(loadDisplays[value].div, newPosition);
+                    updateLoadDisplayPosition(loadDisplays[value].div, object.position);
                 }
             }
-        }
+        });
+        
+        // Show selection highlight
+        showSelectionHighlight(object);
     }
-
-    // NEW: Handle mouse up after dragging existing labels
-    function onCanvasMouseUp(event) {
-        if (!isDragging3DLabel) return; // Only process if a drag was active
-
-        isDragging3DLabel = false;
-        selected3DLabel = null;
-        controls.enabled = true; // Re-enable orbit controls
-    }
+    
+   
 
     // Setup part selection for the tower model
     function updateRendererSize() {
@@ -306,6 +465,8 @@ this is complete code
         if (canvasContainer && renderer) {
             const width = canvasContainer.clientWidth;
             const height = canvasContainer.clientHeight;
+            console.log('Canvas container size:', width, height); // Add this line
+
             renderer.setSize(width, height);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
@@ -313,22 +474,24 @@ this is complete code
     }
 
         // Add a marker for a joint on the 3D model
-    function addJointMarker(jointLabel, position = null) { // Added position parameter
+    function addJointMarker(jointLabel, position = null) {
         if (jointMarkers[jointLabel]) return;
 
         const jointLoadData = loadData.find(item => item['Attach. Joint Labels'] === jointLabel);
         if (!jointLoadData) return;
 
-        // Create a marker with no color
-        const geometry = new THREE.SphereGeometry(0.02, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }); // Completely transparent sphere
+        // Create a visible marker for selection
+        const geometry = new THREE.SphereGeometry(0.05, 16, 16); // Slightly larger for better selection
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, // Red color for visibility
+            transparent: true,
+            opacity: 0.7
+        });
         const sphere = new THREE.Mesh(geometry, material);
 
-        // Use provided position or a default one
         if (position) {
             sphere.position.copy(position);
         } else {
-            // Original random placement as fallback
             sphere.position.set(
                 (Math.random() - 0.5) * 2,
                 Math.random() * 2,
@@ -336,82 +499,55 @@ this is complete code
             );
         }
 
-        // Add label - simple text only
+        // Add label
         const markerDiv = document.createElement('div');
         markerDiv.className = 'value-marker joint-marker';
         markerDiv.textContent = jointLabel;
         markerDiv.style.position = 'absolute';
         markerDiv.style.color = 'black';
         markerDiv.style.padding = '2px 5px';
-        markerDiv.style.cursor = 'grab'; // Changed to 'grab' for consistency
+        markerDiv.style.cursor = 'pointer';
         markerDiv.style.pointerEvents = 'auto';
         markerDiv.dataset.jointLabel = jointLabel;
         document.getElementById('joint-markers-container').appendChild(markerDiv);
 
-        // Click handler for the marker
+        // Click handler for selection and load display
         markerDiv.addEventListener('click', function(e) {
             e.stopPropagation();
+            selectObjectForTransform(sphere, jointLabel, 'joint');
             toggleLoadDisplay(jointLabel);
         });
-
-        // NEW: Add mousedown listener for dragging the HTML label
-        markerDiv.addEventListener('mousedown', function(e) {
-            if (e.button === 0) { // Left mouse button
-                e.stopPropagation();
-                isDragging3DLabel = true;
-                selected3DLabel = markerDiv;
-                controls.enabled = false; // Disable orbit controls during label drag
-
-                // NEW: Set up the drag plane
-                const markerMesh = jointMarkers[jointLabel].mesh; // Or setMarkers[uniqueId].mesh for set-phase
-                dragPlane.setFromNormalAndCoplanarPoint(
-                    camera.getWorldDirection(dragPlane.normal).negate(), // Plane faces camera
-                    markerMesh.position // Plane passes through the mesh's current position
-                );
-
-                // Calculate the offset from the mouse click to the center of the marker
-                const canvas = renderer.domElement;
-                const rect = canvas.getBoundingClientRect();
-                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
-                dragOffset.subVectors(markerMesh.position, intersectionPoint);
-            }
-        });
-
 
         // Store references
         jointMarkers[jointLabel] = {
             mesh: sphere,
             div: markerDiv,
             loadData: jointLoadData,
-            isDragging: false, // This flag is for the old HTML-only drag, now we use isDragging3DLabel
-            fontSize: 12, // Default font size
-            originalScale: 1 // For dynamic scaling
+            fontSize: 12,
+            originalScale: 1
         };
 
         scene.add(sphere);
         updateMarkerPosition(sphere, markerDiv);
-
     }
 
-
-        // Function to add a combined set:phase marker
-    function addSetPhaseMarker(setNumber, phaseNumber, position = null) { // Added position parameter
+    // MODIFIED: addSetPhaseMarker - add selection capability
+    function addSetPhaseMarker(setNumber, phaseNumber, position = null) {
         const baseCombinedId = `${setNumber}:${phaseNumber}`;
         const uniqueId = `${baseCombinedId}_${combinationCounter++}`;
 
-        const geometry = new THREE.SphereGeometry(0.03, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }); // Completely transparent sphere
+        // Create a visible marker for selection
+        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Slightly larger for better selection
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x0000ff, // Blue color for visibility
+            transparent: true,
+            opacity: 0.7
+        });
         const sphere = new THREE.Mesh(geometry, material);
 
-        // Use provided position or a default one
         if (position) {
             sphere.position.copy(position);
         } else {
-            // Original random placement as fallback (modified slightly for better initial spread)
             const markerCount = Object.keys(setMarkers).length;
             const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
             const row = Math.floor(markerCount / gridSize);
@@ -424,68 +560,59 @@ this is complete code
             );
         }
 
-        // Add HTML label - simple text only, no background
+        // Add HTML label
         const markerDiv = document.createElement('div');
         markerDiv.className = 'value-marker set-phase-marker';
         markerDiv.textContent = baseCombinedId;
         markerDiv.style.position = 'absolute';
         markerDiv.style.color = 'black';
         markerDiv.style.padding = '2px 5px';
-        markerDiv.style.cursor = 'grab'; // Changed to 'grab'
+        markerDiv.style.cursor = 'pointer';
         markerDiv.style.fontWeight = 'bold';
         markerDiv.style.pointerEvents = 'auto';
         markerDiv.dataset.combinedId = uniqueId;
         markerDiv.dataset.baseCombination = baseCombinedId;
         document.getElementById('set-markers-container').appendChild(markerDiv);
 
-        // NEW: Add mousedown listener for dragging the HTML label
-        markerDiv.addEventListener('mousedown', function(e) {
-            if (e.button === 0) { // Left mouse button
-                e.stopPropagation();
-                isDragging3DLabel = true;
-                selected3DLabel = markerDiv;
-                controls.enabled = false; // Disable orbit controls during label drag
-
-                // NEW: Set up the drag plane
-                const markerMesh = setMarkers[uniqueId].mesh; // IMPORTANT: Changed from jointMarkers
-                dragPlane.setFromNormalAndCoplanarPoint(
-                    camera.getWorldDirection(dragPlane.normal).negate(), // Plane faces camera
-                    markerMesh.position // Plane passes through the mesh's current position
-                );
-
-                // Calculate the offset from the mouse click to the center of the marker
-                const canvas = renderer.domElement;
-                const rect = canvas.getBoundingClientRect();
-                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
-                dragOffset.subVectors(markerMesh.position, intersectionPoint);
-            }
+        // Click handler for selection
+        markerDiv.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectObjectForTransform(sphere, uniqueId, 'set-phase');
         });
 
         // Store the marker with unique ID
         setMarkers[uniqueId] = {
             mesh: sphere,
             div: markerDiv,
-            isDragging: false, // This flag is for the old HTML-only drag, now we use isDragging3DLabel
             setNumber: setNumber,
             phaseNumber: phaseNumber,
             baseCombination: baseCombinedId,
             uniqueId: uniqueId,
-            originalScale: 1 // For dynamic scaling
+            originalScale: 1
         };
 
         scene.add(sphere);
         updateMarkerPosition(sphere, markerDiv);
-        // makeDraggable(markerDiv, uniqueId, 'set-phase'); // Removed as we're handling 3D drag differently
-
+        
         // Show success message
         showCombinationCreatedMessage(baseCombinedId);
 
         return true;
     }
+
+    // Add CSS for better cursor feedback
+    const style = document.createElement('style');
+    style.textContent = `
+        .value-marker:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        
+        #model-canvas.grabbing {
+            cursor: grabbing !important;
+        }
+    `;
+    document.head.appendChild(style);
 
     // Function to show combination created message
     function showCombinationCreatedMessage(combination) {
@@ -618,22 +745,6 @@ this is complete code
     
     
     
-    // Update 3D position from screen coordinates
-    function update3DPositionFromScreen(value, type, x, y) {
-        let marker;
-        if (type === 'joint') marker = jointMarkers[value];
-        else if (type === 'set-phase') marker = setMarkers[value];
-        else return;
-        
-        const vector = new THREE.Vector3(
-            (x / renderer.domElement.clientWidth) * 2 - 1,
-            -(y / renderer.domElement.clientHeight) * 2 + 1,
-            0.5
-        );
-        
-        vector.unproject(camera);
-        marker.mesh.position.copy(vector);
-    }
     
     // Add load display for a joint
     function addLoadDisplay(jointLabel, position) {
@@ -870,13 +981,16 @@ this is complete code
     
     function animate() {
         requestAnimationFrame(animate);
-        controls.update();
+        
+        // Only update controls if not dragging transform controls
+        if (!transformControls.dragging) {
+            controls.update();
+        }
 
-        // Update marker positions and scale
+        // Update marker positions
         for (const jointLabel in jointMarkers) {
             updateMarkerPosition(jointMarkers[jointLabel].mesh, jointMarkers[jointLabel].div);
 
-            // Update load display positions if they exist
             if (loadDisplays[jointLabel]) {
                 updateLoadDisplayPosition(
                     loadDisplays[jointLabel].div,
@@ -885,15 +999,20 @@ this is complete code
             }
         }
 
-        // Update set-phase markers positions and scale
         for (const combinedId in setMarkers) {
             updateMarkerPosition(setMarkers[combinedId].mesh, setMarkers[combinedId].div);
         }
 
         renderer.render(scene, camera);
     }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            deselectObject();
+        }
+    });
     
-        function onWindowResize() {
+    function onWindowResize() {
         updateRendererSize();
 
         // Update all marker positions and scale
@@ -965,128 +1084,111 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
 });
     
     // Update table with selected labels
-function updateTable() {
-    clearTable();
-    const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
-    
-    // Get all column names from the table headers
-    const columns = Array.from(document.querySelectorAll('#load-table thead th'))
-        .map(th => th.textContent.trim())
-        .filter(col => col !== 'Select'); // Exclude the Select column
-    
-    // Store all table data for later reference
-    allTableData = [];
-    
-    // Add new rows from the filtered data
-    loadData.forEach((item, index) => {
-        const row = tbody.insertRow();
-        allTableData.push(item); // Store reference to this data
+    function updateTable() {
+        clearTable();
+        const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
         
-        // Add checkbox cell
-        const checkboxCell = row.insertCell();
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'record-checkbox';
-        checkbox.dataset.index = index;
-        checkbox.addEventListener('change', handleRecordSelection);
-        checkboxCell.appendChild(checkbox);
+        // Get all column names from the table headers
+        const columns = Array.from(document.querySelectorAll('#load-table thead th'))
+            .map(th => th.textContent.trim())
+            .filter(col => col !== 'Select'); // Exclude the Select column
         
-        // Add cells for each column
-        columns.forEach(column => {
-            const cell = row.insertCell();
-            cell.textContent = item[column] !== undefined ? item[column] : '';
-        });
-    });
-    
-    // Update selected count
-    updateSelectedCount();
-
-    // Only add joints if we're in joint labels mode and joints are selected
-    {% if button_type == 'joint_labels' %}
-    Array.from(selectedJoints).forEach(label => {
-        const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
-        if (loadInfo) {
-            const newRow = tbody.insertRow();
+        // Store all table data for later reference
+        allTableData = [];
+        
+        // Add new rows from the filtered data
+        loadData.forEach((item, index) => {
+            const row = tbody.insertRow();
+            allTableData.push(item); // Store reference to this data
+            
+            // Add checkbox cell
+            const checkboxCell = row.insertCell();
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'record-checkbox';
+            checkbox.dataset.index = index;
+            checkbox.addEventListener('change', handleRecordSelection);
+            checkboxCell.appendChild(checkbox);
             
             // Add cells for each column
             columns.forEach(column => {
-                const cell = newRow.insertCell();
-                cell.textContent = loadInfo[column] !== undefined ? loadInfo[column] : '';
+                const cell = row.insertCell();
+                cell.textContent = item[column] !== undefined ? item[column] : '';
             });
-        }
-    });
-    {% endif %}
-    
-    // Only add sets if we're in set/phase mode and sets are selected
-    {% if button_type == 'set_phase' %}
-    Array.from(selectedSets).forEach(setNum => {
-        // Find all rows with this set number
-        const setData = loadData.filter(item => item['Set No.'] == setNum);
+        });
         
-        if (setData.length > 0) {
-            // Add a header row for the set
-            const headerRow = tbody.insertRow();
-            const headerCell = headerRow.insertCell();
-            headerCell.colSpan = columns.length;
-            headerCell.textContent = `Set ${setNum}`;
-            headerCell.style.textAlign = 'center';
-            headerCell.style.backgroundColor = '#e6f2ff';
-            headerCell.style.fontWeight = 'bold';
-            
-            // Add all data rows for this set
-            setData.forEach(item => {
-                const row = tbody.insertRow();
-                columns.forEach(column => {
-                    const cell = row.insertCell();
-                    cell.textContent = item[column] !== undefined ? item[column] : '';
-                });
-            });
-        }
-    });
-    
-    // Only add phases if we're in set/phase mode and phases are selected
-    Array.from(selectedPhases).forEach(phaseNum => {
-        // Find all rows with this phase number
-        const phaseData = loadData.filter(item => item['Phase No.'] == phaseNum);
-        
-        if (phaseData.length > 0) {
-            // Add a header row for the phase
-            const headerRow = tbody.insertRow();
-            const headerCell = headerRow.insertCell();
-            headerCell.colSpan = columns.length;
-            headerCell.textContent = `Phase ${phaseNum}`;
-            headerCell.style.textAlign = 'center';
-            headerCell.style.backgroundColor = '#e6ffe6';
-            headerCell.style.fontWeight = 'bold';
-            
-            // Add all data rows for this phase
-            phaseData.forEach(item => {
-                const row = tbody.insertRow();
-                columns.forEach(column => {
-                    const cell = row.insertCell();
-                    cell.textContent = item[column] !== undefined ? item[column] : '';
-                });
-            });
-        }
-    });
-    {% endif %}
-}
+        // Update selected count
+        updateSelectedCount();
 
-    
-    // Set up event listeners
-    function addMarker(itemType, itemValue) {
-        if (itemType === 'joint') {
-            if (jointMarkers[itemValue]) return;
-            addJointMarker(itemValue);
-        } 
-        else if (itemType === 'set') {
-            if (setMarkers[itemValue]) return;
-            addSetMarker(itemValue);
-        }
-        else if (itemType === 'phase') {
-            if (phaseMarkers[itemValue]) return;
-            addPhaseMarker(itemValue);
-        }
+        // Only add joints if we're in joint labels mode and joints are selected
+        {% if button_type == 'joint_labels' %}
+        Array.from(selectedJoints).forEach(label => {
+            const loadInfo = loadData.find(item => item['Attach. Joint Labels'] === label);
+            if (loadInfo) {
+                const newRow = tbody.insertRow();
+                
+                // Add cells for each column
+                columns.forEach(column => {
+                    const cell = newRow.insertCell();
+                    cell.textContent = loadInfo[column] !== undefined ? loadInfo[column] : '';
+                });
+            }
+        });
+        {% endif %}
+        
+        // Only add sets if we're in set/phase mode and sets are selected
+        {% if button_type == 'set_phase' %}
+        Array.from(selectedSets).forEach(setNum => {
+            // Find all rows with this set number
+            const setData = loadData.filter(item => item['Set No.'] == setNum);
+            
+            if (setData.length > 0) {
+                // Add a header row for the set
+                const headerRow = tbody.insertRow();
+                const headerCell = headerRow.insertCell();
+                headerCell.colSpan = columns.length;
+                headerCell.textContent = `Set ${setNum}`;
+                headerCell.style.textAlign = 'center';
+                headerCell.style.backgroundColor = '#e6f2ff';
+                headerCell.style.fontWeight = 'bold';
+                
+                // Add all data rows for this set
+                setData.forEach(item => {
+                    const row = tbody.insertRow();
+                    columns.forEach(column => {
+                        const cell = row.insertCell();
+                        cell.textContent = item[column] !== undefined ? item[column] : '';
+                    });
+                });
+            }
+        });
+        
+        // Only add phases if we're in set/phase mode and phases are selected
+        Array.from(selectedPhases).forEach(phaseNum => {
+            // Find all rows with this phase number
+            const phaseData = loadData.filter(item => item['Phase No.'] == phaseNum);
+            
+            if (phaseData.length > 0) {
+                // Add a header row for the phase
+                const headerRow = tbody.insertRow();
+                const headerCell = headerRow.insertCell();
+                headerCell.colSpan = columns.length;
+                headerCell.textContent = `Phase ${phaseNum}`;
+                headerCell.style.textAlign = 'center';
+                headerCell.style.backgroundColor = '#e6ffe6';
+                headerCell.style.fontWeight = 'bold';
+                
+                // Add all data rows for this phase
+                phaseData.forEach(item => {
+                    const row = tbody.insertRow();
+                    columns.forEach(column => {
+                        const cell = row.insertCell();
+                        cell.textContent = item[column] !== undefined ? item[column] : '';
+                    });
+                });
+            }
+        });
+        {% endif %}
     }
 
     
@@ -1119,6 +1221,11 @@ function updateTable() {
                 });
             });
         }
+
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+            if (gridToggleBtn) {
+                gridToggleBtn.addEventListener('click', toggleGrid);
+            }
 
         // Phase selection - allow multiple phases but create combination when selected
         const phaseContainer = document.getElementById('phase-numbers');
@@ -1219,10 +1326,22 @@ function updateTable() {
             e.dataTransfer.dropEffect = 'copy';
         });
     
-    modelCanvas.addEventListener('drop', function(e) {
+        modelCanvas.addEventListener('drop', function(e) {
         e.preventDefault();
-        const itemType = e.dataTransfer.getData('type');
-        const itemValue = e.dataTransfer.getData('value');
+        
+        // Get the dropped data correctly
+        let droppedData;
+        try {
+            droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
+        } catch (error) {
+            console.error('Error parsing dropped data:', error);
+            return;
+        }
+        
+        if (!droppedData) return;
+        
+        const itemType = droppedData.type;
+        const itemValue = droppedData.value;
         
         // Find the corresponding checkbox and check it
         let checkbox;
@@ -1248,8 +1367,16 @@ function updateTable() {
                 checkbox.checked = true;
                 const event = new Event('change');
                 checkbox.dispatchEvent(event);
+                
+                // If we have sets selected, automatically create combination
+                if (selectedSets.size > 0) {
+                    createSetPhaseCombination();
+                }
             }
         }
+        
+        currentDroppingItem = null;
+        renderer.domElement.style.cursor = 'grab';
     });
     
     // Add responsive behavior
@@ -1258,4 +1385,615 @@ function updateTable() {
         
        
 </script>
+
+:root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --light-gray: #f8f9fa;
+        --border-color: #dee2e6;
+        --success-color: #28a745;
+        --warning-color: #ffc107;
+    }
+    
+    .container {
+        max-width: 98%;
+        margin: 0 auto;
+        padding: 15px;
+        background-color: white;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+    }
+    
+    h3 {
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #eee;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+    
+    /* Layout adjustments */
+    .row {
+        min-height: 650px; /* Increased to accommodate larger canvas */
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+    
+    .col-md-4, .col-md-8 {
+        padding: 0 10px;
+        box-sizing: border-box;
+    }
+    
+    /* Left column (controls) - reduced width */
+    .col-md-4 {
+        width: 15%;
+        flex: 0 0 15%;
+        max-width: 15%;
+    }
+
+    .col-md-8 {
+        width: 85%;
+        flex: 0 0 85%;
+        max-width: 85%;
+    }
+
+    
+    @media (max-width: 1200px) {
+        .col-md-4 {
+            width: 35%;
+            flex: 0 0 35%;
+            max-width: 35%;
+        }
+        
+        .col-md-8 {
+            width: 65%;
+            flex: 0 0 65%;
+            max-width: 65%;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .col-md-4, .col-md-8 {
+            width: 100%;
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            padding: 12px;
+        }
+    }
+    
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 18px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+    
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: white;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    select:focus {
+        border-color: var(--secondary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    select option {
+        padding: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    select option:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .calculation-btn {
+        margin: 15px 0;
+        padding: 10px 18px;
+        background-color: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .calculation-btn:hover:not(:disabled) {
+        background-color: #2980b9;
+    }
+    
+    .calculation-btn:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
+    
+    .selected-count {
+        margin-left: 12px;
+        font-weight: bold;
+        color: var(--primary-color);
+        background: #f1f8ff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+
+    /* Load Display Table - full width when below */
+    #load-display {
+        background-color: var(--light-gray);
+        padding: 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-top: 20px;
+        width: 100%;
+    }
+    
+    #load-display h5 {
+        margin-top: 0;
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-top: 15px;
+        width: 100%;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 0;
+        font-size: 13px;
+    }
+    
+    .table th {
+        background-color: #e9ecef;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        padding: 10px 8px;
+        border: 1px solid var(--border-color);
+        font-size: 13px;
+    }
+    
+    .table td {
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+    
+    .table th:first-child,
+    .table td:first-child {
+        text-align: center;
+        width: 40px;
+    }
+    
+    .table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .table tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    /* Checkbox styling */
+    .record-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    /* Drag and Drop Feedback */
+    option[draggable="true"] {
+        cursor: grab;
+    }
+    
+    option[draggable="true"]:active {
+        cursor: grabbing;
+    }
+    
+    model-viewer {
+        --poster-color: transparent;
+    }
+    
+    .table tr.highlight {
+        animation: highlight 1.5s;
+    }
+
+    @keyframes highlight {
+        0% { background-color: rgba(255, 220, 0, 0.5); }
+        100% { background-color: transparent; }
+    }
+    
+    .checkbox-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        border-radius: 6px;
+        background: white;
+        margin-bottom: 0;
+    }
+    
+    .checkbox-list label {
+        display: block;
+        cursor: move;
+        padding: 6px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        font-size: 13px;
+    }
+    
+    .checkbox-list label:hover {
+        background-color: #f0f8ff;
+    }
+    
+    .model-viewer-container {
+        width: 100%;
+        height: 700px !important;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #joint-markers-container, 
+    #set-markers-container, 
+    #phase-markers-container,
+    #load-displays-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    
+    .joint-marker {
+        position: absolute;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        transform: translate(-50%, -50%);
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        cursor: move;
+        user-select: none;
+        pointer-events: auto;
+        z-index: 5;
+        transition: all 0.2s;
+    }
+    
+    .joint-marker:hover {
+        background-color: white;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    
+
+    .drag-item {
+        display: block;
+        padding: 6px 8px;
+        margin: 4px 0;
+        cursor: move;
+        background-color: var(--light-gray);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+    
+    .drag-item:hover {
+        background-color: #e9ecef;
+        transform: translateX(3px);
+    }
+    
+    .drag-item:active {
+        cursor: grabbing;
+    }
+
+    .load-display {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
+        pointer-events: auto;
+    }
+    
+    .load-display-header {
+        font-weight: 600;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+    
+    .load-display-content div {
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+    
+    .editable {
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: background-color 0.2s;
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .close-btn {
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        color: #999;
+        transition: color 0.2s;
+    }
+    
+    .close-btn:hover {
+        color: var(--accent-color);
+    }
+    
+    .size-controls {
+        position: absolute;
+        top: 8px;
+        right: 30px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .size-btn {
+        width: 22px;
+        height: 22px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    
+    .size-btn:hover {
+        background: #e9ecef;
+    }
+    
+    .value-edit {
+        width: 60px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px;
+        text-align: right;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 992px) {
+        .container {
+            padding: 10px;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .model-viewer-container {
+            height: 450px;
+        }
+        
+        .load-display {
+            width: 180px;
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        .calculation-btn {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .selected-count {
+            display: block;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 8px 6px;
+            font-size: 12px;
+        }
+        
+        .checkbox-list {
+            max-height: 200px;
+        }
+        
+        #load-display {
+            padding: 15px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .model-viewer-container {
+            height: 400px;
+        }
+        
+        .load-display {
+            width: 160px;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        .joint-marker {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        
+        .checkbox-list {
+            max-height: 180px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .model-viewer-container {
+            height: 350px;
+        }
+        
+        .load-display {
+            width: 140px;
+            padding: 6px;
+            font-size: 11px;
+        }
+        
+        .table th, 
+        .table td {
+            padding: 5px 3px;
+            font-size: 11px;
+        }
+        
+        .calculation-btn {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+        
+        .selected-count {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+    }
+    
+    /* Loading state */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    /* Visual feedback for selections */
+    input[type="checkbox"]:checked + span {
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+    
+    /* Custom scrollbar for better aesthetics */
+    .checkbox-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .checkbox-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Section headers */
+    .section-header {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    /* Button group styling */
+    .btn-container {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+
+    .joint-marker, .set-phase-marker {
+    color: black !important;
+    background: none !important;
+    border: none !important;
+    font-weight: normal;
+    text-shadow: none;
+}
+
+.value-marker {
+    color: black !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove any existing background colors */
+.joint-marker:hover, .set-phase-marker:hover {
+    background: transparent !important;
+    color: black !important;
+}
+
+
+#model-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 "

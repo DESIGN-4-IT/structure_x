@@ -79,6 +79,27 @@ def tdeadend(request):
 
     return render(request, 'app1/tdeadend.html', {'form': form})
 
+
+
+
+def tdeadend_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TowerDeadend, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadendFormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/tower_deadend_view1/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadendFormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
 def tdeadend1(request):
     return render(request,'app1/tdeadend1.html')
 
@@ -876,9 +897,11 @@ from .models import ListOfStructure
 from .forms import StructureForm
 
 # View to display all structures
+
 def list_structures(request):
     structures = ListOfStructure.objects.all()
-    return render(request, 'app1/home.html', {'structures': structures})
+    groups = StructureGroup.objects.all()
+    return render(request, 'app1/home.html', {'structures': structures, 'groups': groups})
 
 # View to add a new structure
 def add_structure(request):
@@ -891,13 +914,32 @@ def add_structure(request):
         form = StructureForm()
     return render(request, 'app1/add_structure.html', {'form': form})
 
+def add_group(request):
+    if request.method == 'POST':
+        form = StructureGroupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = StructureGroupForm()
+    return render(request, 'app1/add_group.html', {'form': form})
 
 def delete_structure(request, structure_id):
     structure = get_object_or_404(ListOfStructure, id=structure_id)
     structure.delete()
     return redirect('home')
 
-
+@csrf_exempt
+def delete_structure_group(request, group_id):
+    """
+    Permanently deletes a StructureGroup and returns JSON response.
+    """
+    if request.method == 'DELETE':
+        group = get_object_or_404(StructureGroup, id=group_id)
+        group.delete()  # Permanently delete the group
+        return JsonResponse({'status': 'success', 'message': 'Group deleted successfully.'})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
 def tupload1(request):
     if request.method == 'POST':
@@ -1440,7 +1482,22 @@ def tdeadend3(request):
 
     return render(request, 'app1/tdeadend3.html', {'form': form})
 
+def tdeadend3_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TowerDeadend3, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend3FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/tower_deadend_view3/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend3FormUpdateForm(instance=hdeadend)   # Here
 
+    return render(request, 'app1/tdeadend3_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 
 def tdeadend4(request):
@@ -1459,6 +1516,22 @@ def tdeadend4(request):
 
     return render(request, 'app1/tdeadend4.html', {'form': form})
 
+def tdeadend4_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TowerDeadend4, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend4FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/tower_deadend_view4/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend4FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend4_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 def tdeadend5(request):
     if request.method == 'POST':
@@ -1475,6 +1548,24 @@ def tdeadend5(request):
         form = TowerDeadendForm5()
 
     return render(request, 'app1/tdeadend5.html', {'form': form})
+
+
+def tdeadend5_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TowerDeadend5, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend5FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/tower_deadend_view5/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend5FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend5_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 def tupload3(request):
     if request.method == 'POST':
@@ -2081,6 +2172,23 @@ def tdeadend6(request):
 
     return render(request, 'app1/tdeadend6.html', {'form': form})
 
+def tdeadend6_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend6, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend6FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view6/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend6FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend6_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
 def tupload6(request):
     if request.method == 'POST':
         # Handle file upload form
@@ -2293,6 +2401,90 @@ def t_deadend_view6(request):
     h = TDeadend6.objects.all()
     return render(request, 'app1/t_deadend_view6.html', {'h': h})
 
+def tdeadend7_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend7, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend7FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view7/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend7FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend7_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+def tdeadend8_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend8, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend8FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view8/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend8FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend8_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+def tdeadend9_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend9, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend9FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view9/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend9FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend9_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+def tdeadend10_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend10, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend10FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view10/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend10FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend10_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+def tdeadend11_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(TDeadend11, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = TDeadend11FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/t_deadend_view11/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = TDeadend11FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/tdeadend11_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 def tdeadend7(request):
     if request.method == 'POST':
@@ -4911,6 +5103,22 @@ def mdeadend1(request):
 
     return render(request, 'app1/mdeadend1.html', {'form': form})
 
+def mdeadend1_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MonopoleDeadend, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend1FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/monopole_deadend_view/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend1FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend1_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
 
 def monopole_deadend_view(request):
     monopoles = MonopoleDeadend.objects.all()
@@ -7378,3 +7586,1025 @@ def mextract_load_cases13(uploaded_file):
 def m_deadend_view13(request):
     h = MDeadend13.objects.all()
     return render(request, 'app1/m_deadend_view13.html', {'h': h})
+
+
+def mdeadend5_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend5, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend5FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view5/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend5FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend5_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend6_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend6, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend6FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view6/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend6FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend6_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend7_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend7, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend7FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view7/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend7FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend7_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend8_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend8, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend8FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view8/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend8FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend8_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend9_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend9, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend9FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view9/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend9FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend9_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend10_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend10, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend10FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view10/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend10FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend10_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend11_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend11, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend11FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view11/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend11FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend11_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend12_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend12, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend12FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view12/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend12FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend12_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+def mdeadend13_update(request, pk):    # Here
+    # Get the existing record or return 404
+    hdeadend = get_object_or_404(MDeadend13, pk=pk)  # Here
+    
+    if request.method == 'POST':
+        form = MDeadend13FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        if form.is_valid():
+            try:
+                form.save()
+                return HttpResponseRedirect('/m_deadend_view13/')  # Here
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend13FormUpdateForm(instance=hdeadend)   # Here
+
+    return render(request, 'app1/mdeadend13_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+
+
+
+    
+def tupload1_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm1(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile1.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases1(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload1_update')    # Change here 
+                
+            except tUploadedFile1.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm1()         # Change here 
+
+    return render(request, 'app1/tupload1_update.html', {         # Change here 
+        'form': form
+    })
+    
+
+def tupload2_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm2(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile2.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases3(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload2_update')    # Change here 
+                
+            except tUploadedFile2.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm2()         # Change here 
+
+    return render(request, 'app1/tupload2_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+    
+def tupload3_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm3(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile3.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases33(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload3_update')    # Change here 
+                
+            except tUploadedFile3.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm3()         # Change here 
+
+    return render(request, 'app1/tupload3_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+    
+def tupload4_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm4(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile4.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases4(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload4_update')    # Change here 
+                
+            except tUploadedFile4.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm4()         # Change here 
+
+    return render(request, 'app1/tupload4_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def tupload5_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm5(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile5.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                extract_load_cases5(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload5_update')    # Change here 
+                
+            except tUploadedFile5.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm5()         # Change here 
+
+    return render(request, 'app1/tupload5_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def tupload6_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm6(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile6.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases6(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload6_update')    # Change here 
+                
+            except tUploadedFile6.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm6()         # Change here 
+
+    return render(request, 'app1/tupload6_update.html', {         # Change here 
+        'form': form
+    })
+    
+def tupload7_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm7(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile7.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases7(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload7_update')    # Change here 
+                
+            except tUploadedFile7.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm7()         # Change here 
+
+    return render(request, 'app1/tupload7_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def tupload8_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm8(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile8.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases8(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload8_update')    # Change here 
+                
+            except tUploadedFile8.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm8()         # Change here 
+
+    return render(request, 'app1/tupload8_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def tupload9_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm9(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile9.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases9(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload9_update')    # Change here 
+                
+            except tUploadedFile9.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm9()         # Change here 
+
+    return render(request, 'app1/tupload9_update.html', {         # Change here 
+        'form': form
+    })
+    
+def tupload10_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm10(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile10.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases10(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload10_update')    # Change here 
+                
+            except tUploadedFile10.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm10()         # Change here 
+
+    return render(request, 'app1/tupload10_update.html', {         # Change here 
+        'form': form
+    })
+    
+def tupload11_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = TUDeadendUpdateForm11(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = tUploadedFile11.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                textract_load_cases11(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('tupload11_update')    # Change here 
+                
+            except tUploadedFile11.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = TUDeadendUpdateForm11()         # Change here 
+
+    return render(request, 'app1/tupload11_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+    
+def mupload1_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm1(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = UploadedFile1.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases1(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload1_update')    # Change here 
+                
+            except UploadedFile1.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm1()         # Change here 
+
+    return render(request, 'app1/mupload1_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+    
+def mupload2_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm2(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = UploadedFile22.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases2(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload2_update')    # Change here 
+                
+            except UploadedFile22.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm2()         # Change here 
+
+    return render(request, 'app1/mupload2_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload5_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm5(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile5.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases5(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload5_update')    # Change here 
+                
+            except mUploadedFile5.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm5()         # Change here 
+
+    return render(request, 'app1/mupload5_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload6_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm6(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile6.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases6(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload6_update')    # Change here 
+                
+            except mUploadedFile6.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm6()         # Change here 
+
+    return render(request, 'app1/mupload6_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload7_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm7(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile7.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases7(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload7_update')    # Change here 
+                
+            except mUploadedFile7.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm7()         # Change here 
+
+    return render(request, 'app1/mupload7_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload8_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm8(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile8.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases8(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload8_update')    # Change here 
+                
+            except mUploadedFile8.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm8()         # Change here 
+
+    return render(request, 'app1/mupload8_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload9_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm9(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile9.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases9(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload9_update')    # Change here 
+                
+            except mUploadedFile9.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm9()         # Change here 
+
+    return render(request, 'app1/mupload9_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload10_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm10(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile10.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases10(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload10_update')    # Change here 
+                
+            except mUploadedFile10.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm10()         # Change here 
+
+    return render(request, 'app1/mupload10_update.html', {         # Change here 
+        'form': form
+    })
+    
+def mupload11_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm11(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile11.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases11(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload11_update')    # Change here 
+                
+            except mUploadedFile11.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm11()         # Change here 
+
+    return render(request, 'app1/mupload11_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload12_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm12(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile12.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases12(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload12_update')    # Change here 
+                
+            except mUploadedFile12.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm12()         # Change here 
+
+    return render(request, 'app1/mupload12_update.html', {         # Change here 
+        'form': form
+    })
+    
+    
+def mupload13_update(request):   # Change here 
+    """
+    Single page update view with structure selection and file upload
+    """
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm13(request.POST, request.FILES)   # Change here 
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile13.objects.get(structure=structure)  # Change here 
+                
+                # Delete the old file from storage
+                uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases13(uploaded_file)       # Change here 
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload13_update')    # Change here 
+                
+            except mUploadedFile13.DoesNotExist:       # Change here 
+                messages.error(request, 'No uploaded file found for this structure.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm13()         # Change here 
+
+    return render(request, 'app1/mupload13_update.html', {         # Change here 
+        'form': form
+    })

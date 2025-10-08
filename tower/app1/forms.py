@@ -6,6 +6,18 @@ class StructureForm(forms.ModelForm):
         model = ListOfStructure
         fields = ['structure']
         
+class StructureGroupForm(forms.ModelForm):
+    structures = forms.ModelMultipleChoiceField(
+        queryset=ListOfStructure.objects.all(),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'multi-select-dropdown'
+        }),
+        required=True
+    )
+
+    class Meta:
+        model = StructureGroup
+        fields = ['name', 'structures']
     
 
 class MonopoleDeadendForm1(forms.ModelForm):
@@ -76,6 +88,17 @@ class TowerDeadendForm(forms.ModelForm):
         # Show only structures that don't already have a TowerDeadend
         used_structures = TowerDeadend.objects.values_list('structure', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+class TDeadendFormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TowerDeadend   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendFormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
 
 class TowerDeadendForm3(forms.ModelForm):
     class Meta:
@@ -90,6 +113,17 @@ class TowerDeadendForm3(forms.ModelForm):
         used_structures = TowerDeadend3.objects.values_list('structure', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         
+class TDeadend3FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TowerDeadend3   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend3FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
 class TowerDeadendForm4(forms.ModelForm):
     class Meta:
         model = TowerDeadend4
@@ -103,6 +137,17 @@ class TowerDeadendForm4(forms.ModelForm):
         used_structures = TowerDeadend4.objects.values_list('structure', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         
+class TDeadend4FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TowerDeadend4   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend4FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
 class TowerDeadendForm5(forms.ModelForm):
     class Meta:
         model = TowerDeadend5
@@ -115,6 +160,18 @@ class TowerDeadendForm5(forms.ModelForm):
         # Show only structures that don't already have a TowerDeadend
         used_structures = TowerDeadend5.objects.values_list('structure', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        
+
+class TDeadend5FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TowerDeadend5   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend5FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
         
 class tUploadedFileForm1(forms.ModelForm):
     class Meta:
@@ -498,7 +555,17 @@ class TDeadendForm6(forms.ModelForm):
         # Show only structures that don't already have a TowerDeadend
         used_structures = TDeadend6.objects.values_list('structure', flat=True)     # *************** Here ***********
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
-        
+
+class TDeadend6FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend6   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend6FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
     
 class TUDeadendForm6(forms.ModelForm):
     class Meta:
@@ -519,6 +586,62 @@ class TUDeadendForm6(forms.ModelForm):
         return uploaded_file
     
     
+class TDeadend7FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend7   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend7FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
+class TDeadend8FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend8   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend8FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
+class TDeadend9FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend9   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend9FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
+class TDeadend10FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend10   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend10FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+        
+        
+class TDeadend11FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend11   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend11FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+
 class TDeadendForm7(forms.ModelForm):
     class Meta:
         model = TDeadend7                # *************** Here ***********
@@ -696,7 +819,17 @@ class MDeadendForm(forms.ModelForm):
         # Show only structures that don't already have a MonopoleDeadend
         used_structures = MonopoleDeadend.objects.values_list('structure', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
-        
+     
+class MDeadend1FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MonopoleDeadend   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend1FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True   
         
 class UploadedFileForm(forms.ModelForm):
     class Meta:
@@ -1052,4 +1185,701 @@ class MUDeadendForm13(forms.ModelForm):
         ext = os.path.splitext(uploaded_file.name)[1].lower()
         if ext not in ['.xls', '.xlsx']:
             raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MDeadend5FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend5   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend5FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True   
+        
+        
+class MDeadend6FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend6   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend6FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend7FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend7   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend7FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend8FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend8   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend8FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend9FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend9   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend9FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend10FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend10   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend10FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend11FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend11   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend11FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend12FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend12   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend12FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class MDeadend13FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = MDeadend13   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(MDeadend13FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True  
+        
+        
+class TUDeadendUpdateForm1(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile1.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file 
+    
+    
+class TUDeadendUpdateForm2(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file 
+    
+    
+class TUDeadendUpdateForm3(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile3.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file 
+    
+class TUDeadendUpdateForm4(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile4.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file 
+    
+    
+class TUDeadendUpdateForm5(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile5.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file 
+    
+class TUDeadendUpdateForm6(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile6.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TUDeadendUpdateForm7(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile7.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TUDeadendUpdateForm8(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile8.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TUDeadendUpdateForm9(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile9.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+class TUDeadendUpdateForm10(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile10.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class TUDeadendUpdateForm11(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = tUploadedFile11.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm1(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = UploadedFile1.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm2(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = UploadedFile22.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm5(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile5.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm6(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile6.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm7(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile7.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+class MUDeadendUpdateForm8(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile8.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+class MUDeadendUpdateForm9(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile9.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm10(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile10.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+
+class MUDeadendUpdateForm11(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile11.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm12(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile12.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+    
+    
+class MUDeadendUpdateForm13(forms.Form):       # Change here
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
+    
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile13.objects.values_list('structure_id', flat=True)  # Change here
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
         return uploaded_file

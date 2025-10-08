@@ -438,6 +438,33 @@ input[type="checkbox"] {
     transform: scale(1.2);
 }
 
+.update-link {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.update-link p {
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.update-button {
+    background: #ff9800;
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+    display: inline-block;
+}
+
+.update-button:hover {
+    background: #f57c00;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     .content {
@@ -659,6 +686,13 @@ input[type="checkbox"] {
                 </div>
             </div>
         </form>
+
+        <div class="update-link">
+            <p>Need to update an existing file?</p>
+            <a href="{% url 'mupload7_update' %}" class="update-button">  <!-- Change here -->
+                Update Existing File
+            </a>
+        </div>
 
         <div class="attachment-section">
             <p>Select Structure to Extract Data</p>
