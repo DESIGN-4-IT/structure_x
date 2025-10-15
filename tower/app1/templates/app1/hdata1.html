@@ -531,25 +531,25 @@
     }
 
     #joint-markers-container, 
-    #set-markers-container, 
-    #phase-markers-container,
-    #load-displays-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        overflow: hidden;
-    }
-    
-    .joint-marker {
+        #set-markers-container, 
+        #phase-markers-container,
+        #load-displays-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+        }
+        
+        .joint-marker, .set-phase-marker {
         position: absolute;
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 12px;
         font-weight: 600;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%); /* Center the marker */
         border: 1px solid #ccc;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         cursor: move;
@@ -557,11 +557,17 @@
         pointer-events: auto;
         z-index: 5;
         transition: all 0.2s;
+        background-color: white; /* Add background for better visibility */
+        color: black !important;
+        text-shadow: none;
     }
-    
-    .joint-marker:hover {
+
+    /* Fix the hover effect to prevent movement */
+    .joint-marker:hover, .set-phase-marker:hover {
+        transform: translate(-50%, -50%) scale(1.05); /* Keep the translation */
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        z-index: 1000; /* Ensure it stays on top when scaled */
         background-color: white;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     }
     
 
@@ -850,6 +856,16 @@
     color: black !important;
 }
 
+.value-marker:hover {
+    /* Remove transform: scale(1.1) from here */
+    transform: translate(-50%, -50%); /* Keep only the positioning */
+}
+
+/* Ensure consistent styling for all markers */
+.value-marker {
+    transform: translate(-50%, -50%); /* Center all markers */
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth transitions */
+}
 
 #model-canvas {
     width: 100%;
@@ -1840,12 +1856,9 @@
     function addJointMarker(jointLabel, position = null) {
         if (jointMarkers[jointLabel]) return;
 
-        const jointLoadData = loadData.find(item => item['Attach. Joint Labels'] === jointLabel);
-        if (!jointLoadData) return;
-
-        const geometry = new THREE.SphereGeometry(0.05, 16, 16);
+        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Same size as set/phase markers
         const material = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
+            color: 0xff0000, // Red color for joints
             transparent: true,
             opacity: 0.7
         });
@@ -1855,37 +1868,40 @@
             sphere.position.copy(position);
         } else {
             // Improved default positioning
+            const markerCount = Object.keys(jointMarkers).length;
+            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+            const row = Math.floor(markerCount / gridSize);
+            const col = markerCount % gridSize;
+
             sphere.position.set(
-                (Math.random() - 0.5) * 3,
-                Math.random() * 3 + 1,
-                (Math.random() - 0.5) * 3
+                (col - gridSize / 2) * 0.8,
+                2 + row * 0.4,
+                (row - gridSize / 2) * 0.4
             );
         }
 
-        // Create marker div
+        // Create marker div - similar to set/phase markers
         const markerDiv = document.createElement('div');
         markerDiv.className = 'value-marker joint-marker';
         markerDiv.textContent = jointLabel;
         markerDiv.style.position = 'absolute';
         markerDiv.style.color = 'black';
         markerDiv.style.padding = '2px 5px';
-        markerDiv.style.cursor = 'move';
+        markerDiv.style.cursor = 'pointer';
+        markerDiv.style.fontWeight = 'bold';
         markerDiv.style.pointerEvents = 'auto';
         markerDiv.dataset.jointLabel = jointLabel;
         document.getElementById('joint-markers-container').appendChild(markerDiv);
 
-        // Enhanced click handler
+        // Click handler for selection - same as set/phase markers
         markerDiv.addEventListener('click', function(e) {
             e.stopPropagation();
             selectObjectForTransform(sphere, jointLabel, 'joint');
-            toggleLoadDisplay(jointLabel);
         });
 
         jointMarkers[jointLabel] = {
             mesh: sphere,
             div: markerDiv,
-            loadData: jointLoadData,
-            fontSize: 12,
             originalScale: 1
         };
 
@@ -2084,208 +2100,7 @@
         return combinationsByType;
     }
 
-    
-    // Toggle load display visibility
-    function toggleLoadDisplay(jointLabel) {
-        if (loadDisplays[jointLabel]) {
-            // Hide if already showing
-            removeLoadDisplay(jointLabel);
-            activeJoint = null;
-        } else {
-            // Show if hidden
-            addLoadDisplay(jointLabel, jointMarkers[jointLabel].mesh.position);
-            activeJoint = jointLabel;
-            
-            // Hide any other active displays
-            Object.keys(loadDisplays).forEach(label => {
-                if (label !== jointLabel) {
-                    removeLoadDisplay(label);
-                }
-            });
-        }
-    }
-    
-    
-    
-    
-    // Add load display for a joint
-    function addLoadDisplay(jointLabel, position) {
-        if (loadDisplays[jointLabel]) return; // Already exists
 
-        const jointInfo = jointMarkers[jointLabel];
-        if (!jointInfo) return;
-
-        const displayDiv = document.createElement('div');
-        displayDiv.className = 'load-display';
-        displayDiv.dataset.jointLabel = jointLabel;
-        displayDiv.style.position = 'absolute';
-        displayDiv.style.pointerEvents = 'auto';
-
-        displayDiv.innerHTML = `
-            <div class="load-display-header">
-                <span>${jointLabel}</span>
-                <span class="close-btn" title="Remove">×</span>
-            </div>
-            <div class="load-display-content">
-                <div>Vert: <span class="editable" data-field="vert">${jointInfo.loadData['Structure Loads Vert. (lbs)'] || '0'}</span> lbs</div>
-                <div>Trans: <span class="editable" data-field="trans">${jointInfo.loadData['Structure Loads Trans. (lbs)'] || '0'}</span> lbs</div>
-                <div>Long: <span class="editable" data-field="long">${jointInfo.loadData['Structure Loads Long. (lbs)'] || '0'}</span> lbs</div>
-            </div>
-            <div class="size-controls">
-                <div class="size-btn" data-action="increase">+</div>
-                <div class="size-btn" data-action="decrease">-</div>
-            </div>
-        `;
-
-        document.getElementById('load-displays-container').appendChild(displayDiv);
-
-        // Position the display
-        updateLoadDisplayPosition(displayDiv, position);
-
-        // Store reference
-        loadDisplays[jointLabel] = {
-            div: displayDiv,
-            position: position
-        };
-
-        // Add close button event
-        displayDiv.querySelector('.close-btn').addEventListener('click', function(e) {
-            e.stopPropagation();
-            removeJointMarker(jointLabel);
-            removeLoadDisplay(jointLabel);
-
-            // Uncheck the checkbox
-            const checkbox = document.querySelector(`input[value="${jointLabel}"]`);
-            if (checkbox) {
-                checkbox.checked = false;
-                selectedJoints.delete(jointLabel);
-                updateTable(Array.from(selectedJoints));
-            }
-        });
-
-        // Add size control events
-        displayDiv.querySelector('[data-action="increase"]').addEventListener('click', function(e) {
-            e.stopPropagation();
-            // This now scales the load display text, not the joint marker itself
-            displayDiv.style.fontSize = `${parseFloat(displayDiv.style.fontSize || 12) + 1}px`;
-        });
-
-        displayDiv.querySelector('[data-action="decrease"]').addEventListener('click', function(e) {
-            e.stopPropagation();
-            displayDiv.style.fontSize = `${Math.max(8, parseFloat(displayDiv.style.fontSize || 12) - 1)}px`;
-        });
-
-        // Add editable fields (same as before)
-        displayDiv.querySelectorAll('.editable').forEach(el => {
-            el.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const field = this.dataset.field;
-                const currentValue = this.textContent;
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'value-edit';
-                input.value = currentValue;
-
-                this.textContent = '';
-                this.appendChild(input);
-                input.focus();
-
-                input.addEventListener('blur', function() {
-                    const newValue = parseFloat(this.value) || 0;
-                    const parent = this.parentElement;
-                    parent.textContent = newValue;
-                    parent.classList.add('editable');
-
-                    // Update the data
-                    const jointLabel = parent.closest('.load-display').dataset.jointLabel;
-                    const jointInfo = jointMarkers[jointLabel];
-                    if (jointInfo) {
-                        if (field === 'vert') {
-                            jointInfo.loadData['Structure Loads Vert. (lbs)'] = newValue;
-                        } else if (field === 'trans') {
-                            jointInfo.loadData['Structure Loads Trans. (lbs)'] = newValue;
-                        } else if (field === 'long') {
-                            jointInfo.loadData['Structure Loads Long. (lbs)'] = newValue;
-                        }
-                    }
-
-                    // Update the table
-                    updateTable(Array.from(selectedJoints));
-                });
-
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        this.blur();
-                    }
-                });
-            });
-        });
-
-        // Make the display draggable (using the simplified 2D draggable)
-        makeDraggable(displayDiv, jointLabel);
-    }
-    
-    // Make load display draggable
-    function makeDraggable(element, jointLabel) { // Simplified signature
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-        element.onmousedown = dragMouseDown;
-
-        function dragMouseDown(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Get the mouse cursor position at startup
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
-
-        function elementDrag(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Calculate the new cursor position
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-
-            // Set the element's new position
-            element.style.top = (element.offsetTop - pos2) + "px";
-            element.style.left = (element.offsetLeft - pos1) + "px";
-
-            // NO 3D UPDATE HERE: The load display is offset from the joint's 3D position
-            // Its movement is purely 2D screen space.
-        }
-
-        function closeDragElement() {
-            document.onmouseup = null;
-            document.onmousemove = null;
-        }
-    }
-    
-    // Convert screen coordinates to 3D position
-    function getPositionFromScreen(x, y) {
-        const vector = new THREE.Vector3(
-            (x / renderer.domElement.clientWidth) * 2 - 1,
-            -(y / renderer.domElement.clientHeight) * 2 + 1,
-            0.5
-        );
-        
-        vector.unproject(camera);
-        return vector;
-    }
-    
-    // Remove load display
-    function removeLoadDisplay(jointLabel) {
-        if (!loadDisplays[jointLabel]) return;
-        
-        document.getElementById('load-displays-container').removeChild(loadDisplays[jointLabel].div);
-        delete loadDisplays[jointLabel];
-    }
     
     // Update HTML marker position based on 3D position
     function updateMarkerPosition(mesh, div) {
@@ -2302,6 +2117,8 @@
 
         div.style.left = `${x}px`;
         div.style.top = `${y}px`;
+        div.style.transform = 'translate(-50%, -50%)'; // This is crucial
+
 
         // NEW: Implement scaling based on distance from camera
         const distance = camera.position.distanceTo(mesh.position);
@@ -2331,8 +2148,6 @@
         div.style.top = `${y}px`;
     }
 
-    
-    // Remove a joint marker
     function removeJointMarker(jointLabel) {
         if (!jointMarkers[jointLabel]) return;
         
@@ -2340,25 +2155,18 @@
         document.getElementById('joint-markers-container').removeChild(jointMarkers[jointLabel].div);
         delete jointMarkers[jointLabel];
     }
+
     
     function animate() {
         requestAnimationFrame(animate);
         
-        // Only update controls if not dragging transform controls
         if (!transformControls.dragging) {
             controls.update();
         }
 
-        // Update marker positions
+        // Update marker positions - only markers, no load displays
         for (const jointLabel in jointMarkers) {
             updateMarkerPosition(jointMarkers[jointLabel].mesh, jointMarkers[jointLabel].div);
-
-            if (loadDisplays[jointLabel]) {
-                updateLoadDisplayPosition(
-                    loadDisplays[jointLabel].div,
-                    jointMarkers[jointLabel].mesh.position
-                );
-            }
         }
 
         for (const combinedId in setMarkers) {
@@ -2375,22 +2183,16 @@
     });
     
     function onWindowResize() {
-        updateRendererSize();
+    updateRendererSize();
 
-        // Update all marker positions and scale
-        for (const label in jointMarkers) {
-            updateMarkerPosition(jointMarkers[label].mesh, jointMarkers[label].div);
-        }
-        for (const combinedId in setMarkers) {
-            updateMarkerPosition(setMarkers[combinedId].mesh, setMarkers[combinedId].div);
-        }
+    // Update all marker positions
+    for (const label in jointMarkers) {
+        updateMarkerPosition(jointMarkers[label].mesh, jointMarkers[label].div);
+    }
+    for (const combinedId in setMarkers) {
+        updateMarkerPosition(setMarkers[combinedId].mesh, setMarkers[combinedId].div);
+    }
 
-        // Update load display positions
-        for (const label in loadDisplays) {
-            // Note: Load displays are 2D-draggable, but their *reference* point for initial placement
-            // and attachment remains the joint marker's 3D position.
-            updateLoadDisplayPosition(loadDisplays[label].div, jointMarkers[label].mesh.position);
-        }
     }
     
     // Clear table
@@ -2649,7 +2451,7 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
 
                     if (this.checked) {
                         selectedJoints.add(jointValue);
-                        // Only add marker if it doesn't exist. Position will be random if not dropped.
+                        // Add marker if it doesn't exist
                         if (!jointMarkers[jointValue]) {
                             addJointMarker(jointValue);
                         }
@@ -2661,6 +2463,7 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
                 });
             });
         }
+
 
     document.querySelectorAll('.drag-item').forEach(item => {
             item.addEventListener('dragstart', function(e) {

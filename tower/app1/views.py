@@ -566,15 +566,24 @@ def calculation_view(request):
             try:
                 calculation_data = json.loads(calculation_data_json)
                 
-                # Add resultant calculation to each record
-                for record in calculation_data:
+                # Add resultant calculation and unique ID to each record
+                for index, record in enumerate(calculation_data):
                     vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
                     trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
                     long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
                     
                     # Calculate SQRT(Vert² + Trans² + Long²) for each record
                     resultant = math.sqrt(vert**2 + trans**2 + long**2)
-                    record['Resultant (lbs)'] = round(resultant, 2)
+                    record['Resultant'] = round(resultant, 2)
+                    # Add unique ID for checkbox identification
+                    record['record_id'] = f"record_{index}"
+                    
+                    # Add clean keys for template access
+                    record['Structure_Loads_Vert'] = vert
+                    record['Structure_Loads_Trans'] = trans
+                    record['Structure_Loads_Long'] = long
+                    # Store Set No. in data attribute
+                    record['Set_No'] = record.get('Set No.', 'Unknown')
                 
                 # Group data by Set No. (for display purposes)
                 grouped_data = {}
@@ -593,7 +602,7 @@ def calculation_view(request):
                     vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
                     trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
                     long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
-                    resultant_values = [record['Resultant (lbs)'] for record in records]
+                    resultant_values = [record['Resultant'] for record in records]
                     
                     # Find the maximum resultant value
                     max_resultant = max(resultant_values)
@@ -604,7 +613,8 @@ def calculation_view(request):
                         'vert': vert_values[max_index],
                         'trans': trans_values[max_index],
                         'long': long_values[max_index],
-                        'resultant': max_resultant
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id']  # Add record ID
                     }
                     
                     # Store index for JavaScript approach
@@ -645,7 +655,6 @@ def calculation_view(request):
                     'calculation_data': calculation_data,
                     'max_resultant_indexes': max_resultant_indexes,  # Add this for JavaScript
                     'calculation_data_json': json.dumps(calculation_data)  # Add this line
-
                 }
                 
                 return render(request, 'app1/calculation.html', context)
@@ -656,7 +665,6 @@ def calculation_view(request):
             error = 'No calculation data provided'
     
     return render(request, 'app1/calculation.html', {'error': error or 'An error occurred during calculation'})
-
 
 # views.py
 import math
@@ -691,6 +699,17 @@ def load_condition_view(request):
                 'loads': loads
             }
     
+    # Add record_id and clean keys to calculation data for template access
+    for index, record in enumerate(calculation_data):
+        record['record_id'] = f"record_{index}"
+        # Add clean keys for template access
+        record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+        record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+        record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+        record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
+        # Store Set No. in data attribute
+        record['Set_No'] = record.get('Set No.', 'Unknown')
+    
     # Group calculation data by Set No. for debug display
     grouped_calculation_data = {}
     if calculation_data:
@@ -700,7 +719,7 @@ def load_condition_view(request):
                 grouped_calculation_data[set_no] = []
             grouped_calculation_data[set_no].append(record)
     
-    # Calculate factored loads for each load condition
+    # Calculate factored loads for each load condition (initially for all records)
     factored_loads_by_condition = {}
     
     if calculation_data:
@@ -754,7 +773,8 @@ def load_condition_view(request):
                     'vertical': condition.vertical_factor,
                     'transverse': condition.transverse_factor,
                     'longitudinal': condition.longitudinal_factor
-                }
+                },
+                'all_records': factored_records  # Store all records for JavaScript filtering
             }
     
     context = {
