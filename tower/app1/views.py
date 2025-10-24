@@ -944,6 +944,44 @@ def add_group(request):
         form = StructureGroupForm()
     return render(request, 'app1/add_group.html', {'form': form})
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def rename_structure_group(request, group_id):
+    """
+    Renames a StructureGroup and returns JSON response.
+    """
+    if request.method == 'POST':
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            new_name = data.get('new_name')
+            
+            if not new_name:
+                return JsonResponse({'status': 'error', 'message': 'Group name is required.'}, status=400)
+            
+            # Import your model
+            from .models import StructureGroup
+            
+            group = get_object_or_404(StructureGroup, id=group_id)
+            group.name = new_name
+            group.save()
+            
+            return JsonResponse({
+                'status': 'success', 
+                'message': 'Group renamed successfully.', 
+                'new_name': new_name
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
+
 def delete_structure(request, structure_id):
     structure = get_object_or_404(ListOfStructure, id=structure_id)
     structure.delete()
@@ -3894,6 +3932,60 @@ def hupload1(request):
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
+        # Handle custom group deletion (POST)
+        elif 'delete_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+        
+        # Handle custom group update (POST)
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            structure_id = request.POST.get('structure_id')  # Optional
+            
+            if not old_group_name or not new_group_name:
+                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
+            
+            try:
+                if structure_id:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    groups = LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                else:
+                    groups = LoadCaseGroup.objects.filter(
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                
+                if not groups.exists():
+                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
+                
+                for group in groups:
+                    group.name = new_group_name
+                    group.save()
+                
+                return JsonResponse({'success': True})
+                
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
             button_type = request.POST.get('go_button')
@@ -3917,7 +4009,7 @@ def hupload1(request):
 
     structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
 
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -3983,18 +4075,6 @@ def hupload1(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -4239,16 +4319,16 @@ def hupload2(request):
     if request.method == 'POST':
         # Handle file upload form
         if 'file' in request.FILES:
-            form = HUDeadendForm2(request.POST, request.FILES)  # Change here
+            form = HUDeadendForm2(request.POST, request.FILES)
             if form.is_valid():
                 try:
                     uploaded_file = form.save()
                     
                     # Extract load cases from the uploaded file
-                    extract_load_cases2(uploaded_file)  # You may want a separate extractor or reuse with param
+                    extract_load_cases2(uploaded_file)
                     
                     messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload2')  # Change here
+                    return redirect('hupload2')
                 except IntegrityError:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
                     
@@ -4281,6 +4361,60 @@ def hupload2(request):
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
+        # ADD: Handle custom group deletion (POST)
+        elif 'delete_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+        
+        # ADD: Handle custom group update (POST)
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            structure_id = request.POST.get('structure_id')  # Optional
+            
+            if not old_group_name or not new_group_name:
+                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
+            
+            try:
+                if structure_id:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    groups = LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                else:
+                    groups = LoadCaseGroup.objects.filter(
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                
+                if not groups.exists():
+                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
+                
+                for group in groups:
+                    group.name = new_group_name
+                    group.save()
+                
+                return JsonResponse({'success': True})
+                
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
             button_type = request.POST.get('go_button')
@@ -4300,9 +4434,9 @@ def hupload2(request):
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
     else:
-        form = HUDeadendForm2()  # Change here
+        form = HUDeadendForm2()
 
-    structures_with_files2 = ListOfStructure.objects.filter(huploaded_files2__isnull=False).distinct()  # change here
+    structures_with_files2 = ListOfStructure.objects.filter(huploaded_files2__isnull=False).distinct()
     
     # Handle AJAX requests for data
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -4312,7 +4446,7 @@ def hupload2(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')  # Change here
+            latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -4321,9 +4455,6 @@ def hupload2(request):
                 data = set_phase_data.to_dict('records')
                 columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
                 return JsonResponse({'data': data, 'columns': columns})
-            
-            
-            
 
             elif request.GET.get('get_joint_labels'):
                 # Process joint labels
@@ -4373,26 +4504,27 @@ def hupload2(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+            # REMOVE: Delete custom group via GET (we use POST now)
+            # elif request.GET.get('delete_custom_group'):
+            #     group_name = request.GET.get('group_name')
+            #     if group_name:
+            #         LoadCaseGroup.objects.filter(
+            #             structure=structure, 
+            #             name=group_name, 
+            #             is_custom=True
+            #         ).delete()
+            #         return JsonResponse({'success': True})
+            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/hupload2.html', {             # Change here 
+    return render(request, 'app1/hupload2.html', {
         'form': form,
         'structures_with_files2': structures_with_files2
     })
-
+    
+    
 def hupload2_update(request):   # Change here 
     """
     Single page update view with structure selection and file upload
@@ -4552,6 +4684,60 @@ def hupload3(request):
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
+        # Handle custom group deletion (POST) - ADD THIS
+        elif 'delete_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+        
+        # Handle custom group update (POST) - ADD THIS
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            structure_id = request.POST.get('structure_id')  # Optional
+            
+            if not old_group_name or not new_group_name:
+                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
+            
+            try:
+                if structure_id:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    groups = LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                else:
+                    groups = LoadCaseGroup.objects.filter(
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                
+                if not groups.exists():
+                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
+                
+                for group in groups:
+                    group.name = new_group_name
+                    group.save()
+                
+                return JsonResponse({'success': True})
+                
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
             button_type = request.POST.get('go_button')
@@ -4641,17 +4827,17 @@ def hupload3(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+            # Remove the GET-based delete functionality since we're using POST now
+            # elif request.GET.get('delete_custom_group'):
+            #     group_name = request.GET.get('group_name')
+            #     if group_name:
+            #         LoadCaseGroup.objects.filter(
+            #             structure=structure, 
+            #             name=group_name, 
+            #             is_custom=True
+            #         ).delete()
+            #         return JsonResponse({'success': True})
+            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -4660,7 +4846,8 @@ def hupload3(request):
         'form': form,
         'structures_with_files': structures_with_files
     })
-
+    
+    
 def hupload3_update(request):   # Change here 
     """
     Single page update view with structure selection and file upload
@@ -4830,6 +5017,60 @@ def hupload4(request):
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
+        # ADD: Handle custom group deletion (POST)
+        elif 'delete_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure, 
+                        name=group_name, 
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+        
+        # ADD: Handle custom group update (POST)
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            structure_id = request.POST.get('structure_id')  # Optional
+            
+            if not old_group_name or not new_group_name:
+                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
+            
+            try:
+                if structure_id:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    groups = LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                else:
+                    groups = LoadCaseGroup.objects.filter(
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                
+                if not groups.exists():
+                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
+                
+                for group in groups:
+                    group.name = new_group_name
+                    group.save()
+                
+                return JsonResponse({'success': True})
+                
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
         # Handle the Go button POST request
         elif 'go_button' in request.POST:
             button_type = request.POST.get('go_button')
@@ -4919,17 +5160,17 @@ def hupload4(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+            # REMOVE: Delete custom group via GET (we use POST now)
+            # elif request.GET.get('delete_custom_group'):
+            #     group_name = request.GET.get('group_name')
+            #     if group_name:
+            #         LoadCaseGroup.objects.filter(
+            #             structure=structure, 
+            #             name=group_name, 
+            #             is_custom=True
+            #         ).delete()
+            #         return JsonResponse({'success': True})
+            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -4938,7 +5179,8 @@ def hupload4(request):
         'form': form,
         'structures_with_files': structures_with_files
     })
-
+    
+    
 def hupload4_update(request):   # Change here 
     """
     Single page update view with structure selection and file upload

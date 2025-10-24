@@ -293,6 +293,89 @@
         margin-top: 10px;
     }
 
+    /* --- Group Edit Mode Styles --- */
+.group-edit-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.group-edit-input {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border: 2px solid var(--secondary);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.group-edit-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Smaller save & cancel buttons */
+.group-save-btn,
+.group-cancel-btn {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.group-save-btn {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+}
+
+.group-cancel-btn {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+}
+
+.group-save-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.group-cancel-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+/* Keep buttons inline but stack neatly on smaller screens */
+@media (max-width: 576px) {
+    .group-edit-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .group-edit-input {
+        width: 100%;
+    }
+
+    .group-save-btn,
+    .group-cancel-btn {
+        width: 100%;
+    }
+}
+
+/* Subtle animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
     .structure-tag {
         background-color: var(--info);
         color: white;
@@ -493,71 +576,81 @@
     
     <!-- Main Content Section -->
    <div class="content">
-        <div class="panel">
-            <div class="panel-header">
-                <i class="fas fa-list panel-icon"></i>
-                List All Structures
-            </div>
-            <div class="panel-body">
-                <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">
-                    <i class="fas fa-plus-circle"></i> Add Structure
-                </button>
-                <div class="structure-list">
-                    {% for structure in structures %}
-                        <div class="structure-item">
-                            <div>{{ structure.structure }}</div>
-                            <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </div>
-                    {% empty %}
-                        <div class="empty-state">No structures found. Add your first structure!</div>
-                    {% endfor %}
-                </div>
+    <div class="panel">
+        <div class="panel-header">
+            <i class="fas fa-list panel-icon"></i>
+            List All Structures
+        </div>
+        <div class="panel-body">
+            <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">
+                <i class="fas fa-plus-circle"></i> Add Structure
+            </button>
+            <div class="structure-list">
+                {% for structure in structures %}
+                    <div class="structure-item">
+                        <div>{{ structure.structure }}</div>
+                        <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                {% empty %}
+                    <div class="empty-state">No structures found. Add your first structure!</div>
+                {% endfor %}
             </div>
         </div>
-        
-        <div class="panel">
-            <div class="panel-header">
-                <i class="fas fa-layer-group panel-icon"></i>
-                Group Structures
-            </div>
-            <div class="panel-body">
-                <select id="structure-select">
-                    <option value="">Select Structure Type For Group</option>
-                    <option value="towers">Towers</option>
-                    <option value="hframes">H-Frames</option>
-                    <option value="monopoles">Monopoles</option>
-                </select>
-                
-                <div class="group-list-container" id="groupListContainer"> {# Added ID for JS access #}
-                    {% for group in groups %}
-                        <div class="group-item" id="group-{{ group.id }}"> {# Added ID for JS access #}
-                            <div class="group-header">
-                                <span class="group-name-text">{{ group.name }}</span>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-header">
+            <i class="fas fa-layer-group panel-icon"></i>
+            Group Structures
+        </div>
+        <div class="panel-body">
+            <select id="structure-select">
+                <option value="">Select Structure Type For Group</option>
+                <option value="towers">Towers</option>
+                <option value="hframes">H-Frames</option>
+                <option value="monopoles">Monopoles</option>
+            </select>
+            
+            <div class="group-list-container" id="groupListContainer">
+                {% for group in groups %}
+                    <div class="group-item" id="group-{{ group.id }}">
+                        <div class="group-header">
+                            <span class="group-name-text">{{ group.name }}</span>
+                            <div class="group-actions">
+                                <button type="button" class="group-edit-btn" title="Edit Group Name" data-group-id="{{ group.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
                                 <button type="button" class="group-delete-btn" title="Delete Group" data-group-id="{{ group.id }}">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                            <div class="group-structures-tags">
-                                {% for structure in group.structures.all %}
-                                    <span class="structure-tag">{{ structure.structure }}</span>
-                                {% empty %}
-                                    <span class="empty-state">No structures in this group.</span>
-                                {% endfor %}
-                            </div>
                         </div>
-                    {% empty %}
-                        <div class="empty-state" id="noGroupsState">No groups created yet.</div> {# Added ID for JS access #}
-                    {% endfor %}
-                </div>
-
-                <button class="btn" onclick="window.location.href='{% url 'add_group' %}'">
-                    <i class="fas fa-plus-circle"></i> Create Structure Group
-                </button>
+                        <div class="group-edit-form" style="display: none;">
+                            <input type="text" class="group-edit-input" value="{{ group.name }}" style="display: inline-block; width: auto; margin-right: 5px;">
+                            <button type="button" class="group-save-btn btn btn-sm btn-success" data-group-id="{{ group.id }}">Save</button>
+                            <button type="button" class="group-cancel-btn btn btn-sm btn-secondary" data-group-id="{{ group.id }}">Cancel</button>
+                        </div>
+                        <div class="group-structures-tags">
+                            {% for structure in group.structures.all %}
+                                <span class="structure-tag">{{ structure.structure }}</span>
+                            {% empty %}
+                                <span class="empty-state">No structures in this group.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty-state" id="noGroupsState">No groups created yet.</div>
+                {% endfor %}
             </div>
+
+            <button class="btn" onclick="window.location.href='{% url 'add_group' %}'">
+                <i class="fas fa-plus-circle"></i> Create Structure Group
+            </button>
         </div>
     </div>
+</div>
 
 
 
@@ -1415,30 +1508,30 @@
     </script>
     
      <script>
-        // Add some interactive functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const structureSelect = document.getElementById('structure-select');
-            
-            structureSelect.addEventListener('change', function() {
-                if (this.value) {
-                    this.style.borderColor = '#3498db';
-                    this.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.2)';
+    // Add some interactive functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const structureSelect = document.getElementById('structure-select');
+        
+        structureSelect.addEventListener('change', function() {
+            if (this.value) {
+                this.style.borderColor = '#3498db';
+                this.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.2)';
+            }
+        });
+        
+        // Add confirmation to delete buttons
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (!confirm('Are you sure you want to delete this structure?')) {
+                    e.preventDefault();
                 }
             });
-            
-            // Add confirmation to delete buttons
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    if (!confirm('Are you sure you want to delete this structure?')) {
-                        e.preventDefault();
-                    }
-                });
-            });
         });
-    </script>
- 
-    {% comment %} to delete selected groups  {% endcomment %}
+    });
+</script>
+
+{% comment %} to delete and rename selected groups  {% endcomment %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const groupListContainer = document.getElementById('groupListContainer');
@@ -1455,46 +1548,14 @@
                 const groupItem = document.getElementById(`group-${groupId}`);
                 const groupName = groupItem ? groupItem.querySelector('.group-name-text').textContent : `Group ID: ${groupId}`;
 
-
                 if (confirm(`Are you sure you want to delete "${groupName}"?`)) {
                     console.log(`Simulating deletion of group: ${groupName} (ID: ${groupId})`);
                     
-                    if (groupItem) {
-                        groupItem.remove();
-                        console.log(`Group with ID: ${groupId} removed from UI.`);
-
-                        // Check if there are any groups left in the container
-                        // Filter out non-element nodes (like text nodes) to accurately count group items
-                        const remainingGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
-
-                        if (remainingGroupItems.length === 0) {
-                            // If no groups left, ensure the empty state message is visible
-                            if (!noGroupsState) {
-                                // If empty state element doesn't exist, create it
-                                const newEmptyState = document.createElement('div');
-                                newEmptyState.className = 'empty-state';
-                                newEmptyState.id = 'noGroupsState'; // Assign ID for future reference
-                                newEmptyState.textContent = 'No groups created yet.';
-                                groupListContainer.appendChild(newEmptyState);
-                            } else {
-                                // If empty state element exists, just make it visible
-                                noGroupsState.style.display = 'block';
-                            }
-                        } else {
-                            // If groups still exist, ensure empty state is hidden
-                            if (noGroupsState) {
-                                noGroupsState.style.display = 'none';
-                            }
-                        }
-                    } else {
-                        console.warn(`Group item with ID group-${groupId} not found in DOM.`);
-                    }
-
-                    // --- REAL BACKEND DELETION (Conceptual) ---
+                    // --- REAL BACKEND DELETION ---
                     fetch(`/delete_structure_group/${groupId}/`, {
                         method: 'DELETE',
                         headers: {
-                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-CSRFToken': getCookie('csrftoken'),
                             'Content-Type': 'application/json',
                         },
                     })
@@ -1503,17 +1564,32 @@
                         if (data.status === 'success') {
                             if (groupItem) {
                                 groupItem.remove();
+                                console.log(`Group with ID: ${groupId} removed from UI.`);
+
+                                // Check if there are any groups left in the container
                                 const remainingGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
+
                                 if (remainingGroupItems.length === 0) {
-                                    if (noGroupsState) noGroupsState.style.display = 'block';
-                                    else {
+                                    // If no groups left, ensure the empty state message is visible
+                                    if (!noGroupsState) {
+                                        // If empty state element doesn't exist, create it
                                         const newEmptyState = document.createElement('div');
                                         newEmptyState.className = 'empty-state';
                                         newEmptyState.id = 'noGroupsState';
                                         newEmptyState.textContent = 'No groups created yet.';
                                         groupListContainer.appendChild(newEmptyState);
+                                    } else {
+                                        // If empty state element exists, just make it visible
+                                        noGroupsState.style.display = 'block';
+                                    }
+                                } else {
+                                    // If groups still exist, ensure empty state is hidden
+                                    if (noGroupsState) {
+                                        noGroupsState.style.display = 'none';
                                     }
                                 }
+                            } else {
+                                console.warn(`Group item with ID group-${groupId} not found in DOM.`);
                             }
                         } else {
                             alert('Failed to delete group: ' + data.message);
@@ -1527,8 +1603,139 @@
             }
         }
 
-        // Use event delegation on the groupListContainer
-        groupListContainer.addEventListener('click', handleDeleteGroup);
+        // Function to handle group edit
+        function handleEditGroup(event) {
+            const editButton = event.target.closest('.group-edit-btn');
+            
+            if (editButton) {
+                const groupId = editButton.dataset.groupId;
+                const groupItem = document.getElementById(`group-${groupId}`);
+                const groupHeader = groupItem.querySelector('.group-header');
+                const editForm = groupItem.querySelector('.group-edit-form');
+                const nameText = groupItem.querySelector('.group-name-text');
+                
+                // Show edit form, hide display
+                groupHeader.style.display = 'none';
+                editForm.style.display = 'block';
+                
+                // Focus on input
+                const input = editForm.querySelector('.group-edit-input');
+                input.focus();
+                input.select();
+            }
+        }
+
+        // Function to handle cancel edit
+        function handleCancelEdit(event) {
+            const cancelButton = event.target.closest('.group-cancel-btn');
+            
+            if (cancelButton) {
+                const groupId = cancelButton.dataset.groupId;
+                const groupItem = document.getElementById(`group-${groupId}`);
+                const groupHeader = groupItem.querySelector('.group-header');
+                const editForm = groupItem.querySelector('.group-edit-form');
+                
+                // Hide edit form, show display
+                editForm.style.display = 'none';
+                groupHeader.style.display = 'flex';
+            }
+        }
+
+        // Function to handle save edit
+        function handleSaveEdit(event) {
+            const saveButton = event.target.closest('.group-save-btn');
+            
+            if (saveButton) {
+                const groupId = saveButton.dataset.groupId;
+                const groupItem = document.getElementById(`group-${groupId}`);
+                const input = groupItem.querySelector('.group-edit-input');
+                const newName = input.value.trim();
+                
+                if (!newName) {
+                    alert('Group name cannot be empty');
+                    input.focus();
+                    return;
+                }
+                
+                // Send rename request
+                fetch(`/rename-structure-group/${groupId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        'new_name': newName
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update the UI
+                        const groupHeader = groupItem.querySelector('.group-header');
+                        const editForm = groupItem.querySelector('.group-edit-form');
+                        const nameText = groupItem.querySelector('.group-name-text');
+                        
+                        nameText.textContent = newName;
+                        
+                        // Hide edit form, show display
+                        editForm.style.display = 'none';
+                        groupHeader.style.display = 'flex';
+                        
+                    } else {
+                        alert('Error renaming group: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error renaming group: ' + error);
+                });
+            }
+        }
+
+        // Use event delegation on the groupListContainer for all group actions
+        groupListContainer.addEventListener('click', function(event) {
+            handleDeleteGroup(event);
+            handleEditGroup(event);
+            handleCancelEdit(event);
+            handleSaveEdit(event);
+        });
+
+        // Handle Enter key in edit input
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const activeInput = document.querySelector('.group-edit-input:focus');
+                if (activeInput) {
+                    const groupItem = activeInput.closest('.group-item');
+                    const saveBtn = groupItem.querySelector('.group-save-btn');
+                    saveBtn.click();
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                const activeInput = document.querySelector('.group-edit-input:focus');
+                if (activeInput) {
+                    const groupItem = activeInput.closest('.group-item');
+                    const cancelBtn = groupItem.querySelector('.group-cancel-btn');
+                    cancelBtn.click();
+                }
+            }
+        });
+
+        // CSRF token helper function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
         
         // Initial check for empty state on load
         const initialGroupItems = Array.from(groupListContainer.children).filter(child => child.classList.contains('group-item'));
@@ -1547,5 +1754,5 @@
         }
     });
 </script>
-{% endblock %}
 
+   {% endblock %}

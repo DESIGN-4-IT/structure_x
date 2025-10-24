@@ -132,6 +132,7 @@ urlpatterns = [
    path('chart/',views.chart,name='chart'),
    path('data/',views.data,name='data'),
    path('', views.list_structures, name='home'),
+   path('rename-structure-group/<int:group_id>/', views.rename_structure_group, name='rename_structure_group'),
    path('add_structures/', views.add_structure, name='add_structure'),
    path('add_group/', views.add_group, name='add_group'),
    path('str_delete/<int:structure_id>/', views.delete_structure, name='delete_structure'),

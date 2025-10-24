@@ -1025,126 +1025,269 @@ input[type="checkbox"] {
             });
         });
 
-        // Handle Custom Groups link click
-        customGroupsLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            clearAllSelections();
+// Handle Custom Groups link click
+customGroupsLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    clearAllSelections();
 
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
+    const structureId = structureSelect.value;
+    if (!structureId) {
+        alert('Please select a structure first');
+        return;
+    }
+
+    fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+            return;
+        }
+
+        let html = '<h4>Custom Groups - Select Load Cases</h4>';
+        if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+            html += '<form id="custom-groups-form">';
+            
+            for (const [groupName, cases] of Object.entries(data.custom_groups)) {
+                html += `<div class="load-case-group" id="group-${groupName.replace(/\s+/g, '-')}">
+                    <h5>
+                        <span class="group-name-display">${groupName}</span>
+                        <button class="btn btn-sm btn-primary edit-group" data-group="${groupName}" style="margin-left: 10px;">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
+                    </h5>
+                    <div class="group-edit-form" style="display: none; margin-bottom: 10px;">
+                        <input type="text" class="form-control edit-group-input" value="${groupName}" style="display: inline-block; width: auto;">
+                        <button class="btn btn-sm btn-success save-edit" data-group="${groupName}" style="margin-left: 5px;">Save</button>
+                        <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
+                    </div>
+                    <div class="group-select-all">
+                        <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
+                        <label for="select-all-custom-${groupName}">Select All</label>
+                    </div>
+                    <ul class="custom-group-load-cases-list">`;
+                
+                cases.forEach(caseName => {
+                    const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                    html += `<li>
+                        <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                        ${caseName}
+                    </li>`;
+                });
+                
+                html += '</ul></div>';
             }
+            
+            html += '</form>';
+        } else {
+            html += '<p>No custom groups found</p>';
+        }
+        loadCasesResults.innerHTML = html;
 
-            fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                let html = '<h4>Custom Groups - Select Load Cases</h4>';
-                if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
-                    html += '<form id="custom-groups-form">';
-                    
-                    for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                        html += `<div class="load-case-group">
-                            <h5>${groupName} 
-                                <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 10px;">Delete</button>
-                            </h5>
-                            <div class="group-select-all">
-                                <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
-                                <label for="select-all-custom-${groupName}">Select All</label>
-                            </div>
-                            <ul class="custom-group-load-cases-list">`;
-                        
-                        cases.forEach(caseName => {
-                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                            html += `<li>
-                                <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                                ${caseName}
-                            </li>`;
-                        });
-                        
-                        html += '</ul></div>';
+        // Add select all functionality for custom groups
+        document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const groupName = this.id.replace('select-all-custom-', '');
+                const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                caseCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                    if (this.checked) {
+                        selectedLoadCases.add(cb.value);
+                    } else {
+                        selectedLoadCases.delete(cb.value);
                     }
-                    
-                    html += '</form>';
-                } else {
-                    html += '<p>No custom groups found</p>';
-                }
-                loadCasesResults.innerHTML = html;
-
-                // Add select all functionality for custom groups
-                document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        const groupName = this.id.replace('select-all-custom-', '');
-                        const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
-                        caseCheckboxes.forEach(cb => {
-                            cb.checked = this.checked;
-                            if (this.checked) {
-                                selectedLoadCases.add(cb.value);
-                            } else {
-                                selectedLoadCases.delete(cb.value);
-                            }
-                        });
-                        updateSelectedLoadCases();
-                    });
                 });
-
-                // Add event listener for individual checkbox changes in custom groups
-                document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            selectedLoadCases.add(this.value);
-                        } else {
-                            selectedLoadCases.delete(this.value);
-                            // Uncheck select-all if any checkbox is unchecked
-                            const groupName = this.dataset.group;
-                            const selectAll = document.getElementById(`select-all-custom-${groupName}`);
-                            if (selectAll) {
-                                selectAll.checked = false;
-                            }
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-
-                // Add delete functionality
-                document.querySelectorAll('.delete-group').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const groupName = this.dataset.group;
-                        if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-                            fetch(`/hupload1/?delete_custom_group=true&structure_id=${structureId}&group_name=${encodeURIComponent(groupName)}`, {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    // Reload custom groups
-                                    customGroupsLink.click();
-                                } else {
-                                    alert('Error deleting group: ' + data.error);
-                                }
-                            })
-                            .catch(error => {
-                                alert('Error deleting group: ' + error);
-                            });
-                        }
-                    });
-                });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+                updateSelectedLoadCases();
             });
         });
+
+        // Add edit functionality - FIXED: Use current structureId
+        document.querySelectorAll('.edit-group').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                // Show edit form, hide display
+                displayElement.style.display = 'none';
+                this.style.display = 'none';
+                groupElement.querySelector('.delete-group').style.display = 'none';
+                editForm.style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.cancel-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                // Hide edit form, show display
+                editForm.style.display = 'none';
+                displayElement.style.display = 'inline';
+                groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                groupElement.querySelector('.delete-group').style.display = 'inline-block';
+            });
+        });
+
+        document.querySelectorAll('.save-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const oldGroupName = this.dataset.group;
+                const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
+                
+                if (!newGroupName) {
+                    alert('Group name cannot be empty');
+                    return;
+                }
+                
+                if (newGroupName === oldGroupName) {
+                    // Just cancel if name didn't change
+                    this.closest('.group-edit-form').querySelector('.cancel-edit').click();
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('update_custom_group', 'true');
+                formData.append('old_group_name', oldGroupName);
+                formData.append('new_group_name', newGroupName);
+                
+                // Make structure_id optional - only include if available
+                const currentStructureId = structureSelect.value;
+                if (currentStructureId) {
+                    formData.append('structure_id', currentStructureId);
+                }
+                
+                fetch('/hupload1/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the UI
+                        const groupElement = this.closest('.load-case-group');
+                        groupElement.querySelector('.group-name-display').textContent = newGroupName;
+                        groupElement.querySelector('.edit-group').dataset.group = newGroupName;
+                        groupElement.querySelector('.delete-group').dataset.group = newGroupName;
+                        groupElement.querySelector('.save-edit').dataset.group = newGroupName;
+                        groupElement.querySelector('.cancel-edit').dataset.group = newGroupName;
+                        
+                        // Also update all checkboxes in this group
+                        groupElement.querySelectorAll('.custom-group-case-checkbox').forEach(cb => {
+                            cb.dataset.group = newGroupName;
+                        });
+                        
+                        // Update the group ID
+                        groupElement.id = `group-${newGroupName.replace(/\s+/g, '-')}`;
+                        
+                        // Update select-all checkbox ID if it exists
+                        const selectAllCheckbox = groupElement.querySelector('.select-all-custom-group');
+                        if (selectAllCheckbox) {
+                            selectAllCheckbox.id = `select-all-custom-${newGroupName}`;
+                            const selectAllLabel = groupElement.querySelector('label[for="select-all-custom-' + oldGroupName + '"]');
+                            if (selectAllLabel) {
+                                selectAllLabel.setAttribute('for', `select-all-custom-${newGroupName}`);
+                            }
+                        }
+                        
+                        // Hide edit form
+                        groupElement.querySelector('.group-edit-form').style.display = 'none';
+                        groupElement.querySelector('.group-name-display').style.display = 'inline';
+                        groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                        groupElement.querySelector('.delete-group').style.display = 'inline-block';
+                        
+                    } else {
+                        alert('Error updating group: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating group: ' + error);
+                });
+            });
+        });
+
+        // Add event listener for individual checkbox changes in custom groups
+        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedLoadCases.add(this.value);
+                } else {
+                    selectedLoadCases.delete(this.value);
+                    // Uncheck select-all if any checkbox is unchecked
+                    const groupName = this.dataset.group;
+                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
+                    if (selectAll) {
+                        selectAll.checked = false;
+                    }
+                }
+                updateSelectedLoadCases();
+            });
+        });
+
+        // Add delete functionality - FIXED: Use current structureId
+        document.querySelectorAll('.delete-group').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+                    // Get the current structure ID directly from the select element
+                    const currentStructureId = structureSelect.value;
+                    if (!currentStructureId) {
+                        alert('Please select a structure first');
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('delete_custom_group', 'true');
+                    formData.append('structure_id', currentStructureId); // Use current value
+                    formData.append('group_name', groupName);
+                    
+                    fetch('/hupload1/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the group from UI without refreshing
+                            this.closest('.load-case-group').remove();
+                            // If no groups left, show message
+                            if (!document.querySelector('.load-case-group')) {
+                                loadCasesResults.innerHTML = '<p>No custom groups found</p>';
+                            }
+                        } else {
+                            alert('Error deleting group: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error deleting group: ' + error);
+                    });
+                }
+            });
+        });
+    })
+    .catch(error => {
+        loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+    });
+});
+
+
         // Handle Create Custom Group button
         createCustomGroupBtn.addEventListener('click', function() {
             const structureId = structureSelect.value;
