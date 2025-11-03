@@ -1,632 +1,2050 @@
-grid is usefull for position, direction, and scale.
 
-What I need:
-Clear hints on where to apply the changes. 
-don't return complete code in response 
-
-only check this code how we drag selected 3d model move anywhere in canvas container easily 
-
-
-*****************************************************************
-
-i wanted to modify hupload3 functionality like hupload1 add rename and after delete custom group don't 
-refresh page same like hupload1 
-
-
-now modify this view 
-"def hupload4(request):
-    if request.method == 'POST':
-        # Handle file upload form
-        if 'file' in request.FILES:
-            form = HUDeadendForm4(request.POST, request.FILES)
-            if form.is_valid():
-                try:
-                    uploaded_file = form.save()
-                    
-                    # Extract load cases from the uploaded file
-                    hextract_load_cases4(uploaded_file)
-                    
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload4')
-                except IntegrityError:
-                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+first read complete code and act as experience developer when i select set 9 and phase 1 and set 10 and phase 2 in CREATED COMBINATIONS section correctly load case data is fetch with correct load case grouping and by default select all load cases but when i try with other set phase like when i select set 10 and phase 1 and set 46 and phase 2 then it only extract set 10 and phase 1 record corretly why it act like this check complete code "def hdata1(request):
+    # Get selected values from session
+    selected_values = request.session.get('selected_values', {})
+    structure_id = selected_values.get('structure_id')
+    button_type = selected_values.get('button_type', '')
+    selected_load_cases = selected_values.get('load_cases', [])
+    
+    # If coming directly from buttons without specific filters
+    if not structure_id and 'go_button' in request.POST:
+        structure_id = request.POST.get('structure_id')
+        button_type = request.POST.get('go_button')
+        load_case_values = request.POST.get('load_case_values', '')
         
-        # Handle custom group creation
-        elif 'create_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
+        # Convert comma-separated string to list
+        if load_case_values:
+            selected_load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
+        else:
+            selected_load_cases = []
             
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    
-                    # Create custom group
-                    custom_group = LoadCaseGroup.objects.create(
-                        name=group_name,
-                        structure=structure,
-                        is_custom=True
-                    )
-                    
-                    # Add selected cases to the custom group
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=custom_group,
-                            structure=structure
-                        )
-                    
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
-            
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
+        if structure_id:
             selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
+                'structure_id': structure_id,
+                'button_type': button_type,
+                'load_cases': selected_load_cases
             }
             request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = HUDeadendForm4()
-
-    structures_with_files = ListOfStructure.objects.filter(huploaded_files4__isnull=False).distinct()
-
-    # Handle AJAX requests for data
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        structure_id = request.GET.get('structure_id')
-        if not structure_id:
-            return JsonResponse({'error': 'Structure ID is required'}, status=400)
-
+    
+    if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
+            
+            # Try to get the latest file from different models
+            latest_file = None
+            file_model = None
+            
+            # Check different file models in order of priority
+            if tUploadedFile6.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile6'
+            elif hUploadedFile1.objects.filter(structure=structure).exists():
+                latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'hUploadedFile1'
+            elif tUploadedFile1.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile1'
+            elif tUploadedFile2.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile2'
+            elif tUploadedFile3.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile3'
+            elif tUploadedFile4.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile4'
+            elif tUploadedFile5.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile5'
+            elif hUploadedFile2.objects.filter(structure=structure).exists():
+                latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'hUploadedFile2'
+            elif hUploadedFile3.objects.filter(structure=structure).exists():
+                latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'hUploadedFile3'
+            elif hUploadedFile4.objects.filter(structure=structure).exists():
+                latest_file = hUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'hUploadedFile4'
+                
+            elif tUploadedFile7.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile7'
+                
+            elif tUploadedFile8.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile8'
+                
+            elif tUploadedFile9.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile9'
+                
+            elif tUploadedFile10.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile10'
+                
+            elif tUploadedFile11.objects.filter(structure=structure).exists():
+                latest_file = tUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'tUploadedFile11'
+                
+            elif UploadedFile1.objects.filter(structure=structure).exists():
+                latest_file = UploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'UploadedFile1'
+                
+            elif UploadedFile22.objects.filter(structure=structure).exists():
+                latest_file = UploadedFile22.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'UploadedFile22'
+                
+            elif mUploadedFile5.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile5'
+                
+            elif mUploadedFile6.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile6'
+        
+            elif mUploadedFile7.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile7'
+                
+            elif mUploadedFile8.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile8'
+                
+            elif mUploadedFile9.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile9'
+                
+            elif mUploadedFile10.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile10'
+            
+            elif mUploadedFile11.objects.filter(structure=structure).exists():
+                latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
+                file_model = 'mUploadedFile11'
+                
+                
+    
+            
+            if not latest_file:
+                raise Exception("No uploaded file found for this structure")
+                
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            if request.GET.get('get_set_phase'):
-                # Process set/phase data
-                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
-                data = set_phase_data.to_dict('records')
-                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
-                return JsonResponse({'data': data, 'columns': columns})
+            # Filter by selected load cases if any are selected
+            if selected_load_cases and 'Load Case Description' in df.columns:
+                print(f"Filtering by load cases: {selected_load_cases}")
+                df = df[df['Load Case Description'].isin(selected_load_cases)]
+                print(f"Filtered dataframe shape: {df.shape}")
 
-            elif request.GET.get('get_joint_labels'):
-                # Process joint labels
-                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
-                return JsonResponse({'values': joint_labels})
-                
-            elif request.GET.get('get_load_cases'):
-                # Process load cases - extract unique load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    return JsonResponse({'values': load_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-                    
-            elif request.GET.get('get_grouped_load_cases'):
-                # Process grouped load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    
-                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
-                    grouped_cases = {}
-                    for case in load_cases:
-                        # Extract the prefix (first word before space)
-                        if ' ' in case:
-                            prefix = case.split(' ')[0]
+            # Prepare complete data for table display
+            load_data = []
+            for _, row in df.iterrows():
+                row_data = {}
+                for col in df.columns:
+                    if pd.notna(row[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            row_data[col] = float(row[col])
                         else:
-                            prefix = case
-                            
-                        if prefix not in grouped_cases:
-                            grouped_cases[prefix] = []
-                        grouped_cases[prefix].append(case)
-                    
-                    return JsonResponse({'groups': grouped_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-            
-            # New: Get custom groups for a structure
-            elif request.GET.get('get_custom_groups_for_selection'):
-                custom_groups = LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    is_custom=True
-                ).prefetch_related('load_cases')
-                
-                groups_data = {}
-                for group in custom_groups:
-                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
-                
-                return JsonResponse({'custom_groups': groups_data})
-                
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                load_data.append(row_data)
+
+            # Get unique values for display
+            joint_labels = [str(label) for label in df['Attach. Joint Labels'].unique()] if 'Attach. Joint Labels' in df.columns else []
+            set_numbers = [str(num) for num in df['Set No.'].dropna().unique()] if 'Set No.' in df.columns else []
+            phase_numbers = [str(num) for num in df['Phase No.'].dropna().unique()] if 'Phase No.' in df.columns else []
 
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            joint_labels = []
+            set_numbers = []
+            phase_numbers = []
+            load_data = []
+            print(f"Error processing Excel file: {str(e)}")
+    else:
+        joint_labels = []
+        set_numbers = []
+        phase_numbers = []
+        load_data = []
 
-    return render(request, 'app1/hupload4.html', {
-        'form': form,
-        'structures_with_files': structures_with_files
-    })
+    return render(request, 'app1/hdata1.html', {
+        'joint_labels': joint_labels,
+        'set_numbers': set_numbers,
+        'phase_numbers': phase_numbers,
+        'load_data': load_data,
+        'load_data_json': json.dumps(load_data),
+        'selected_values': selected_values,
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
+        'button_type': button_type
+    })" this is hdata1.html "<div class="container">
+    <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
+    
+    <div class="row">
+        <!-- Left side - Selection Options (reduced width) -->
+        <div class="col-md-4">
+            {% if button_type == 'joint_labels' %}
+            <!-- Show only joint labels section when joint labels button was clicked -->
+            <div class="form-group">
+                <label for="joint-labels">Attachment Joint Labels:</label>
+                <div class="checkbox-list" id="joint-labels">
+                    {% for label in joint_labels %}
+                        <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                            <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif button_type == 'set_phase' %}
+            <!-- Show only set/phase sections when set/phase button was clicked -->
+            <div class="form-group">
+                <label for="set-select">Set No.:</label>
+                <select id="set-select" class="form-control" multiple size="4">
+                    {% for num in set_numbers %}
+                        <option value="{{ num }}">{{ num }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
+            </div>
 
-"
-this is hupload2.html 
-"<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const structureSelect = document.getElementById('structure-select');
-        const loadCasesSection = document.getElementById('load-cases-section');
-        const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
-        const groupLoadCasesLink = document.getElementById('group-load-cases-link');
-        const customGroupsLink = document.getElementById('custom-groups-link');
-        const loadCasesResults = document.getElementById('load-cases-results');
+            <div class="form-group">
+                <label for="phase-select">Phase No.:</label>
+                <select id="phase-select" class="form-control" multiple size="4">
+                    {% for num in phase_numbers %}
+                        <option value="{{ num }}">{{ num }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
+            </div>
 
-        const selectedLoadCases = new Set();
-        const selectedLoadCasesSection = document.getElementById('selected-load-cases');
-        const selectedCasesList = document.getElementById('selected-cases-list');
-        const loadCaseValuesInput = document.getElementById('load-case-values-input');
-        const loadCaseValuesInputJoint = document.getElementById('load-case-values-input-joint');
-        const setPhaseForm = document.getElementById('set-phase-form');
-        const jointLabelsForm = document.getElementById('joint-labels-form');
-        const createCustomGroupSection = document.getElementById('create-custom-group');
-        const customGroupNameInput = document.getElementById('custom-group-name');
-        const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
+            <!-- Combination Builder Section -->
+            <div class="form-group">
+                <label>Create Set-Phase Combinations:</label>
+                <div class="combination-builder">
+                    <div class="selected-items mb-2">
+                        <strong>Selected Sets:</strong> 
+                        <span id="selected-sets-display">None</span>
+                    </div>
+                    <div class="selected-items mb-2">
+                        <strong>Selected Phases:</strong> 
+                        <span id="selected-phases-display">None</span>
+                    </div>
+                    <button id="create-all-combinations" class="btn btn-primary btn-sm">
+                        Create All Combinations
+                    </button>
+                    <button id="create-single-combination" class="btn btn-success btn-sm">
+                        Create Single Combination
+                    </button>
+                    <button id="clear-combinations" class="btn btn-secondary btn-sm">
+                        Clear All
+                    </button>
+                </div>
+            </div>
 
+            <!-- Active Combinations Display -->
+            <div class="form-group">
+                <label>Active Combinations:</label>
+                <div id="active-combinations" class="active-combinations-list">
+                    <!-- Combinations will be displayed here -->
+                </div>
+            </div>
+            {% endif %}
+        </div>
         
-        // Show load cases section when a structure is selected
-        structureSelect.addEventListener('change', function() {
-            if (this.value) {
-                loadCasesSection.style.display = 'block';
-            } else {
-                loadCasesSection.style.display = 'none';
-                loadCasesResults.innerHTML = '';
-                selectedLoadCasesSection.style.display = 'none';
-                createCustomGroupSection.style.display = 'none';
-            }
+        <!-- Right side - 3D Model Viewer (increased width) -->
+        <div class="col-md-8">
+            <div class="model-viewer-container">
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                    <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
+                        Hide Grid
+                    </button>
+                    <!-- Enhanced Control Panel -->
+                    <div style="position: absolute; top: 50px; right: 10px; z-index: 100; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 200px;">
+                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
+                        
+                        {% comment %} <!-- Drop Mode Selection -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
+                            <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
+                                <option value="precise">Precise Placement</option>
+                                <option value="free">Free Placement</option>
+                            </select>
+                        </div>
+
+                        <!-- Grid Snapping -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
+                            <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
+                                <option value="0.1">Fine (0.1)</option>
+                                <option value="0.25" selected>Medium (0.25)</option>
+                                <option value="0.5">Coarse (0.5)</option>
+                                <option value="0">Off</option>
+                            </select>
+                        </div> {% endcomment %}
+
+                        <!-- Movement Controls -->
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
+                            
+                            <!-- Up/Down Controls -->
+                            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
+                                <button class="movement-btn" data-axis="y" data-direction="1" style="margin: 0 5px;">↑</button>
+                            </div>
+                            
+                            <!-- Left/Right/Front/Back Controls -->
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <button class="movement-btn" data-axis="x" data-direction="-1" style="margin: 0 2px;">←</button>
+                                
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <button class="movement-btn" data-axis="z" data-direction="-1" style="margin: 2px 0; font-size: 10px;">Front</button>
+                                    <button class="movement-btn" data-axis="z" data-direction="1" style="margin: 2px 0; font-size: 10px;">Back</button>
+                                </div>
+                                
+                                <button class="movement-btn" data-axis="x" data-direction="1" style="margin: 0 2px;">→</button>
+                            </div>
+                            
+                            <!-- Down Control -->
+                            <div style="display: flex; justify-content: center; margin-top: 5px;">
+                                <button class="movement-btn" data-axis="y" data-direction="-1" style="margin: 0 5px;">↓</button>
+                            </div>
+                        </div>
+
+                        <!-- Step Size -->
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Step Size:</label>
+                            <input type="range" id="step-size" min="0.05" max="1" step="0.05" value="0.25" style="width: 100%;">
+                            <span id="step-size-value" style="font-size: 11px; text-align: center; display: block;">0.25 units</span>
+                        </div>
+
+                        <!-- Selected Object Info -->
+                        <div id="selected-info" style="font-size: 11px; color: #666; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                            No object selected
+                        </div>
+                    </div>
+                </div>
+                <canvas id="model-canvas"></canvas>
+                <div id="joint-markers-container"></div>
+                <div id="set-markers-container"></div>
+                <div id="phase-markers-container"></div>
+                <div id="load-displays-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Display Table - now placed below and full width -->
+    <div id="load-display">
+        <h5>Load Values</h5>
+        <div class="btn-container">
+            <button id="calculate-btn" class="calculation-btn" disabled>
+                <span>Calculate Selected Records</span>
+            </button>
+            <span id="selected-count" class="selected-count">0 selected</span>
+        </div>
+
+
+        <div class="table-container">
+            <table class="table table-bordered" id="load-table">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        {% for column in all_columns %}
+                            <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Include Three.js library -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
+
+
+<script>
+    // Load data passed from Django
+    const loadData = JSON.parse('{{ load_data_json|escapejs }}');
+    
+    // Three.js variables
+    let scene, camera, renderer, model, controls, raycaster, mouse;
+    const jointMarkers = {};
+    const selectedJoints = new Set();
+    const loadDisplays = {};
+    const setMarkers = {};
+    const phaseMarkers = {};
+    const selectedSets = new Set();
+    const selectedPhases = new Set();
+    let activeJoint = null;
+    const selectedRecords = new Set();
+    let allTableData = [];
+    const setPhaseCombinations = new Map(); // Track all active combinations
+    let combinationCounter = 0; // Counter to make each combination unique
+    const activeCombinations = new Map();
+    let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
+    
+    let gridHelpers = []; // Array to store all grid helpers
+    let isGridVisible = true;
+    let transformControls;
+    let selectedObject = null;
+
+    // NEW: Enhanced movement and drag variables
+    let isDragging = false;
+    let dragStartPosition = new THREE.Vector3();
+    let currentDragObject = null;
+    let dropMode = 'precise'; // 'precise' or 'free'
+    let gridSnapValue = 0.25;
+    let movementStep = 0.25;
+    let isDragOverCanvas = false;
+    
+    // Initialize the 3D model viewer
+        // Initialize the 3D model viewer
+    function initModelViewer() {
+        // Existing scene setup code remains the same until after renderer creation...
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+
+        const canvas = document.getElementById('model-canvas');
+        renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: true
         });
 
-        function updateSelectedLoadCases() {
-            if (selectedLoadCases.size > 0) {
-                selectedLoadCasesSection.style.display = 'block';
-                selectedCasesList.innerHTML = '';
+        updateRendererSize();
+        initTransformControls();
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        directionalLight2.position.set(-1, -1, -1);
+        scene.add(directionalLight2);
+
+        // Load GLB model
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            "{% static 'app1/images/powerTransmissionTower.glb' %}",
+            function (gltf) {
+                model = gltf.scene;
+                scene.add(model);
+
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
+
+                create3DGridCage(box);
+                model.rotation.y = Math.PI / 4;
+
+                // NEW: Initialize enhanced event listeners
+                initEnhancedEventListeners();
                 
-                selectedLoadCases.forEach(caseName => {
-                    const caseElement = document.createElement('div');
-                    caseElement.className = 'selected-case';
-                    caseElement.innerHTML = `
-                        ${caseName}
-                        <span class="remove-case" data-case="${caseName}">×</span>
-                    `;
-                    selectedCasesList.appendChild(caseElement);
-                });
-                
-                // Show create custom group option
-                createCustomGroupSection.style.display = 'block';
-                
-                // Add remove event listeners
-                document.querySelectorAll('.remove-case').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const caseName = this.dataset.case;
-                        selectedLoadCases.delete(caseName);
-                        updateSelectedLoadCases();
-                    });
-                });
-            } else {
-                selectedLoadCasesSection.style.display = 'none';
-                createCustomGroupSection.style.display = 'none';
+                animate();
+            },
+            undefined,
+            function (error) {
+                console.error('Error loading model:', error);
             }
+        );
+
+        window.addEventListener('resize', onWindowResize);
+        renderer.domElement.addEventListener('click', onCanvasClick);
         
-            // Update hidden inputs
-            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
-            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
+        // NEW: Add enhanced mouse event listeners for smooth dragging
+        initEnhancedDragListeners();
+    }
+
+    function initEnhancedEventListeners() {
+        // Drop mode selection
+        const dropModeSelect = document.getElementById('drop-mode');
+        if (dropModeSelect) {
+            dropModeSelect.addEventListener('change', function(e) {
+                dropMode = e.target.value;
+            });
         }
 
-        function clearAllSelections() {
-            selectedLoadCases.clear();
-            updateSelectedLoadCases();
-
-            // Uncheck all checkboxes in loadCasesResults
-            loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
+        // Grid snapping
+        const gridSnapSelect = document.getElementById('grid-snap');
+        if (gridSnapSelect) {
+            gridSnapSelect.addEventListener('change', function(e) {
+                gridSnapValue = parseFloat(e.target.value);
             });
         }
 
-        // Handle Imported Load Cases link click
-        importedLoadCasesLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            clearAllSelections();
+        // Step size control
+        const stepSizeInput = document.getElementById('step-size');
+        const stepSizeValue = document.getElementById('step-size-value');
+        if (stepSizeInput && stepSizeValue) {
+            stepSizeInput.addEventListener('input', function(e) {
+                movementStep = parseFloat(e.target.value);
+                stepSizeValue.textContent = movementStep.toFixed(2) + ' units';
+            });
+        }
 
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
-            }
-
-            fetch(`/hupload4/?get_load_cases=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+        // Movement buttons
+        document.querySelectorAll('.movement-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (selectedObject) {
+                    const axis = this.dataset.axis;
+                    const direction = parseInt(this.dataset.direction);
+                    moveSelectedObject(axis, direction * movementStep);
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                let html = '<h4>Imported Load Cases</h4>';
-                if (data.values && data.values.length > 0) {
-                    html += '<form id="load-cases-form">';
-                    html += '<ul class="load-cases-list">';
-                    data.values.forEach(caseName => {
-                        const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                        html += `<li>
-                            <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
-                            ${caseName}
-                        </li>`;
-                    });
-                    html += '</ul>';
-                    html += '</form>';
-                } else {
-                    html += '<p>No load cases found</p>';
-                }
-                loadCasesResults.innerHTML = html;
-
-                // Add event listener for checkbox changes
-                document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            selectedLoadCases.add(this.value);
-                        } else {
-                            selectedLoadCases.delete(this.value);
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
             });
         });
 
-        // Handle Group Load Cases link click
-        groupLoadCasesLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            clearAllSelections();
-
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
+        // Keyboard arrow key support
+        document.addEventListener('keydown', function(event) {
+            if (!selectedObject) return;
+            
+            const step = movementStep;
+            switch(event.key) {
+                case 'ArrowUp':
+                    event.preventDefault();
+                    moveSelectedObject('y', step);
+                    break;
+                case 'ArrowDown':
+                    event.preventDefault();
+                    moveSelectedObject('y', -step);
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    moveSelectedObject('x', -step);
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    moveSelectedObject('x', step);
+                    break;
+                case 'PageUp':
+                    event.preventDefault();
+                    moveSelectedObject('z', step);
+                    break;
+                case 'PageDown':
+                    event.preventDefault();
+                    moveSelectedObject('z', -step);
+                    break;
             }
+        });
+    }
 
-            fetch(`/hupload4/?get_grouped_load_cases=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                let html = '<h4>Group Load Cases</h4>';
-                if (data.groups && Object.keys(data.groups).length > 0) {
-                    html += '<form id="grouped-load-cases-form">';
-                    
-                    for (const [groupName, cases] of Object.entries(data.groups)) {
-                        html += `<div class="load-case-group">
-                            <h5>${groupName}</h5>
-                            <div class="group-select-all">
-                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
-                                <label for="select-all-${groupName}">Select All</label>
-                            </div>
-                            <ul class="group-load-cases-list">`;
-                        
-                        cases.forEach(caseName => {
-                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                            html += `<li>
-                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                                ${caseName}
-                            </li>`;
-                        });
-                        
-                        html += '</ul></div>';
-                    }
-                    
-                    html += '</form>';
-                } else {
-                    html += '<p>No grouped load cases found</p>';
-                }
-                loadCasesResults.innerHTML = html;
-
-                // Add select all functionality
-                document.querySelectorAll('.select-all-group').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        const groupName = this.id.replace('select-all-', '');
-                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
-                        caseCheckboxes.forEach(cb => {
-                            cb.checked = this.checked;
-                            if (this.checked) {
-                                selectedLoadCases.add(cb.value);
-                            } else {
-                                selectedLoadCases.delete(cb.value);
-                            }
-                        });
-                        updateSelectedLoadCases();
-                    });
-                });
-
-                // Add event listener for individual checkbox changes
-                document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            selectedLoadCases.add(this.value);
-                        } else {
-                            selectedLoadCases.delete(this.value);
-                            // Uncheck select-all if any checkbox is unchecked
-                            const groupName = this.dataset.group;
-                            const selectAll = document.getElementById(`select-all-${groupName}`);
-                            if (selectAll) {
-                                selectAll.checked = false;
-                            }
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-            });
+    // NEW: Enhanced drag listeners for smooth dragging
+    function initEnhancedDragListeners() {
+        const canvas = renderer.domElement;
+        
+        // Improved drag start for markers
+        document.addEventListener('mousedown', function(e) {
+            if (e.target.classList.contains('value-marker')) {
+                startMarkerDrag(e);
+            }
         });
 
-        // Handle Custom Groups link click
-        customGroupsLink.addEventListener('click', function(e) {
+        // Enhanced canvas drag events
+        canvas.addEventListener('dragover', function(e) {
             e.preventDefault();
-            clearAllSelections();
+            isDragOverCanvas = true;
+            canvas.classList.add('drag-over');
+            
+            if (currentDroppingItem && dropMode === 'free') {
+                // Update visual feedback for free placement
+                updateDragPosition(e);
+            }
+        });
 
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
+        canvas.addEventListener('dragleave', function() {
+            isDragOverCanvas = false;
+            canvas.classList.remove('drag-over');
+        });
+
+        canvas.addEventListener('drop', function(e) {
+            e.preventDefault();
+            isDragOverCanvas = false;
+            canvas.classList.remove('drag-over');
+            
+            handleCanvasDrop(e);
+        });
+    }
+
+    // NEW: Start dragging marker
+    function startMarkerDrag(e) {
+        const marker = e.target;
+        const jointLabel = marker.dataset.jointLabel;
+        const combinedId = marker.dataset.combinedId;
+        
+        if (jointLabel && jointMarkers[jointLabel]) {
+            currentDragObject = jointMarkers[jointLabel].mesh;
+        } else if (combinedId && setMarkers[combinedId]) {
+            currentDragObject = setMarkers[combinedId].mesh;
+        }
+        
+        if (currentDragObject) {
+            isDragging = true;
+            dragStartPosition.copy(currentDragObject.position);
+            marker.classList.add('dragging');
+            
+            document.addEventListener('mousemove', onMarkerDrag);
+            document.addEventListener('mouseup', stopMarkerDrag);
+        }
+    }
+
+    // NEW: Handle marker dragging
+    function onMarkerDrag(e) {
+        if (!isDragging || !currentDragObject) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Create a plane at the object's current height for smooth dragging
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentDragObject.position.y);
+        const intersectionPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
+        
+        if (intersectionPoint) {
+            // Apply grid snapping if enabled
+            if (gridSnapValue > 0) {
+                intersectionPoint.x = Math.round(intersectionPoint.x / gridSnapValue) * gridSnapValue;
+                intersectionPoint.y = Math.round(intersectionPoint.y / gridSnapValue) * gridSnapValue;
+                intersectionPoint.z = Math.round(intersectionPoint.z / gridSnapValue) * gridSnapValue;
+            }
+            
+            currentDragObject.position.copy(intersectionPoint);
+        }
+    }
+
+    // NEW: Stop marker dragging
+    function stopMarkerDrag() {
+        isDragging = false;
+        currentDragObject = null;
+        
+        document.querySelectorAll('.value-marker').forEach(marker => {
+            marker.classList.remove('dragging');
+        });
+        
+        document.removeEventListener('mousemove', onMarkerDrag);
+        document.removeEventListener('mouseup', stopMarkerDrag);
+    }
+
+    // NEW: Move selected object with arrow controls
+    function moveSelectedObject(axis, distance) {
+        if (!selectedObject) return;
+        
+        const newPosition = selectedObject.object.position.clone();
+        
+        switch(axis) {
+            case 'x':
+                newPosition.x += distance;
+                break;
+            case 'y':
+                newPosition.y += distance;
+                break;
+            case 'z':
+                newPosition.z += distance;
+                break;
+        }
+        
+        // Apply grid snapping
+        if (gridSnapValue > 0) {
+            newPosition.x = Math.round(newPosition.x / gridSnapValue) * gridSnapValue;
+            newPosition.y = Math.round(newPosition.y / gridSnapValue) * gridSnapValue;
+            newPosition.z = Math.round(newPosition.z / gridSnapValue) * gridSnapValue;
+        }
+        
+        selectedObject.object.position.copy(newPosition);
+        
+        // Update associated HTML elements
+        updateObjectUI(selectedObject);
+    }
+
+    // NEW: Update UI when object moves
+    function updateObjectUI(selectedObj) {
+        const object = selectedObj.object;
+        const value = selectedObj.value;
+        const type = selectedObj.type;
+        
+        if (type === 'joint' && jointMarkers[value]) {
+            updateMarkerPosition(object, jointMarkers[value].div);
+            if (loadDisplays[value]) {
+                updateLoadDisplayPosition(loadDisplays[value].div, object.position);
+            }
+        } else if (type === 'set-phase' && setMarkers[value]) {
+            updateMarkerPosition(object, setMarkers[value].div);
+        }
+        
+        updateSelectedInfo(selectedObj);
+    }
+
+    // NEW: Update selected object info panel
+    function updateSelectedInfo(selectedObj) {
+        const infoDiv = document.getElementById('selected-info');
+        if (!infoDiv) return;
+        
+        const pos = selectedObj.object.position;
+        infoDiv.innerHTML = `
+            <strong>Selected:</strong> ${selectedObj.value}<br>
+            <strong>Position:</strong><br>
+            X: ${pos.x.toFixed(2)}<br>
+            Y: ${pos.y.toFixed(2)}<br>
+            Z: ${pos.z.toFixed(2)}
+        `;
+    }
+
+    // NEW: Enhanced canvas drop handler
+    function handleCanvasDrop(e) {
+        let droppedData;
+        try {
+            droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
+        } catch (error) {
+            console.error('Error parsing dropped data:', error);
+            return;
+        }
+        
+        if (!droppedData) return;
+        
+        const itemType = droppedData.type;
+        const itemValue = droppedData.value;
+        
+        if (dropMode === 'precise') {
+            // Original precise placement logic
+            handlePrecisePlacement(e, itemType, itemValue);
+        } else {
+            // NEW: Free placement logic
+            handleFreePlacement(e, itemType, itemValue);
+        }
+        
+        currentDroppingItem = null;
+        renderer.domElement.style.cursor = 'grab';
+    }
+
+    // NEW: Handle free placement
+    function handleFreePlacement(e, itemType, itemValue) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Convert screen coordinates to 3D position
+        const position = screenToWorldPosition(mouseX, mouseY);
+        
+        if (position) {
+            placeItemAtPosition(itemType, itemValue, position);
+            checkAndSelectSource(itemType, itemValue);
+        }
+    }
+
+    // NEW: Convert screen coordinates to 3D world position
+    function screenToWorldPosition(screenX, screenY) {
+        const vector = new THREE.Vector3(
+            (screenX / renderer.domElement.clientWidth) * 2 - 1,
+            -(screenY / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        
+        // Create a plane at a reasonable height for new objects
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const direction = vector.sub(camera.position).normalize();
+        const raycaster = new THREE.Raycaster(camera.position, direction);
+        const intersectionPoint = new THREE.Vector3();
+        
+        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
+            return intersectionPoint;
+        }
+        
+        return null;
+    }
+
+    // NEW: Update drag position visual feedback
+    function updateDragPosition(e) {
+        // This can be enhanced to show a preview of where the item will be placed
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Could add a temporary preview object here
+    }
+
+    // NEW: Generic function to place items at specific positions
+    function placeItemAtPosition(itemType, itemValue, position) {
+        if (itemType === 'joint') {
+            addJointMarker(itemValue, position);
+        } else if (itemType === 'set' || itemType === 'phase') {
+            if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                showSelectionRequiredMessage();
                 return;
             }
+            const currentSet = Array.from(selectedSets).pop();
+            const currentPhase = Array.from(selectedPhases).pop();
+            addSetPhaseMarker(currentSet, currentPhase, position);
+        }
+    }
 
+    // NEW: Check and select source checkbox
+    function checkAndSelectSource(itemType, itemValue) {
+        const checkbox = document.querySelector(`input[name="${getCheckboxName(itemType)}"][value="${itemValue}"]`);
+        if (checkbox && !checkbox.checked) {
+            checkbox.checked = true;
+            const changeEvent = new Event('change');
+            checkbox.dispatchEvent(changeEvent);
+        }
+    }
 
-            fetch(`/hupload4/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+    // NEW: Helper function to get checkbox name
+    function getCheckboxName(itemType) {
+        switch(itemType) {
+            case 'joint': return 'joint-labels';
+            case 'set': return 'set-numbers';
+            case 'phase': return 'phase-numbers';
+            default: return '';
+        }
+    }
+
+    function initTransformControls() {
+        // Create transform controls
+        transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        transformControls.setSize(0.8);
+        transformControls.addEventListener('dragging-changed', function(event) {
+            controls.enabled = !event.value;
+        });
+        
+        // Hide initially
+        transformControls.visible = false;
+        scene.add(transformControls);
+    }
+
+    function toggleGrid() {
+        isGridVisible = !isGridVisible;
+        
+        gridHelpers.forEach(grid => {
+            grid.visible = isGridVisible;
+        });
+        
+        // Update button text
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+        if (gridToggleBtn) {
+            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
+            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
+        }
+    }
+
+    // Function to clear all grids
+    function clearAllGrids() {
+        gridHelpers.forEach(grid => {
+            scene.remove(grid);
+        });
+        gridHelpers = [];
+    }
+
+    // Function to create 3D grid cage
+    function create3DGridCage(boundingBox) {
+        const size = boundingBox.getSize(new THREE.Vector3());
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        
+        // Make grid slightly larger than model
+        const gridSize = Math.max(size.x, size.y, size.z) * 1.2;
+        const gridDivisions = 20;
+        
+        // Clear any existing grids
+        clearAllGrids();
+        
+        // Create grids on different planes
+        
+        // XY Plane (front/back)
+        const gridXY1 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY1.position.set(center.x, center.y, boundingBox.min.z - 1);
+        gridXY1.rotation.x = Math.PI / 2;
+        scene.add(gridXY1);
+        gridHelpers.push(gridXY1);
+        
+        const gridXY2 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY2.position.set(center.x, center.y, boundingBox.max.z + 1);
+        gridXY2.rotation.x = Math.PI / 2;
+        scene.add(gridXY2);
+        gridHelpers.push(gridXY2);
+        
+        // XZ Plane (ground/top)
+        const gridXZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ1.position.set(center.x, boundingBox.min.y - 1, center.z);
+        scene.add(gridXZ1);
+        gridHelpers.push(gridXZ1);
+        
+        const gridXZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ2.position.set(center.x, boundingBox.max.y + 1, center.z);
+        scene.add(gridXZ2);
+        gridHelpers.push(gridXZ2);
+        
+        // YZ Plane (left/right)
+        const gridYZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ1.position.set(boundingBox.min.x - 1, center.y, center.z);
+        gridYZ1.rotation.z = Math.PI / 2;
+        scene.add(gridYZ1);
+        gridHelpers.push(gridYZ1);
+        
+        const gridYZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ2.position.set(boundingBox.max.x + 1, center.y, center.z);
+        gridYZ2.rotation.z = Math.PI / 2;
+        scene.add(gridYZ2);
+        gridHelpers.push(gridYZ2);
+        
+        isGridVisible = true;
+    }
+    
+
+        // NEW: Handle clicks on the 3D canvas for assigning labels
+    function onCanvasClick(event) {
+        event.preventDefault();
+
+        // If we're using transform controls, don't process other clicks
+        if (transformControls.dragging) return;
+
+        const canvas = renderer.domElement;
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // If a label is being dropped from sidebar, place it
+        if (currentDroppingItem) {
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                const intersection = intersects[0];
+                const point = intersection.point;
+
+                const itemType = currentDroppingItem.type;
+                const itemValue = currentDroppingItem.value;
+
+                if (itemType === 'joint') {
+                    addJointMarker(itemValue, point);
+                } else if (itemType === 'set' || itemType === 'phase') {
+                    if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                        showSelectionRequiredMessage();
+                        return;
+                    }
+                    const currentSet = Array.from(selectedSets).pop();
+                    const currentPhase = Array.from(selectedPhases).pop();
+                    addSetPhaseMarker(currentSet, currentPhase, point);
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+
+                // Check the source checkbox after dropping
+                const checkbox = document.querySelector(`input[name="${itemType === 'joint' ? 'joint-labels' : (itemType === 'set' ? 'set-numbers' : 'phase-numbers')}"][value="${itemValue}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    const changeEvent = new Event('change');
+                    checkbox.dispatchEvent(changeEvent);
+                }
+
+                currentDroppingItem = null;
+                renderer.domElement.style.cursor = 'grab';
+            }
+            return;
+        }
+
+        // Handle selection of markers for transform controls
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        
+        // First, check if we clicked on transform controls
+        const transformControlIntersects = raycaster.intersectObject(transformControls, true);
+        if (transformControlIntersects.length > 0) {
+            return; // Let transform controls handle the click
+        }
+
+        // Then check if we clicked on a marker
+        let foundMarker = false;
+        
+        // Check joint markers
+        Object.keys(jointMarkers).forEach(label => {
+            if (jointMarkers[label].mesh === intersects[0]?.object) {
+                selectObjectForTransform(jointMarkers[label].mesh, label, 'joint');
+                foundMarker = true;
+                return;
+            }
+        });
+        
+        // Check set-phase markers
+        if (!foundMarker) {
+            Object.keys(setMarkers).forEach(id => {
+                if (setMarkers[id].mesh === intersects[0]?.object) {
+                    selectObjectForTransform(setMarkers[id].mesh, id, 'set-phase');
+                    foundMarker = true;
                     return;
                 }
+            });
+        }
 
-                let html = '<h4>Custom Groups - Select Load Cases</h4>';
-                if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
-                    html += '<form id="custom-groups-form">';
-                    
-                    for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                        html += `<div class="load-case-group">
-                            <h5>${groupName} 
-                                <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 10px;">Delete</button>
-                            </h5>
-                            <div class="group-select-all">
-                                <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
-                                <label for="select-all-custom-${groupName}">Select All</label>
-                            </div>
-                            <ul class="custom-group-load-cases-list">`;
-                        
-                        cases.forEach(caseName => {
-                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                            html += `<li>
-                                <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                                ${caseName}
-                            </li>`;
-                        });
-                        
-                        html += '</ul></div>';
+        // If clicked on empty space, deselect
+        if (!foundMarker && intersects.length > 0) {
+            deselectObject();
+        }
+    }
+
+    function deselectObject() {
+        if (selectedObject) {
+            transformControls.detach();
+            transformControls.visible = false;
+            hideSelectionHighlight(selectedObject.object);
+            selectedObject = null;
+        }
+    }
+
+    // NEW: Show selection highlight
+    function showSelectionHighlight(object) {
+        // You can add visual feedback here, like changing color or adding outline
+        if (object.material) {
+            object.userData.originalColor = object.material.color.clone();
+            object.material.color.set(0xffff00); // Yellow highlight
+        }
+    }
+
+    // NEW: Hide selection highlight
+    function hideSelectionHighlight(object) {
+            if (object.material && object.userData.originalColor) {
+                object.material.color.copy(object.userData.originalColor);
+            }
+        }
+
+        // NEW: Select object for transform controls
+        function selectObjectForTransform(object, value, type) {
+        deselectObject();
+        
+        selectedObject = { object, value, type };
+        transformControls.attach(object);
+        transformControls.visible = true;
+        
+        transformControls.addEventListener('change', function() {
+            updateObjectUI(selectedObject);
+        });
+        
+        showSelectionHighlight(object);
+        updateSelectedInfo(selectedObject);
+    }
+    
+   
+
+    // Setup part selection for the tower model
+    function updateRendererSize() {
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        if (canvasContainer && renderer) {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            console.log('Canvas container size:', width, height); // Add this line
+
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+    }
+
+        // Add a marker for a joint on the 3D model
+    function addJointMarker(jointLabel, position = null) {
+        if (jointMarkers[jointLabel]) return;
+
+        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Same size as set/phase markers
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, // Red color for joints
+            transparent: true,
+            opacity: 0.7
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        if (position) {
+            sphere.position.copy(position);
+        } else {
+            // Improved default positioning
+            const markerCount = Object.keys(jointMarkers).length;
+            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+            const row = Math.floor(markerCount / gridSize);
+            const col = markerCount % gridSize;
+
+            sphere.position.set(
+                (col - gridSize / 2) * 0.8,
+                2 + row * 0.4,
+                (row - gridSize / 2) * 0.4
+            );
+        }
+
+        // Create marker div - similar to set/phase markers
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'value-marker joint-marker';
+        markerDiv.textContent = jointLabel;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.color = 'black';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.cursor = 'pointer';
+        markerDiv.style.fontWeight = 'bold';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.jointLabel = jointLabel;
+        document.getElementById('joint-markers-container').appendChild(markerDiv);
+
+        // Click handler for selection - same as set/phase markers
+        markerDiv.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectObjectForTransform(sphere, jointLabel, 'joint');
+        });
+
+        jointMarkers[jointLabel] = {
+            mesh: sphere,
+            div: markerDiv,
+            originalScale: 1
+        };
+
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+    }
+
+    // MODIFIED: addSetPhaseMarker - add selection capability
+    function addSetPhaseMarker(setNumber, phaseNumber, position = null) {
+    const combination = Array.from(activeCombinations.values()).find(comb => 
+        comb.set === setNumber && comb.phase === phaseNumber
+    );
+    
+    if (!combination) return null;
+
+    const uniqueId = `${combination.id}_${Date.now()}`;
+    
+    // Your existing marker creation code here (keep the same)
+    const geometry = new THREE.SphereGeometry(0.06, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ 
+        color: 0x0000ff,
+        transparent: true,
+        opacity: 0.7
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    if (position) {
+        sphere.position.copy(position);
+    } else {
+        const markerCount = Object.keys(setMarkers).length;
+        const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+        const row = Math.floor(markerCount / gridSize);
+        const col = markerCount % gridSize;
+
+        sphere.position.set(
+            (col - gridSize / 2) * 0.8,
+            2 + row * 0.4,
+            (row - gridSize / 2) * 0.4
+        );
+    }
+
+    // Create HTML marker (your existing code)
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'value-marker set-phase-marker';
+    markerDiv.textContent = `${setNumber}:${phaseNumber}`;
+    markerDiv.style.position = 'absolute';
+    markerDiv.style.color = 'black';
+    markerDiv.style.padding = '2px 5px';
+    markerDiv.style.cursor = 'pointer';
+    markerDiv.style.fontWeight = 'bold';
+    markerDiv.style.pointerEvents = 'auto';
+    markerDiv.dataset.combinedId = uniqueId;
+    markerDiv.dataset.baseCombination = `${setNumber}:${phaseNumber}`;
+    document.getElementById('set-markers-container').appendChild(markerDiv);
+
+    markerDiv.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectObjectForTransform(sphere, uniqueId, 'set-phase');
+    });
+
+    // Store the marker
+    setMarkers[uniqueId] = {
+        mesh: sphere,
+        div: markerDiv,
+        setNumber: setNumber,
+        phaseNumber: phaseNumber,
+        baseCombination: `${setNumber}:${phaseNumber}`,
+        uniqueId: uniqueId,
+        combinationId: combination.id,
+        originalScale: 1
+    };
+
+    scene.add(sphere);
+    updateMarkerPosition(sphere, markerDiv);
+    
+    return uniqueId;
+}
+
+    // Add CSS for better cursor feedback
+    const style = document.createElement('style');
+    style.textContent = `
+        .value-marker:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        
+        #model-canvas.grabbing {
+            cursor: grabbing !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Function to show combination created message
+    function showCombinationCreatedMessage(combination) {
+        let messageDiv = document.getElementById('combination-created-message');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.id = 'combination-created-message';
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.background = '#e8f5e8';
+            messageDiv.style.color = '#2e7d32';
+            messageDiv.style.padding = '12px 18px';
+            messageDiv.style.border = '2px solid #4caf50';
+            messageDiv.style.borderRadius = '6px';
+            messageDiv.style.zIndex = '1000';
+            messageDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            messageDiv.style.fontWeight = 'bold';
+            document.body.appendChild(messageDiv);
+        }
+        
+        messageDiv.innerHTML = `✅ Created combination: ${combination}`;
+        messageDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 2000);
+    }
+
+    // Function to remove a set:phase marker
+    function removeSetPhaseMarker(uniqueId) {
+        if (!setMarkers[uniqueId]) return;
+        
+        scene.remove(setMarkers[uniqueId].mesh);
+        if (setMarkers[uniqueId].div && setMarkers[uniqueId].div.parentNode) {
+            document.getElementById('set-markers-container').removeChild(setMarkers[uniqueId].div);
+        }
+        delete setMarkers[uniqueId];
+        updateTable(); // Refresh the table after removal
+    }
+
+    // Function to create new set:phase combination
+    function createSetPhaseCombination() {
+        if (selectedSets.size === 0 || selectedPhases.size === 0) {
+            showSelectionRequiredMessage();
+            return;
+        }
+        
+        // Get the currently selected set and phase
+        const currentSet = Array.from(selectedSets).pop();
+        const currentPhase = Array.from(selectedPhases).pop();
+        
+        if (currentSet && currentPhase) {
+            // Always create new combination, even if same set:phase exists
+            addSetPhaseMarker(currentSet, currentPhase);
+            
+            // Don't clear phase selection - allow creating multiple of same combination
+            updateTable();
+        }
+    }
+
+    // Function to show selection required message
+    function showSelectionRequiredMessage() {
+        let messageDiv = document.getElementById('selection-required-message');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.id = 'selection-required-message';
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.background = '#fff3e0';
+            messageDiv.style.color = '#ef6c00';
+            messageDiv.style.padding = '12px 18px';
+            messageDiv.style.border = '2px solid #ff9800';
+            messageDiv.style.borderRadius = '6px';
+            messageDiv.style.zIndex = '1000';
+            messageDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            messageDiv.style.fontWeight = 'bold';
+            document.body.appendChild(messageDiv);
+        }
+        
+        messageDiv.innerHTML = "⚠️ Please select both a Set and a Phase first";
+        messageDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // Clear all set:phase combinations
+    function clearAllSetPhaseCombinations() {
+        Object.keys(setMarkers).forEach(uniqueId => {
+            removeSetPhaseMarker(uniqueId);
+        });
+        combinationCounter = 0; // Reset counter
+    }
+
+    // Get combinations by base type (for table display)
+    function getCombinationsByBaseType() {
+        const combinationsByType = {};
+        
+        Object.values(setMarkers).forEach(marker => {
+            const baseCombination = marker.baseCombination;
+            if (!combinationsByType[baseCombination]) {
+                combinationsByType[baseCombination] = [];
+            }
+            combinationsByType[baseCombination].push(marker);
+        });
+        
+        return combinationsByType;
+    }
+
+
+    
+    // Update HTML marker position based on 3D position
+    function updateMarkerPosition(mesh, div) {
+        // Get the marker reference (either joint or set-phase)
+        const isJoint = div.classList.contains('joint-marker');
+        const markerRef = isJoint ? jointMarkers[div.dataset.jointLabel] : setMarkers[div.dataset.combinedId];
+        if (!markerRef) return;
+
+        const vector = mesh.position.clone();
+        vector.project(camera);
+
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.style.transform = 'translate(-50%, -50%)'; // This is crucial
+
+
+        // NEW: Implement scaling based on distance from camera
+        const distance = camera.position.distanceTo(mesh.position);
+        // This factor needs tuning based on your scene scale and desired visual
+        // A smaller factor means labels scale less dramatically with distance
+        const scaleFactor = 100 / distance; // Inverse distance for scaling
+        const baseFontSize = markerRef.fontSize || 12; // Use stored fontSize or default
+        div.style.fontSize = `${baseFontSize * scaleFactor}px`;
+
+        // Optional: adjust opacity based on distance or if it's behind the camera
+        // if (vector.z > 1) { // Behind the camera
+        //     div.style.display = 'none';
+        // } else {
+        //     div.style.display = 'block';
+        // }
+    }
+
+    // Update load display position based on 3D position
+    function updateLoadDisplayPosition(div, position) {
+        const vector = position.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * renderer.domElement.clientHeight;
+        
+        div.style.left = `${x + 20}px`; // Offset slightly from the marker
+        div.style.top = `${y}px`;
+    }
+
+    function removeJointMarker(jointLabel) {
+        if (!jointMarkers[jointLabel]) return;
+        
+        scene.remove(jointMarkers[jointLabel].mesh);
+        document.getElementById('joint-markers-container').removeChild(jointMarkers[jointLabel].div);
+        delete jointMarkers[jointLabel];
+    }
+
+    
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        if (!transformControls.dragging) {
+            controls.update();
+        }
+
+        // Update marker positions - only markers, no load displays
+        for (const jointLabel in jointMarkers) {
+            updateMarkerPosition(jointMarkers[jointLabel].mesh, jointMarkers[jointLabel].div);
+        }
+
+        for (const combinedId in setMarkers) {
+            updateMarkerPosition(setMarkers[combinedId].mesh, setMarkers[combinedId].div);
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            deselectObject();
+        }
+    });
+    
+    function onWindowResize() {
+    updateRendererSize();
+
+    // Update all marker positions
+    for (const label in jointMarkers) {
+        updateMarkerPosition(jointMarkers[label].mesh, jointMarkers[label].div);
+    }
+    for (const combinedId in setMarkers) {
+        updateMarkerPosition(setMarkers[combinedId].mesh, setMarkers[combinedId].div);
+    }
+
+    }
+    
+    // Clear table
+    function clearTable() {
+        document.getElementById('load-table').getElementsByTagName('tbody')[0].innerHTML = '';
+    }
+
+
+    function handleRecordSelection(e) {
+    const index = parseInt(e.target.dataset.index);
+    const record = allTableData[index];
+    
+    if (e.target.checked) {
+        selectedRecords.add(record);
+    } else {
+        selectedRecords.delete(record);
+    }
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCount = document.getElementById('selected-count');
+    const calculateBtn = document.getElementById('calculate-btn');
+    
+    selectedCount.textContent = `${selectedRecords.size} selected`;
+    calculateBtn.disabled = selectedRecords.size === 0;
+}
+
+// Add event listener for calculate button
+// Update the calculate button event listener
+document.getElementById('calculate-btn').addEventListener('click', function() {
+    if (selectedRecords.size > 0) {
+        // Prepare data for calculation - convert Set to Array
+        const calculationData = Array.from(selectedRecords);
+        
+        // Create a form to submit the data
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '/calculation/';
+        form.target = '_blank';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'calculation_data';
+        input.value = JSON.stringify(calculationData);
+        form.appendChild(input);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+});
+    
+    
+// Update table with selected labels
+function updateTable() {
+    clearTable();
+    const tbody = document.getElementById('load-table').getElementsByTagName('tbody')[0];
+    
+    const columns = Array.from(document.querySelectorAll('#load-table thead th'))
+        .map(th => th.textContent.trim())
+        .filter(col => col !== 'Select');
+    
+    allTableData = [];
+    
+    // SECTION 1: Show all load cases records
+    loadData.forEach((item, index) => {
+        const row = tbody.insertRow();
+        const dataIndex = allTableData.length;
+        allTableData.push(item);
+        
+        const checkboxCell = row.insertCell();
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'record-checkbox';
+        checkbox.dataset.index = dataIndex;
+        checkbox.addEventListener('change', handleRecordSelection);
+        checkboxCell.appendChild(checkbox);
+        
+        columns.forEach(column => {
+            const cell = row.insertCell();
+            cell.textContent = item[column] !== undefined ? item[column] : '';
+        });
+    });
+    
+    // SECTION 2: Show created set:phase combinations from activeCombinations
+    {% if button_type == 'set_phase' %}
+        if (activeCombinations.size > 0) {
+            const separatorRow = tbody.insertRow();
+            const separatorCell = separatorRow.insertCell();
+            separatorCell.colSpan = columns.length + 1;
+            separatorCell.innerHTML = '<hr style="margin: 20px 0; border-color: #ccc;">';
+            separatorCell.style.backgroundColor = '#f8f9fa';
+            
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            headerCell.colSpan = columns.length + 1;
+            headerCell.textContent = 'CREATED COMBINATIONS';
+            headerCell.style.textAlign = 'center';
+            headerCell.style.backgroundColor = '#007bff';
+            headerCell.style.color = 'white';
+            headerCell.style.fontWeight = 'bold';
+            headerCell.style.fontSize = '16px';
+            
+            // NEW: Group combinations by Load Case
+            const combinationsByLoadCase = {};
+            
+            // First, collect all combination records grouped by Load Case
+            activeCombinations.forEach(combination => {
+                const setNum = combination.set;
+                const phaseNum = combination.phase;
+                const combinationLabel = combination.displayText;
+                
+                const matchingRecords = loadData.filter(item => 
+                    String(item['Set No.']) === String(setNum) && 
+                    String(item['Phase No.']) === String(phaseNum)
+                );
+                
+                matchingRecords.forEach(record => {
+                    const loadCase = record['Load Case Description'] || 'Uncategorized';
+                    if (!combinationsByLoadCase[loadCase]) {
+                        combinationsByLoadCase[loadCase] = [];
                     }
+                    combinationsByLoadCase[loadCase].push({
+                        record: record,
+                        combinationLabel: combinationLabel
+                    });
+                });
+            });
+            
+            // Now display each Load Case group
+            Object.keys(combinationsByLoadCase).forEach(loadCase => {
+                const groupRecords = combinationsByLoadCase[loadCase];
+                
+                // Add Load Case group header
+                const groupHeaderRow = tbody.insertRow();
+                groupHeaderRow.className = 'load-case-group-header';
+                const groupHeaderCell = groupHeaderRow.insertCell();
+                groupHeaderCell.colSpan = columns.length + 1;
+                groupHeaderCell.style.backgroundColor = '#e9ecef';
+                groupHeaderCell.style.borderLeft = '4px solid #28a745';
+                groupHeaderCell.style.padding = '12px';
+                groupHeaderCell.style.fontWeight = 'bold';
+                
+                // Group checkbox for this Load Case
+                const groupCheckbox = document.createElement('input');
+                groupCheckbox.type = 'checkbox';
+                groupCheckbox.className = 'combination-group-checkbox';
+                groupCheckbox.dataset.loadCase = loadCase;
+                groupCheckbox.checked = true;
+                groupCheckbox.addEventListener('change', function(e) {
+                    toggleCombinationGroupSelection(loadCase, e.target.checked);
+                });
+                
+                const groupLabel = document.createElement('span');
+                groupLabel.style.marginLeft = '8px';
+                groupLabel.textContent = `Load Case: ${loadCase}`;
+                
+                groupHeaderCell.appendChild(groupCheckbox);
+                groupHeaderCell.appendChild(groupLabel);
+                
+                // Display records for this Load Case group
+                groupRecords.forEach(({record, combinationLabel}) => {
+                    const row = tbody.insertRow();
+                    const dataIndex = allTableData.length;
+                    allTableData.push(record);
                     
-                    html += '</form>';
-                } else {
-                    html += '<p>No custom groups found</p>';
-                }
-                loadCasesResults.innerHTML = html;
+                    const checkboxCell = row.insertCell();
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'record-checkbox';
+                    checkbox.dataset.index = dataIndex;
+                    checkbox.dataset.loadCase = loadCase;
+                    checkbox.dataset.combinationType = 'created';
+                    checkbox.checked = true;
+                    checkbox.addEventListener('change', handleRecordSelection);
+                    checkboxCell.appendChild(checkbox);
+                    
+                    columns.forEach(column => {
+                        const cell = row.insertCell();
+                        cell.textContent = record[column] !== undefined ? record[column] : '';
+                    });
+                    
+                    // Auto-select this record
+                    selectedRecords.add(record);
+                });
+            });
+        }
+        {% endif %}
 
-                // Add select all functionality for custom groups
-                document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        const groupName = this.id.replace('select-all-custom-', '');
-                        const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
-                        caseCheckboxes.forEach(cb => {
-                            cb.checked = this.checked;
-                            if (this.checked) {
-                                selectedLoadCases.add(cb.value);
-                            } else {
-                                selectedLoadCases.delete(cb.value);
-                            }
-                        });
-                        updateSelectedLoadCases();
+    
+    // SECTION 3: Show attachment joint label records in combinations (for both modes)
+    const selectedJointLabels = Array.from(selectedJoints);
+    if (selectedJointLabels.length > 0) {
+        // Add a separator row
+        const separatorRow = tbody.insertRow();
+        const separatorCell = separatorRow.insertCell();
+        separatorCell.colSpan = columns.length + 1;
+        separatorCell.innerHTML = '<hr style="margin: 20px 0; border-color: #ccc;">';
+        separatorCell.style.backgroundColor = '#f8f9fa';
+        
+        // Add joint labels section header
+        const headerRow = tbody.insertRow();
+        const headerCell = headerRow.insertCell();
+        headerCell.colSpan = columns.length + 1;
+        headerCell.textContent = 'ATTACHMENT JOINT LABELS';
+        headerCell.style.textAlign = 'center';
+        headerCell.style.backgroundColor = '#28a745';
+        headerCell.style.color = 'white';
+        headerCell.style.fontWeight = 'bold';
+        headerCell.style.fontSize = '16px';
+        
+        // Show records for each selected joint label
+        selectedJointLabels.forEach(label => {
+            const matchingRecords = loadData.filter(item => 
+                String(item['Attach. Joint Labels']) === String(label)
+            );
+            
+            if (matchingRecords.length > 0) {
+                // Add a sub-header row for the joint label
+                const jointHeaderRow = tbody.insertRow();
+                const jointHeaderCell = jointHeaderRow.insertCell();
+                jointHeaderCell.colSpan = columns.length + 1;
+                jointHeaderCell.textContent = `Joint Label: ${label}`;
+                jointHeaderCell.style.textAlign = 'center';
+                jointHeaderCell.style.backgroundColor = '#e6ffe6';
+                jointHeaderCell.style.fontWeight = 'bold';
+                
+                // Add each matching record as a row with checkbox
+                matchingRecords.forEach((item, index) => {
+                    const row = tbody.insertRow();
+                    const dataIndex = allTableData.length;
+                    allTableData.push(item);
+                    
+                    // Add checkbox cell
+                    const checkboxCell = row.insertCell();
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'record-checkbox';
+                    checkbox.dataset.index = dataIndex;
+                    checkbox.addEventListener('change', handleRecordSelection);
+                    checkboxCell.appendChild(checkbox);
+                    
+                    // Add cells for each column
+                    columns.forEach(column => {
+                        const cell = row.insertCell();
+                        cell.textContent = item[column] !== undefined ? item[column] : '';
                     });
                 });
+            }
+        });
+    }
+    
+    // Update selected count
+    updateSelectedCount();
+}
+    
+function toggleCombinationGroupSelection(loadCase, isChecked) {
+    // Find all combination records in this load case group
+    document.querySelectorAll('.record-checkbox[data-combination-type="created"]').forEach(checkbox => {
+        if (checkbox.dataset.loadCase === loadCase) {
+            checkbox.checked = isChecked;
+            const index = parseInt(checkbox.dataset.index);
+            const record = allTableData[index];
+            
+            if (isChecked) {
+                selectedRecords.add(record);
+            } else {
+                selectedRecords.delete(record);
+            }
+        }
+    });
+    
+    updateSelectedCount();
+}
 
-                // Add event listener for individual checkbox changes in custom groups
-                document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+// Initialize Set-Phase selection
+function initSetPhaseSelection() {
+    const setSelect = document.getElementById('set-select');
+    const phaseSelect = document.getElementById('phase-select');
+    
+    if (setSelect) {
+        setSelect.addEventListener('change', function() {
+            updateSelectedSets();
+            updateSelectionDisplay();
+        });
+    }
+    
+    if (phaseSelect) {
+        phaseSelect.addEventListener('change', function() {
+            updateSelectedPhases();
+            updateSelectionDisplay();
+        });
+    }
+    
+    // Combination creation buttons
+    document.getElementById('create-all-combinations')?.addEventListener('click', createAllCombinations);
+    document.getElementById('create-single-combination')?.addEventListener('click', createSingleCombination);
+    document.getElementById('clear-combinations')?.addEventListener('click', clearAllCombinations);
+}
+
+// Update selected sets from multi-select
+function updateSelectedSets() {
+    const setSelect = document.getElementById('set-select');
+    selectedSets.clear();
+    
+    Array.from(setSelect.selectedOptions).forEach(option => {
+        selectedSets.add(option.value);
+    });
+}
+
+// Update selected phases from multi-select
+function updateSelectedPhases() {
+    const phaseSelect = document.getElementById('phase-select');
+    selectedPhases.clear();
+    
+    Array.from(phaseSelect.selectedOptions).forEach(option => {
+        selectedPhases.add(option.value);
+    });
+}
+
+// Update the selection display
+function updateSelectionDisplay() {
+    document.getElementById('selected-sets-display').textContent = 
+        selectedSets.size > 0 ? Array.from(selectedSets).join(', ') : 'None';
+    
+    document.getElementById('selected-phases-display').textContent = 
+        selectedPhases.size > 0 ? Array.from(selectedPhases).join(', ') : 'None';
+}
+
+// Create all possible combinations from selected sets and phases
+function createAllCombinations() {
+    if (selectedSets.size === 0 || selectedPhases.size === 0) {
+        showSelectionRequiredMessage();
+        return;
+    }
+    
+    selectedSets.forEach(set => {
+        selectedPhases.forEach(phase => {
+            createCombination(set, phase);
+        });
+    });
+    
+    updateActiveCombinationsDisplay();
+    updateTable();
+}
+
+// Create a single combination (useful for repeated phase values)
+function createSingleCombination() {
+    if (selectedSets.size === 0 || selectedPhases.size === 0) {
+        showSelectionRequiredMessage();
+        return;
+    }
+    
+    // Use the first selected set and phase
+    const set = Array.from(selectedSets)[0];
+    const phase = Array.from(selectedPhases)[0];
+    
+    createCombination(set, phase);
+    updateActiveCombinationsDisplay();
+    updateTable();
+}
+
+// Create individual combination
+function createCombination(set, phase) {
+    const combinationId = `comb_${combinationCounter++}`;
+    const combination = {
+        id: combinationId,
+        set: set,
+        phase: phase,
+        displayText: `Set ${set} - Phase ${phase}`,
+        marker: null
+    };
+    
+    activeCombinations.set(combinationId, combination);
+    
+    // Add to 3D scene if needed
+    addSetPhaseMarker(set, phase);
+    
+    showCombinationCreatedMessage(combination.displayText);
+    return combinationId;
+}
+
+// Update the active combinations display
+function updateActiveCombinationsDisplay() {
+    const container = document.getElementById('active-combinations');
+    if (!container) return;
+    
+    if (activeCombinations.size === 0) {
+        container.innerHTML = '<div class="text-muted">No active combinations</div>';
+        return;
+    }
+    
+    let html = '';
+    activeCombinations.forEach((comb, id) => {
+        html += `
+            <div class="combination-item" data-combination-id="${id}">
+                <span class="combination-text">${comb.displayText}</span>
+                <button class="btn btn-sm btn-outline-danger remove-combination" 
+                        onclick="removeCombination('${id}')">×</button>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Remove a specific combination
+function removeCombination(combinationId) {
+    if (activeCombinations.has(combinationId)) {
+        const comb = activeCombinations.get(combinationId);
+        
+        // Remove from 3D scene
+        removeSetPhaseMarkerByCombination(comb.set, comb.phase, combinationId);
+        
+        // Remove from active combinations
+        activeCombinations.delete(combinationId);
+        
+        updateActiveCombinationsDisplay();
+        updateTable();
+    }
+}
+
+// Clear all combinations
+function clearAllCombinations() {
+    activeCombinations.clear();
+    
+    // Clear all set-phase markers from 3D scene
+    Object.keys(setMarkers).forEach(uniqueId => {
+        removeSetPhaseMarker(uniqueId);
+    });
+    
+    updateActiveCombinationsDisplay();
+    updateTable();
+}
+
+// Helper function to remove set-phase marker by combination
+function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
+    Object.keys(setMarkers).forEach(uniqueId => {
+        const marker = setMarkers[uniqueId];
+        if (marker.setNumber === set && marker.phaseNumber === phase && 
+            uniqueId.includes(combinationId)) {
+            removeSetPhaseMarker(uniqueId);
+        }
+    });
+}
+
+    // Set up event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        initModelViewer();
+        updateTable();
+        initSetPhaseSelection(); // Initialize the new Set-Phase selection
+
+
+        // Set selection - allow multiple sets
+        const setContainer = document.getElementById('set-numbers');
+            if (setContainer) {
+                setContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                     checkbox.addEventListener('change', function() {
+                        const setValue = this.value;
+
                         if (this.checked) {
-                            selectedLoadCases.add(this.value);
+                            selectedSets.add(setValue);
                         } else {
-                            selectedLoadCases.delete(this.value);
-                            // Uncheck select-all if any checkbox is unchecked
-                            const groupName = this.dataset.group;
-                            const selectAll = document.getElementById(`select-all-custom-${groupName}`);
-                            if (selectAll) {
-                                selectAll.checked = false;
-                            }
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-
-                // Add delete functionality
-                document.querySelectorAll('.delete-group').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const groupName = this.dataset.group;
-                        if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-                            fetch(`/hupload4/?delete_custom_group=true&structure_id=${structureId}&group_name=${encodeURIComponent(groupName)}`, {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
+                            selectedSets.delete(setValue);
+                            // Remove any combinations using this set
+                            Object.keys(setMarkers).forEach(combinedId => {
+                                if (setMarkers[combinedId].setNumber === setValue) {
+                                    removeSetPhaseMarker(combinedId);
                                 }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    // Reload custom groups
-                                    customGroupsLink.click();
-                                } else {
-                                    alert('Error deleting group: ' + data.error);
-                                }
-                            })
-                            .catch(error => {
-                                alert('Error deleting group: ' + error);
                             });
                         }
+                        updateTable();
                     });
                 });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            }
+
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+            if (gridToggleBtn) {
+                gridToggleBtn.addEventListener('click', toggleGrid);
+            }
+
+        // Phase selection - allow multiple phases but create combination when selected
+        const phaseContainer = document.getElementById('phase-numbers');
+            if (phaseContainer) {
+                phaseContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const phaseValue = this.value;
+
+                        if (this.checked) {
+                            selectedPhases.add(phaseValue);
+                            // Automatically create combination if we have a set selected
+                            if (selectedSets.size > 0) {
+                                createSetPhaseCombination();
+                            }
+                        } else {
+                            selectedPhases.delete(phaseValue);
+                            // Remove any combinations using this phase
+                            Object.keys(setMarkers).forEach(combinedId => {
+                                if (setMarkers[combinedId].phaseNumber === phaseValue) {
+                                    removeSetPhaseMarker(combinedId);
+                                }
+                            });
+                        }
+                        updateTable();
+                    });
+                });
+            }
+
+        // Add combination creation button
+        const addCombinationBtn = document.createElement('button');
+        addCombinationBtn.textContent = 'Create Set:Phase Combination';
+        addCombinationBtn.className = 'btn btn-primary btn-sm';
+        addCombinationBtn.style.marginTop = '10px';
+        addCombinationBtn.addEventListener('click', createSetPhaseCombination);
+
+        // Add clear button
+        const clearCombinationsBtn = document.createElement('button');
+        clearCombinationsBtn.textContent = 'Clear All Combinations';
+        clearCombinationsBtn.className = 'btn btn-secondary btn-sm';
+        clearCombinationsBtn.style.marginTop = '10px';
+        clearCombinationsBtn.style.marginLeft = '10px';
+        clearCombinationsBtn.addEventListener('click', clearAllSetPhaseCombinations);
+
+        // Insert buttons after phase numbers
+        const phaseFormGroup = document.querySelector('.form-group:has(#phase-numbers)');
+        if (phaseFormGroup) {
+            phaseFormGroup.appendChild(addCombinationBtn);
+            phaseFormGroup.appendChild(clearCombinationsBtn);
+        }
+
+        // Joint selection (keep existing)
+        const jointContainer = document.getElementById('joint-labels');
+        if (jointContainer) {
+            jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const jointValue = this.value;
+
+                    if (this.checked) {
+                        selectedJoints.add(jointValue);
+                        // Add marker if it doesn't exist
+                        if (!jointMarkers[jointValue]) {
+                            addJointMarker(jointValue);
+                        }
+                    } else {
+                        selectedJoints.delete(jointValue);
+                        removeJointMarker(jointValue);
+                    }
+                    updateTable();
+                });
             });
+        }
+
+
+    document.querySelectorAll('.drag-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                currentDroppingItem = {
+                    type: this.dataset.type,
+                    value: this.dataset.value
+                };
+                e.dataTransfer.setData('text/plain', JSON.stringify(currentDroppingItem));
+                e.dataTransfer.effectAllowed = 'copy';
+                this.classList.add('dragging');
+                renderer.domElement.style.cursor = 'copy';
+            });
+
+            // NEW: Add dragend to reset currentDroppingItem if drag is cancelled or finishes elsewhere
+            item.addEventListener('dragend', function() {
+            currentDroppingItem = null;
+            this.classList.remove('dragging');
+            renderer.domElement.style.cursor = 'grab';
         });
-        // Handle Create Custom Group button
-        createCustomGroupBtn.addEventListener('click', function() {
-            const structureId = structureSelect.value;
-            const groupName = customGroupNameInput.value.trim();
-            
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
+        
+        });
+    
+    // Set up drop zone on model viewer
+        const modelCanvas = document.getElementById('model-canvas');
+
+        modelCanvas.addEventListener('dragover', function(e) {
+            e.preventDefault(); // Essential to allow dropping
+            e.dataTransfer.dropEffect = 'copy';
+        });
+    
+        modelCanvas.addEventListener('drop', function(e) {
+        e.preventDefault();
+        
+        // Get the dropped data correctly
+        let droppedData;
+        try {
+            droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
+        } catch (error) {
+            console.error('Error parsing dropped data:', error);
+            return;
+        }
+        
+        if (!droppedData) return;
+        
+        const itemType = droppedData.type;
+        const itemValue = droppedData.value;
+        
+        // Find the corresponding checkbox and check it
+        let checkbox;
+        if (itemType === 'joint') {
+            checkbox = document.querySelector(`input[name="joint-labels"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
             }
-            
-            if (!groupName) {
-                alert('Please enter a group name');
-                return;
+        }
+        else if (itemType === 'set') {
+            checkbox = document.querySelector(`input[name="set-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
             }
-            
-            if (selectedLoadCases.size === 0) {
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('create_custom_group', 'true');
-            formData.append('structure_id', structureId);
-            formData.append('group_name', groupName);
-            selectedLoadCases.forEach(caseName => {
-                formData.append('selected_cases', caseName);
-            });
-            
-            // Send request
-            fetch('/hupload4/', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`Custom group "${groupName}" created successfully!`);
-                    customGroupNameInput.value = '';
-                    clearAllSelections();  // <-- clear selections and checkboxes
-                } else {
-                    alert('Error creating custom group: ' + data.error);
+        }
+        else if (itemType === 'phase') {
+            checkbox = document.querySelector(`input[name="phase-numbers"][value="${itemValue}"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+                
+                // If we have sets selected, automatically create combination
+                if (selectedSets.size > 0) {
+                    createSetPhaseCombination();
                 }
-            })
-            .catch(error => {
-                alert('Error creating custom group: ' + error);
-            });
-        });
-
-
-
-
-        // Handle form submissions
-        setPhaseForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
             }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input').value = structureId;
-            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        jointLabelsForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input-joint').value = structureId;
-            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        // Auto-hide messages
-        setTimeout(function() {
-            const messages = document.querySelectorAll('.alert');
-            messages.forEach(function(message) {
-                message.style.transition = 'opacity 0.5s ease-out';
-                message.style.opacity = '0';
-                setTimeout(function() {
-                    message.remove();
-                }, 500);
-            });
-        }, 3000); 
+        }
+        
+        currentDroppingItem = null;
+        renderer.domElement.style.cursor = 'grab';
     });
-</script>
-"
+    
+    // Add responsive behavior
+    window.addEventListener('resize', onWindowResize);
+});
+        
+       
+</script>"

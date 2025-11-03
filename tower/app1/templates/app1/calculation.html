@@ -448,7 +448,7 @@
                                     <tr>
                                         <th>Select</th>  <!-- Add checkbox column -->
                                         {% for key in records.0.keys %}
-                                            {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}  <!-- Exclude internal fields -->
+                                            {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' %}  <!-- Exclude internal fields BUT INCLUDE Resultant -->
                                                 <th>{{ key }}</th>
                                             {% endif %}
                                         {% endfor %}
@@ -468,7 +468,7 @@
                                                     {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
                                             </td>
                                             {% for key, value in record.items %}
-                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}  <!-- Exclude internal fields -->
+                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' %}  <!-- Exclude internal fields BUT INCLUDE Resultant -->
                                                     {% if key == 'Resultant' %}
                                                         <td class="resultant-cell">{{ value }}</td>
                                                     {% else %}

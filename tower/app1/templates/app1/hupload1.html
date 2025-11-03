@@ -9,54 +9,120 @@
     <style>
         
 
-/* Main content wrapper */
 .content {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 20px;
-    margin-top: 80px;
-    min-height: calc(100vh - 80px);
+    padding: 90px 20px 20px;
+    background: linear-gradient(to right, rgb(247, 248, 248), rgb(234, 252, 252));
+    min-height: 100vh;
 }
 
-/* Form container */
 .form-container {
-    background-color: #fff;
-    border: 1px solid #e1e4e8;
-    padding: 30px;
+    background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 40px 30px;
     width: 90%;
-    max-width: 800px;
-    transition: all 0.3s ease;
+    max-width: 700px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.8s ease;
 }
 
-/* Heading */
-h2 {
+.form-container h2 {
     text-align: center;
+    font-size: 25px;
+    margin-bottom: 22px;
+    color: #333;
+}
+
+.selected-structure-info {
+    background: #e8f4fd;
+    border: 1px solid #b6d7f2;
+    border-radius: 8px;
+    padding: 15px;
     margin-bottom: 25px;
-    color: #1252a7;
-    font-weight: 600;
-    font-size: 28px;
-}
-
-h3, h4, h5 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-/* Upload section layout */
-.upload-section {
+    font-size: 16px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.existing-data-badge {
+    background: #f39c12;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.existing-data-message {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.existing-data-message .alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
     margin-bottom: 20px;
 }
 
-/* Upload box style */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+}
+
+/* Upload Section */
+.upload-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
 .upload-box {
     padding: 25px;
-    border: 2px dashed #ccc;
+    border: 2px dashed #ddd;
     border-radius: 10px;
     text-align: center;
     background-color: #fafafa;
@@ -66,7 +132,7 @@ h3, h4, h5 {
 }
 
 .upload-box:hover {
-    border-color: #1252a7;
+    border-color: #3498db;
     background-color: #f8f9ff;
 }
 
@@ -76,150 +142,162 @@ h3, h4, h5 {
     color: #444;
 }
 
-/* File input fields */
-.upload-box input[type="file"], 
-.upload-box select,
-.form-control {
-    width: 100%;
-    padding: 12px;
+.file-input-container {
+    position: relative;
+    margin: 20px 0;
+}
+
+#file-input {
+    display: none;
+}
+
+.file-input-label {
+    display: block;
+    padding: 20px;
+    border: 2px dashed #3498db;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    color: #3498db;
+    font-weight: 600;
+}
+
+.file-input-label:hover {
+    background: #e8f4fd;
+    border-color: #2980b9;
+}
+
+.file-input-label i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+#file-name {
+    display: block;
     margin-top: 10px;
-    border: 1px solid #d1d5db;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.upload-button {
+    background: #27ae60;
+    color: white;
+    padding: 14px 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+
+.upload-button:hover {
+    background: #219a52;
+    transform: translateY(-2px);
+}
+
+/* Update Link */
+.update-link {
+    text-align: center;
+    margin: 25px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.update-link p {
+    margin-bottom: 12px;
+    color: #666;
+}
+
+.update-button {
+    background: #e67e22;
+    color: white;
+    padding: 12px 24px;
+    text-decoration: none;
     border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 15px;
-    transition: border-color 0.3s;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-block;
 }
 
-.upload-box input[type="file"]:focus, 
-.upload-box select:focus,
-.form-control:focus {
-    border-color: #1252a7;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
+.update-button:hover {
+    background: #d35400;
+    transform: translateY(-2px);
 }
 
-/* Attachment section */
+/* Attachment Section */
 .attachment-section {
     background-color: #f9f9d8;
     padding: 20px;
-    margin-top: 30px;
+    margin: 25px 0;
     text-align: center;
     border-radius: 8px;
     font-weight: 500;
     border-left: 4px solid #e6c229;
 }
 
-/* Buttons section */
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    font-size: 14px;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    background-color: #ffffff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Buttons Section */
 .buttons {
     display: flex;
-    justify-content: space-around;
-    margin-top: 25px;
-    flex-wrap: wrap;
     gap: 15px;
-    position: relative;
+    margin: 25px 0;
+    flex-wrap: wrap;
 }
 
-.buttons::before {
-    content: "OR";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 0 10px;
-    color: #666;
-    font-weight: 500;
-    z-index: 1;
-}
-
-.buttons::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #ddd;
-    z-index: 0;
-}
-
-/* Upload button */
-.upload-button {
-    margin-top: 20px;
-    width: 100%;
-    background-color: #1252a7;
-    color: white;
-    padding: 12px 0;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.upload-button:hover {
-    background-color: #0e4285;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.upload-button:active {
-    transform: translateY(0);
-}
-
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Go button styling */
 .set-phase-button, .attachments-button {
     flex: 1;
     min-width: 180px;
-    background-color: #1252a7;
+    background-color: #3498db;
     color: white;
     padding: 14px 20px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    transition: all 0.3s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 2;
+    transition: all 0.3s ease;
 }
 
 .attachments-button {
-    background-color: #00b32d;
+    background-color: #27ae60;
 }
 
 .set-phase-button:hover {
-    background-color: #0e4285;
+    background-color: #2980b9;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .attachments-button:hover {
-    background-color: #028a27;
+    background-color: #219a52;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.set-phase-button:active, .attachments-button:active {
-    transform: translateY(0);
-}
-
+/* Load Cases Section */
 /* Load Cases Section */
 .load-cases-section {
     margin-top: 25px;
@@ -260,7 +338,7 @@ h3, h4, h5 {
 }
 
 #load-cases-results {
-    margin-top: 20px;
+    margin-top: 10px;
     max-height: 300px;
     overflow-y: auto;
     padding: 15px;
@@ -389,94 +467,26 @@ h3, h4, h5 {
     transform: translateY(0);
 }
 
-/* Data tables */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
 
-.data-table th, .data-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
-
-.data-table th {
-    background-color: #f2f2f2;
-    font-weight: 600;
-}
-
-.joint-labels-list {
-    list-style-type: none;
-    padding: 0;
-}
-
-.joint-labels-list li {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.2s;
-}
-
-.joint-labels-list li:hover {
-    background-color: #f9f9f9;
-}
-
-.error {
-    color: #ff4757;
-    margin-top: 10px;
-    padding: 10px;
-    background: #ffeaea;
-    border-radius: 6px;
-    border-left: 4px solid #ff4757;
-}
-
-/* Form elements styling */
-input[type="checkbox"] {
-    margin-right: 10px;
-    transform: scale(1.2);
-}
-
-
-
-.update-link {
-    text-align: center;
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.update-link p {
-    margin-bottom: 10px;
-    color: #666;
-}
-
-.update-button {
-    background: #ff9800;
-    color: white;
-    padding: 12px 30px;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background 0.3s;
-    display: inline-block;
-}
-
-.update-button:hover {
-    background: #f57c00;
-}
-
-/* Mobile responsiveness */
+/* Responsive Design */
 @media (max-width: 768px) {
     .content {
-        padding: 15px;
-        margin-top: 70px;
+        padding: 80px 15px 15px;
     }
     
     .form-container {
+        padding: 30px 20px;
+        width: 95%;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn {
         width: 100%;
-        padding: 20px;
+        margin-bottom: 10px;
     }
     
     .upload-box {
@@ -485,19 +495,10 @@ input[type="checkbox"] {
     
     .buttons {
         flex-direction: column;
-        gap: 15px;
     }
-
+    
     .set-phase-button, .attachments-button {
         width: 100%;
-    }
-    
-    .attachment-section {
-        padding: 15px;
-    }
-    
-    .buttons::before, .buttons::after {
-        display: none;
     }
     
     .load-case-links {
@@ -508,41 +509,6 @@ input[type="checkbox"] {
         text-align: center;
     }
     
-    h2 {
-        font-size: 24px;
-    }
-}
-
-@media (max-width: 480px) {
-    .content {
-        padding: 10px;
-        margin-top: 60px;
-    }
-    
-    .form-container {
-        padding: 15px;
-    }
-    
-    .upload-box {
-        padding: 15px;
-    }
-    
-    .upload-button {
-        padding: 10px 0;
-    }
-    
-    .set-phase-button, .attachments-button {
-        padding: 12px;
-        font-size: 15px;
-    }
-    
-    .alert {
-        padding: 12px 20px;
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 768px) {
     #create-custom-group {
         flex-direction: column;
         align-items: stretch;
@@ -558,111 +524,50 @@ input[type="checkbox"] {
     }
 }
 
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .popup {
-            background-color: white;
-            padding: 20px;
-            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
-            text-align: center;
-            width: 500px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: none;
-            position: relative;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-            overflow: hidden; /* Ensures content does not overflow */
-        }
-        
-        .popup .popup-header {
-            background-color: #ffec00;
-            color: black;
-            font-size: 12px;
-            padding: 10px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 0px 0px 0 0;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: calc(100% + 40px);  /* Ensure it covers full width */
-            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
-            box-sizing: border-box;  /* Prevent overflow beyond the container */
-        }
-        
-        
-        .popup-close {
-            position: absolute;
-            top: 10%;
-            right: 1px;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 30px;
-            color: black;
-            background-color: transparent;
-            padding: 5px;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .popup h3 {
-            margin: 20px 0;
-            font-size: 14px;
-            color: black;
-        }
-        
-        .popup .popup-btn {
-            padding: 10px 15px; /* Increase padding for better button size */
-            margin: 15px 30px;  /* Increase the margin between buttons */
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 20px;
-            color: white;
-            transition: background-color 0.3s ease;
-        }
-        
-        .popup-btn.blue {
-            background-color: #1252a7;
-        }
-        
-        .popup-btn.green {
-            background-color: green;
-        }
-        
-        .popup-btn.red {
-            background-color: red;
-        }
-        
-        .popup-btn.yellow {
-            background-color: yellow;
-            color: black;
-        }
-        
-        .popup-btn:hover {
-            opacity: 0.9;
-        }
-        
-        .blur {
-            filter: blur(0.3spx);
-        }
-       
-        
-        
+@media (max-width: 480px) {
+    .form-container h2 {
+        font-size: 22px;
+    }
+    
+    .upload-box {
+        padding: 15px;
+    }
+    
+    .file-input-label {
+        padding: 15px;
+        font-size: 14px;
+    }
+    
+    .upload-button {
+        padding: 12px 20px;
+        font-size: 15px;
+    }
+    
+    .set-phase-button, .attachments-button {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Base responsive button styles */
+.btn-responsive {
+    font-size: 0.775rem; /* Slightly larger than btn-sm for better readability */
+    padding: 0.375rem 0.75rem; /* Compact padding */
+    border-radius: 0.25rem;
+}
+
+.form-control-responsive {
+    display: inline-block;
+    width: 200px; /* Smaller default width for compactness when visible */
+    font-size: 0.875rem; /* Compact font */
+    padding: 0.375rem 0.75rem; /* Compact padding */
+    border-radius: 0.25rem;
+}
         
     </style>
 {% endblock %}
@@ -671,43 +576,98 @@ input[type="checkbox"] {
     
     
 <div class="content">
-    
     <div class="form-container">
+        {% comment %} <h2>File Upload - {{ structure_type|title }}</h2> {% endcomment %}
         <h2>File Upload</h2>
-        <form method="post" enctype="multipart/form-data">
+        <!-- Display selected structure info -->
+        {% if selected_structure %}
+        <div class="selected-structure-info">
+            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
+            {% if existing_file %}
+            <span class="existing-data-badge">File Exists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not circuit_data_exists %}
+        <!-- Show message if circuit data doesn't exist -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>Please complete circuit definition first.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'hdeadend1' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">
+                    Go to Circuit Definition
+                </a>
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+        
+        {% elif existing_file %}
+        <!-- Show options when file exists -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>File already exists for this structure.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'hupload1_update' %}" class="btn btn-primary">Update Existing File</a>
+            </div>
+            
+            <!-- Extraction section for existing files -->
+            <div class="attachment-section">
+                <h3>Extract Data from Existing File</h3>
+                <select id="structure-select" class="form-control">
+                    <option value="{{ structure_id }}" selected>{{ selected_structure.structure }}</option>
+                </select>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Show upload form if no file exists -->
+        <form method="post" enctype="multipart/form-data" id="upload-form">
             {% csrf_token %}
+            
+            <!-- Hide the structure dropdown since it's hardcoded -->
+            <div style="display: none;">
+                {{ form.structure }}
+            </div>
+            
             <div class="upload-section">
                 <div class="upload-box">
-                    <p>Select Structure</p>
-                    {{ form.structure }}
-
-                    <p>Drag files to upload</p>
-                    <input type="file" name="file" accept=".xls,.xlsx" required>
+                    <p>Upload File for: <strong>{{ selected_structure.structure }}</strong></p>
+                    
+                    <div class="file-input-container">
+                        <input type="file" name="file" id="file-input" accept=".xls,.xlsx" required>
+                        <label for="file-input" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Choose Excel File (.xls, .xlsx)
+                        </label>
+                        <span id="file-name">No file chosen</span>
+                    </div>
 
                     <button type="submit" class="upload-button">Upload File</button>
                 </div>
             </div>
         </form>
 
-       <div class="update-link">
+        <div class="update-link">
             <p>Need to update an existing file?</p>
-            <a href="{% url 'hupload1_update' %}" class="update-button">
+            <a href="{% url 'hupload1_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">
                 Update Existing File
             </a>
         </div>
 
         <div class="attachment-section">
-            <p>Select Structure to Extract Data</p>
+            <p>Extract Data for: <strong>{{ selected_structure.structure }}</strong></p>
             <select id="structure-select" class="form-control">
-                <option value="">-- Select Structure --</option>
-                {% for structure in structures_with_files %}
-                <option value="{{ structure.id }}">{{ structure.structure }}</option>
-                {% endfor %}
+                <option value="{{ structure_id }}" selected>{{ selected_structure.structure }}</option>
             </select>
         </div>
+        {% endif %}
 
-        <!-- New Load Cases Section -->
-        <div class="load-cases-section" style="margin-top: 20px; display: none;" id="load-cases-section">
+        <!-- Load Cases and Data Extraction Sections -->
+        {% if circuit_data_exists and existing_file %}
+        <div class="load-cases-section">
             <h3>Load Cases</h3>
             <div class="load-case-links">
                 <a href="#" id="imported-load-cases-link" class="load-case-link">Imported Load Cases</a>
@@ -715,45 +675,43 @@ input[type="checkbox"] {
                 <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
             </div>
             
-            <div id="load-cases-results" style="margin-top: 20px;">
-                <!-- Load cases results will be displayed here -->
-            </div>
+            <div id="load-cases-results"></div>
         </div>
 
-        <div class="selected-load-cases" id="selected-load-cases" style="margin-top: 20px; display: none;">
+        <div class="selected-load-cases" id="selected-load-cases" style="display: none;">
             <h4>Selected Load Cases:</h4>
             <div id="selected-cases-list"></div>
             
-            <!-- Create Custom Group Form -->
-            <div id="create-custom-group" style="margin-top: 10px; display: none;">
-                <input type="text" id="custom-group-name" placeholder="Enter custom group name" style="padding: 5px; margin-right: 10px;">
+            <div id="create-custom-group" style="display: none;">
+                <input type="text" id="custom-group-name" placeholder="Enter custom group name">
                 <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
             </div>
         </div>
 
         <div class="buttons">
-            <form id="set-phase-form" method="post" style="display: inline;">
+            <form id="set-phase-form" method="post">
                 {% csrf_token %}
-                <input type="hidden" name="structure_id" id="structure-id-input">
+                <input type="hidden" name="structure_id" value="{{ structure_id }}">
                 <input type="hidden" name="go_button" value="set_phase">
                 <input type="hidden" name="load_case_values" id="load-case-values-input">
                 <button type="submit" class="set-phase-button">Set / Phase</button>
             </form>
 
-            <form id="joint-labels-form" method="post" style="display: inline;">
+            <form id="joint-labels-form" method="post">
                 {% csrf_token %}
-                <input type="hidden" name="structure_id" id="structure-id-input-joint">
+                <input type="hidden" name="structure_id" value="{{ structure_id }}">
                 <input type="hidden" name="go_button" value="joint_labels">
                 <input type="hidden" name="load_case_values" id="load-case-values-input-joint">
                 <button type="submit" class="attachments-button">Attachments Joint Labels</button>
             </form>
         </div>
 
-        <div id="results-container" style="margin-top: 20px;">
-            <!-- Results will be displayed here -->
-        </div>
+        <div id="results-container"></div>
+        {% endif %}
     </div>
 </div>
+
+       
 
 
 
@@ -1056,13 +1014,13 @@ customGroupsLink.addEventListener('click', function(e) {
                 html += `<div class="load-case-group" id="group-${groupName.replace(/\s+/g, '-')}">
                     <h5>
                         <span class="group-name-display">${groupName}</span>
-                        <button class="btn btn-sm btn-primary edit-group" data-group="${groupName}" style="margin-left: 10px;">Edit</button>
-                        <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
+                        <button class="btn btn-responsive btn-primary edit-group d-inline-block" data-group="${groupName}" style="margin-left: 10px;">Rename</button>
+                        <button class="btn btn-responsive btn-danger delete-group d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
                     </h5>
                     <div class="group-edit-form" style="display: none; margin-bottom: 10px;">
-                        <input type="text" class="form-control edit-group-input" value="${groupName}" style="display: inline-block; width: auto;">
-                        <button class="btn btn-sm btn-success save-edit" data-group="${groupName}" style="margin-left: 5px;">Save</button>
-                        <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
+                        <input type="text" class="form-control-responsive edit-group-input" value="${groupName}" style="display: inline-block;">
+                        <button class="btn btn-responsive btn-success save-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Save</button>
+                        <button class="btn btn-responsive btn-secondary cancel-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
                     </div>
                     <div class="group-select-all">
                         <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
@@ -1394,6 +1352,39 @@ customGroupsLink.addEventListener('click', function(e) {
         }, 3000); 
     });
 </script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const structureId = '{{ structure_id }}';
+    
+    // File input handling
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    
+    if (fileInput && fileName) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
+            } else {
+                fileName.textContent = 'No file chosen';
+            }
+        });
+    }
+    
+    // Auto-load data if structure is selected and file exists
+    if (structureId && {{ existing_file|yesno:"true,false" }}) {
+        const structureSelect = document.getElementById('structure-select');
+        if (structureSelect) {
+            // Trigger change to load data immediately
+            setTimeout(() => {
+                structureSelect.dispatchEvent(new Event('change'));
+            }, 500);
+        }
+    }
+});
+</script>
+
 
     {% endblock %}
 

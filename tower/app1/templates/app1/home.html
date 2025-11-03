@@ -148,7 +148,7 @@
         margin-top: 15px;
         flex-grow: 1;
         overflow-y: auto;
-        max-height: 300px;
+        max-height: 350px;
         padding-right: 5px;
     }
 
@@ -168,6 +168,33 @@
         background: linear-gradient(to right, #e9ecef, #dee2e6);
         transform: translateX(5px);
     }
+
+    .structure-item {
+    position: relative;
+    cursor: pointer;
+}
+
+.structure-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 200px;
+    padding: 10px;
+}
+
+.structure-dropdown.show {
+    display: block;
+}
+
+.structure-item-container {
+    position: relative;
+}
 
     .delete-btn {
         color: var(--danger);
@@ -385,6 +412,107 @@
         white-space: nowrap;
     }
 
+    .structure-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 200px;
+    padding: 15px;
+    animation: fadeIn 0.3s ease-in-out;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.structure-dropdown.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Responsive adjustments for dropdown on smaller screens */
+@media (max-width: 768px) {
+    .structure-dropdown {
+        position: static; /* Change to static to avoid absolute positioning issues on mobile */
+        margin-top: 10px;
+        width: 100%;
+        min-width: unset;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .structure-item-container {
+        position: relative; /* Ensure container remains relative for other elements */
+    }
+}
+
+@media (max-width: 576px) {
+    .structure-dropdown {
+        padding: 10px;
+        border-radius: 6px;
+    }
+}
+
+/* Improved Select Styling for Better Touch Interaction and Responsiveness */
+.structure-type-select {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 0;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    background-color: white;
+    color: var(--dark);
+    font-weight: 500;
+    font-size: 1rem;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 18px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.structure-type-select:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.structure-type-select:hover {
+    border-color: var(--primary);
+}
+
+/* Ensure options are styled consistently */
+.structure-type-select option {
+    background-color: white;
+    color: var(--dark);
+    padding: 10px;
+    font-size: 1rem;
+}
+
+/* Add a subtle animation for the dropdown appearance */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Additional touch-friendly adjustments for mobile */
+@media (max-width: 768px) {
+    .structure-type-select {
+        font-size: 1.1rem; /* Slightly larger for better touch targets */
+        padding: 14px 15px;
+    }
+    
+    .structure-item {
+        padding: 15px; /* Increase padding for easier clicking on mobile */
+    }
+}    
+
     /* Media Queries */
     @media (max-width: 992px) {
         .content {
@@ -576,7 +704,7 @@
     
     <!-- Main Content Section -->
    <div class="content">
-    <div class="panel">
+        <div class="panel">
         <div class="panel-header">
             <i class="fas fa-list panel-icon"></i>
             List All Structures
@@ -587,11 +715,21 @@
             </button>
             <div class="structure-list">
                 {% for structure in structures %}
-                    <div class="structure-item">
-                        <div>{{ structure.structure }}</div>
-                        <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
-                            <i class="fas fa-times"></i>
-                        </a>
+                    <div class="structure-item-container">
+                        <div class="structure-item" data-structure-id="{{ structure.id }}">
+                            <div>{{ structure.structure }}</div>
+                            <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                        <div class="structure-dropdown" id="dropdown-{{ structure.id }}">
+                            <select class="structure-type-select">
+                                <option value="">Select Structure Type For Group</option>
+                                <option value="towers">Towers</option>
+                                <option value="hframes">H-Frames</option>
+                                <option value="monopoles">Monopoles</option>
+                            </select>
+                        </div>
                     </div>
                 {% empty %}
                     <div class="empty-state">No structures found. Add your first structure!</div>
@@ -1047,21 +1185,27 @@
 
     // Open the first popup
     const structureSelect = document.getElementById('structure-select');
-    if (structureSelect) {
-        structureSelect.addEventListener('change', function () {
-            if (structureSelect.value === 'towers') {
-                popupOverlay.style.display = 'flex';
-                popups.forEach((popup) => popup.style.display = 'none');
-                document.getElementById('popup1').style.display = 'block';
-                mainContent.classList.add('blur');
-                popupStack = ['popup1'];
-            } else {
-                popupOverlay.style.display = 'none';
-                mainContent.classList.remove('blur');
-                popupStack = [];
-            }
-        });
-    }
+        if (structureSelect) {
+            structureSelect.addEventListener('change', function () {
+                if (structureSelect.value === 'towers') {
+                    popupOverlay.style.display = 'flex';
+                    popups.forEach((popup) => popup.style.display = 'none');
+                    document.getElementById('popup1').style.display = 'block';
+                    mainContent.classList.add('blur');
+                    popupStack = ['popup1'];
+                } else if (structureSelect.value === 'monopoles') {
+                    // ... (existing monopole logic)
+                } else if (structureSelect.value === 'hframes') {
+                    // ... (existing h-frame logic)
+                } else {
+                    popupOverlay.style.display = 'none';
+                    mainContent.classList.remove('blur');
+                    popupStack = [];
+                }
+                // NEW: Reset the select value to ensure 'change' fires again on re-selection
+                structureSelect.value = "";
+            });
+        }
 
     // Close popup and show previous one if available
     document.querySelectorAll('.popup-close').forEach((closeBtn) => {
@@ -1753,6 +1897,156 @@
              if (noGroupsState) noGroupsState.style.display = 'none'; // Hide if there are groups
         }
     });
+</script>
+
+
+
+
+
+
+
+<script>
+// Store the selected structure type globally
+let selectedStructureType = '';
+let selectedStructureId = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle structure item clicks
+    document.querySelectorAll('.structure-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't trigger if delete button was clicked
+            if (e.target.closest('.delete-btn')) {
+                return;
+            }
+            
+            const structureId = this.dataset.structureId;
+            const dropdown = document.getElementById(`dropdown-${structureId}`);
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.structure-dropdown').forEach(dd => {
+                if (dd !== dropdown) {
+                    dd.classList.remove('show');
+                }
+            });
+            
+            // Toggle current dropdown
+            dropdown.classList.toggle('show');
+            selectedStructureId = structureId;
+        });
+    });
+    
+    // Handle structure type selection
+    document.querySelectorAll('.structure-type-select').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value) {
+                selectedStructureType = this.value;
+                const structureId = this.closest('.structure-dropdown').id.replace('dropdown-', '');
+                
+                // Close dropdown
+                this.closest('.structure-dropdown').classList.remove('show');
+                
+                // Show appropriate popups based on selection
+                showStructurePopups(selectedStructureType, structureId);
+                
+                // NEW: Reset the select value to ensure 'change' fires again on re-selection
+                this.value = "";
+            }
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.structure-item-container')) {
+            document.querySelectorAll('.structure-dropdown').forEach(dd => {
+                dd.classList.remove('show');
+            });
+        }
+    });
+});
+
+function showStructurePopups(structureType, structureId) {
+    // Store the selected structure ID and type in sessionStorage
+    sessionStorage.setItem('selectedStructureId', structureId);
+    sessionStorage.setItem('selectedStructureType', structureType);
+    
+    // Show the appropriate popup overlay based on structure type
+    if (structureType === 'towers') {
+        popupOverlay.style.display = 'flex';
+        document.getElementById('popup1').style.display = 'block';
+        mainContent.classList.add('blur');
+        popupStack = ['popup1'];
+    } else if (structureType === 'monopoles') {
+        monopolePopupOverlay.style.display = 'flex';
+        monopolePopups[0].style.display = 'block';
+        mainContent.classList.add('blur');
+        monopolePopupStack = [0];
+    } else if (structureType === 'hframes') {
+        hframePopupOverlay.style.display = 'flex';
+        hframePopups[0].style.display = 'block';
+        mainContent.classList.add('blur');
+        hframePopupStack = [0];
+    }
+}
+
+// Modify existing popup redirects to pass structure information
+function modifyPopupRedirects() {
+    // Example for tower popups - modify all your existing redirects similarly
+    document.getElementById('yes-btn2').addEventListener('click', function() {
+        redirectWithStructure('/tdeadend/');
+    });
+    
+    document.getElementById('monopole-post-btn1').addEventListener('click', function() {
+        redirectWithStructure('/tdeadend3/');
+    });
+    
+    // Add similar modifications for all your popup redirects
+    // Towers
+    document.getElementById('monopole-brace-btn1').addEventListener('click', function() {
+        redirectWithStructure('/tdeadend3/');
+    });
+    
+    document.getElementById('monopole-post-btn2').addEventListener('click', function() {
+        redirectWithStructure('/tdeadend4/');
+    });
+    
+    // ... add all other tower redirects
+    
+    // Monopoles
+    document.getElementById('monopole-inline-yes-btn').addEventListener('click', function() {
+        redirectWithStructure('/mdeadend1/');
+    });
+    
+    document.getElementById('monopole-vertical-btn').addEventListener('click', function() {
+        redirectWithStructure('/mdeadend5/');
+    });
+    
+    // ... add all other monopole redirects
+    
+    // H-Frames
+    document.getElementById('vertical-btn').addEventListener('click', function() {
+        redirectWithStructure('/hdeadend1/');
+    });
+    
+    document.getElementById('post-insulator-btn').addEventListener('click', function() {
+        redirectWithStructure('/hdeadend2/');
+    });
+    
+    // ... add all other h-frame redirects
+}
+
+function redirectWithStructure(url) {
+    const structureId = sessionStorage.getItem('selectedStructureId');
+    const structureType = sessionStorage.getItem('selectedStructureType');
+    
+    // Add structure info as query parameters
+    const separator = url.includes('?') ? '&' : '?';
+    window.location.href = `${url}${separator}structure_id=${structureId}&structure_type=${structureType}`;
+}
+
+// Initialize the modified redirects when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    modifyPopupRedirects();
+});
 </script>
 
    {% endblock %}

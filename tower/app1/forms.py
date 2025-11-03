@@ -294,6 +294,7 @@ class HDeadendForm1UpdateForm(forms.ModelForm):
         # Make structure field read-only for update
         self.fields['structure'].disabled = True
     
+
 class HUDeadendForm1(forms.ModelForm):
     class Meta:
         model = hUploadedFile1
@@ -301,9 +302,13 @@ class HUDeadendForm1(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Remove the filtering if we're hardcoding the structure in the view
+        # Or keep it as a fallback for when structure is not hardcoded
         used_structures = hUploadedFile1.objects.values_list('structure_id', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
+        # Make the field not required since we're setting it in the view
+        self.fields['structure'].required = False
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -329,6 +334,15 @@ class HUDeadendUpdateForm1(forms.Form):
         # Only show structures that have uploaded files
         used_structures = hUploadedFile1.objects.values_list('structure_id', flat=True)
         self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        structure = cleaned_data.get('structure')
+        
+        if structure and not hUploadedFile1.objects.filter(structure=structure).exists():
+            raise ValidationError("No uploaded file found for this structure.")
+        
+        return cleaned_data
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')

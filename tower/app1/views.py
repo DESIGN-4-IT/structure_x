@@ -3852,55 +3852,185 @@ from django.contrib import messages
 
 
 def hdeadend1(request):
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = HDeadend1.objects.filter(structure=structure).exists()
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/hdeadend1.html', {
+                'form': HDeadendForm1(),
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data
+            })
+        
         form = HDeadendForm1(request.POST)
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/hupload1/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
     else:
+        # GET request - create empty form
         form = HDeadendForm1()
 
-    return render(request, 'app1/hdeadend1.html', {'form': form})
+    return render(request, 'app1/hdeadend1.html', {
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data
+    })
 
 
 def hdeadend1_update(request, pk):
-    # Get the existing record or return 404
     hdeadend = get_object_or_404(HDeadend1, pk=pk)
-    
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fetch TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
         form = HDeadendForm1UpdateForm(request.POST, instance=hdeadend)
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/h_deadend_view1/')  # Redirect after successful update
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}'
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
         form = HDeadendForm1UpdateForm(instance=hdeadend)
 
-    return render(request, 'app1/hdeadend1_update.html', {'form': form, 'hdeadend': hdeadend})
+    return render(request, 'app1/hdeadend1_update.html', {
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
+
+
 
 def hupload1(request):
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if circuit data exists
+            circuit_data_exists = HDeadend1.objects.filter(structure=structure).exists()
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        return HttpResponseRedirect(f'/hdeadend1/?structure_id={structure_id}&structure_type={structure_type}')
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
+            # Check if file already exists for this structure
+            existing_file_check = hUploadedFile1.objects.filter(structure=structure).exists()
+            
+            if existing_file_check:
+                return render(request, 'app1/hupload1.html', {
+                    'form': HUDeadendForm1(),
+                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct(),
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
             form = HUDeadendForm1(request.POST, request.FILES)
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    extract_load_cases(uploaded_file)
+                    extract_load_cases(instance)
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload1')
-                except IntegrityError:
+                    # Clear session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    request.session.pop('circuit_structure_id', None)
+                    
+                    # Redirect to show updated state
+                    return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
         # Handle custom group creation
         elif 'create_custom_group' in request.POST:
@@ -4004,9 +4134,12 @@ def hupload1(request):
             }
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
-    else:
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = hUploadedFile1.objects.filter(structure=structure).exists()
         form = HUDeadendForm1()
-
+        
     structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
 
     # Handle AJAX requests for data (GET requests only)
@@ -4080,7 +4213,12 @@ def hupload1(request):
 
     return render(request, 'app1/hupload1.html', {
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 def hupload1_update(request):
@@ -4098,7 +4236,8 @@ def hupload1_update(request):
                 uploaded_file = hUploadedFile1.objects.get(structure=structure)
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
@@ -4112,6 +4251,8 @@ def hupload1_update(request):
                 
             except hUploadedFile1.DoesNotExist:
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
@@ -4525,10 +4666,13 @@ def hupload2(request):
     })
     
     
+from django.contrib.messages import get_messages
+  
 def hupload2_update(request):   # Change here 
     """
     Single page update view with structure selection and file upload
     """
+
     if request.method == 'POST':
         form = HUDeadendUpdateForm2(request.POST, request.FILES)   # Change here 
         if form.is_valid():

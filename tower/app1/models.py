@@ -1157,3 +1157,14 @@ class mUploadedFile13(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['structure'], name='munique_file_per_structure13')
         ]
+        
+        
+class TowerModel3D(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    model_file = models.FileField(upload_to='3d_models/')
+    thumbnail = models.ImageField(upload_to='3d_model_thumbnails/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.name
