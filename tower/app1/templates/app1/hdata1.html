@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Page</title>
 
-
-{% load static %}  <!-- Load static here too for good measure -->
 
 <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 <!-- Load dependencies -->
@@ -247,767 +246,1315 @@
             border-radius: 2px;
         }
         
-  :root {
-        --primary-color: #2c3e50;
-        --secondary-color: #3498db;
-        --accent-color: #e74c3c;
-        --light-gray: #f8f9fa;
-        --border-color: #dee2e6;
-        --success-color: #28a745;
-        --warning-color: #ffc107;
-    }
-    
-    .container {
-        max-width: 98%;
-        margin: 0 auto;
-        padding: 15px;
-        background-color: white;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
-        border-radius: 8px;
-    }
-    
-    h3 {
-        color: var(--primary-color);
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #eee;
-        font-weight: 600;
-        font-size: 1.5rem;
-    }
-    
-    /* Layout adjustments */
-    .row {
-        min-height: 650px; /* Increased to accommodate larger canvas */
-        display: flex;
-        flex-wrap: wrap;
-        align-items: stretch;
-    }
-    
-    .col-md-4, .col-md-8 {
-        padding: 0 10px;
-        box-sizing: border-box;
-    }
-    
-    /* Left column (controls) - reduced width */
-    .col-md-4 {
-        width: 15%;
-        flex: 0 0 15%;
-        max-width: 15%;
-    }
-
-    .col-md-8 {
-        width: 85%;
-        flex: 0 0 85%;
-        max-width: 85%;
-    }
-
-    
-    @media (max-width: 1200px) {
-        .col-md-4 {
-            width: 35%;
-            flex: 0 0 35%;
-            max-width: 35%;
-        }
-        
-        .col-md-8 {
-            width: 65%;
-            flex: 0 0 65%;
-            max-width: 65%;
-        }
-    }
-    
-    @media (max-width: 992px) {
-        .col-md-4, .col-md-8 {
-            width: 100%;
-            flex: 0 0 100%;
-            max-width: 100%;
-            margin-bottom: 20px;
+    :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-gray: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
         }
         
         .container {
-            padding: 12px;
-        }
-    }
-    
-    /* Form Elements */
-    .form-group {
-        margin-bottom: 18px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: var(--primary-color);
-        font-size: 14px;
-    }
-    
-    select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background-color: white;
-        font-size: 14px;
-        transition: border-color 0.3s;
-    }
-    
-    select:focus {
-        border-color: var(--secondary-color);
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-    
-    select option {
-        padding: 8px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    
-    select option:hover {
-        background-color: #f0f0f0;
-    }
-    
-    .calculation-btn {
-        margin: 15px 0;
-        padding: 10px 18px;
-        background-color: var(--secondary-color);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background-color 0.3s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-    }
-    
-    .calculation-btn:hover:not(:disabled) {
-        background-color: #2980b9;
-    }
-    
-    .calculation-btn:disabled {
-        background-color: #95a5a6;
-        cursor: not-allowed;
-    }
-    
-    .selected-count {
-        margin-left: 12px;
-        font-weight: bold;
-        color: var(--primary-color);
-        background: #f1f8ff;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 14px;
-    }
-
-    /* Load Display Table - full width when below */
-    #load-display {
-        background-color: var(--light-gray);
-        padding: 18px;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        margin-top: 20px;
-        width: 100%;
-    }
-    
-    #load-display h5 {
-        margin-top: 0;
-        color: var(--secondary-color);
-        font-weight: 600;
-        margin-bottom: 15px;
-        font-size: 1.1rem;
-    }
-    
-    .table-container {
-        overflow-x: auto;
-        border-radius: 6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-top: 15px;
-        width: 100%;
-    }
-    
-    .table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin-top: 0;
-        font-size: 13px;
-    }
-    
-    .table th {
-        background-color: #e9ecef;
-        font-weight: 600;
-        position: sticky;
-        top: 0;
-        padding: 10px 8px;
-        border: 1px solid var(--border-color);
-        font-size: 13px;
-    }
-    
-    .table td {
-        padding: 8px;
-        border: 1px solid var(--border-color);
-        vertical-align: middle;
-    }
-    
-    .table th:first-child,
-    .table td:first-child {
-        text-align: center;
-        width: 40px;
-    }
-    
-    .table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    
-    .table tr:hover {
-        background-color: rgba(52, 152, 219, 0.05);
-    }
-    
-    /* Checkbox styling */
-    .record-checkbox {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-    }
-    
-    /* Drag and Drop Feedback */
-    option[draggable="true"] {
-        cursor: grab;
-    }
-    
-    option[draggable="true"]:active {
-        cursor: grabbing;
-    }
-    
-    model-viewer {
-        --poster-color: transparent;
-    }
-    
-    .table tr.highlight {
-        animation: highlight 1.5s;
-    }
-
-    @keyframes highlight {
-        0% { background-color: rgba(255, 220, 0, 0.5); }
-        100% { background-color: transparent; }
-    }
-    
-    .checkbox-list {
-        max-height: 220px;
-        overflow-y: auto;
-        border: 1px solid var(--border-color);
-        padding: 10px;
-        border-radius: 6px;
-        background: white;
-        margin-bottom: 0;
-    }
-    
-    .checkbox-list label {
-        display: block;
-        cursor: move;
-        padding: 6px;
-        margin-bottom: 4px;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-        font-size: 13px;
-    }
-    
-    .checkbox-list label:hover {
-        background-color: #f0f8ff;
-    }
-    
-    .model-viewer-container {
-        width: 100%;
-        height: 700px !important;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    #joint-markers-container, 
-        #set-markers-container, 
-        #phase-markers-container,
-        #load-displays-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: visible;
-        }
-        
-        .joint-marker, .set-phase-marker {
-        position: absolute;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        transform: translate(-50%, -50%); /* Center the marker */
-        border: 1px solid #ccc;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        cursor: move;
-        user-select: none;
-        pointer-events: auto;
-        z-index: 5;
-        transition: all 0.2s;
-        background-color: white; /* Add background for better visibility */
-        color: black !important;
-        text-shadow: none;
-    }
-
-    /* Fix the hover effect to prevent movement */
-    .joint-marker:hover, .set-phase-marker:hover {
-        transform: translate(-50%, -50%) scale(1.05); /* Keep the translation */
-        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        z-index: 1000; /* Ensure it stays on top when scaled */
-        background-color: white;
-    }
-    
-
-    .drag-item {
-        display: block;
-        padding: 6px 8px;
-        margin: 4px 0;
-        cursor: move;
-        background-color: var(--light-gray);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        transition: all 0.2s;
-        font-size: 13px;
-    }
-    
-    .drag-item:hover {
-        background-color: #e9ecef;
-        transform: translateX(3px);
-    }
-    
-    .drag-item:active {
-        cursor: grabbing;
-    }
-
-    .load-display {
-        position: absolute;
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 12px;
-        width: 200px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 100;
-        pointer-events: auto;
-    }
-    
-    .load-display-header {
-        font-weight: 600;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: var(--primary-color);
-        font-size: 14px;
-    }
-    
-    .load-display-content div {
-        margin-bottom: 6px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 13px;
-    }
-    
-    .editable {
-        cursor: pointer;
-        padding: 2px 6px;
-        border-radius: 3px;
-        transition: background-color 0.2s;
-        min-width: 50px;
-        text-align: right;
-    }
-    
-    .editable:hover {
-        background-color: #f0f0f0;
-    }
-    
-    .close-btn {
-        cursor: pointer;
-        font-size: 18px;
-        line-height: 1;
-        color: #999;
-        transition: color 0.2s;
-    }
-    
-    .close-btn:hover {
-        color: var(--accent-color);
-    }
-    
-    .size-controls {
-        position: absolute;
-        top: 8px;
-        right: 30px;
-        display: flex;
-        gap: 5px;
-    }
-    
-    .size-btn {
-        width: 22px;
-        height: 22px;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 3px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        transition: all 0.2s;
-    }
-    
-    .size-btn:hover {
-        background: #e9ecef;
-    }
-    
-    .value-edit {
-        width: 60px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 4px;
-        text-align: right;
-    }
-    
-    /* Mobile optimizations */
-    @media (max-width: 992px) {
-        .container {
-            padding: 10px;
+            max-width: 98%;
+            margin: 0 auto;
+            padding: 15px;
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
         }
         
         h3 {
-            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #eee;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+        
+        /* Layout adjustments */
+        .row {
+            min-height: 650px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        
+        .col-md-4, .col-md-8 {
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        
+        /* Left column (controls) - reduced width */
+        .col-md-4 {
+            width: 15%;
+            flex: 0 0 15%;
+            max-width: 15%;
+        }
+
+        .col-md-8 {
+            width: 85%;
+            flex: 0 0 85%;
+            max-width: 85%;
+        }
+
+        @media (max-width: 1200px) {
+            .col-md-4 {
+                width: 35%;
+                flex: 0 0 35%;
+                max-width: 35%;
+            }
+            
+            .col-md-8 {
+                width: 65%;
+                flex: 0 0 65%;
+                max-width: 65%;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .col-md-4, .col-md-8 {
+                width: 100%;
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            .container {
+                padding: 12px;
+            }
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        select option {
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        select option:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .calculation-btn {
+            margin: 15px 0;
+            padding: 10px 18px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .calculation-btn:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        
+        .calculation-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .selected-count {
+            margin-left: 12px;
+            font-weight: bold;
+            color: var(--primary-color);
+            background: #f1f8ff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Load Display Table - full width when below */
+        #load-display {
+            background-color: var(--light-gray);
+            padding: 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        #load-display h5 {
+            margin-top: 0;
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+            font-size: 13px;
+        }
+        
+        .table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            padding: 10px 8px;
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        
+        .table td {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        
+        .table th:first-child,
+        .table td:first-child {
+            text-align: center;
+            width: 40px;
+        }
+        
+        .table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .table tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        /* Checkbox styling */
+        .record-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        /* Drag and Drop Feedback */
+        option[draggable="true"] {
+            cursor: grab;
+        }
+        
+        option[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        
+        model-viewer {
+            --poster-color: transparent;
+        }
+        
+        .table tr.highlight {
+            animation: highlight 1.5s;
+        }
+
+        @keyframes highlight {
+            0% { background-color: rgba(255, 220, 0, 0.5); }
+            100% { background-color: transparent; }
+        }
+        
+        .checkbox-list {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            background: white;
+            margin-bottom: 0;
+        }
+        
+        .checkbox-list label {
+            display: block;
+            cursor: move;
+            padding: 6px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            font-size: 13px;
+        }
+        
+        .checkbox-list label:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .model-viewer-container {
+            width: 100%;
+            height: 700px !important;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #joint-markers-container, 
+            #set-markers-container, 
+            #phase-markers-container,
+            #load-displays-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                overflow: visible;
+            }
+            
+            .joint-marker, .set-phase-marker {
+            position: absolute;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            transform: translate(-50%, -50%); /* Center the marker */
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: move;
+            user-select: none;
+            pointer-events: auto;
+            z-index: 5;
+            transition: all 0.2s;
+            background-color: white; /* Add background for better visibility */
+            color: black !important;
+            text-shadow: none;
+        }
+
+        /* Fix the hover effect to prevent movement */
+        .joint-marker:hover, .set-phase-marker:hover {
+            transform: translate(-50%, -50%) scale(1.05); /* Keep the translation */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1000; /* Ensure it stays on top when scaled */
+            background-color: white;
+        }
+        
+
+        .drag-item {
+            display: block;
+            padding: 6px 8px;
+            margin: 4px 0;
+            cursor: move;
+            background-color: var(--light-gray);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .drag-item:hover {
+            background-color: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        .drag-item:active {
+            cursor: grabbing;
+        }
+
+        .load-display {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            pointer-events: auto;
+        }
+        
+        .load-display-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+        
+        .load-display-content div {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        
+        .editable {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        .editable:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .close-btn {
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            color: #999;
+            transition: color 0.2s;
+        }
+        
+        .close-btn:hover {
+            color: var(--accent-color);
+        }
+        
+        .size-controls {
+            position: absolute;
+            top: 8px;
+            right: 30px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .size-btn {
+            width: 22px;
+            height: 22px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .size-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .value-edit {
+            width: 60px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px;
+            text-align: right;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 992px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h3 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+            
+            .model-viewer-container {
+                height: 450px;
+            }
+            
+            .load-display {
+                width: 180px;
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .calculation-btn {
+                width: 100%;
+                margin: 10px 0;
+            }
+            
+            .selected-count {
+                display: block;
+                margin: 10px 0;
+                text-align: center;
+            }
+            
+            .table th, 
+            .table td {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+            
+            .checkbox-list {
+                max-height: 200px;
+            }
+            
+            #load-display {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .model-viewer-container {
+                height: 400px;
+            }
+            
+            .load-display {
+                width: 160px;
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .table th, 
+            .table td {
+                padding: 6px 4px;
+                font-size: 12px;
+            }
+            
+            .joint-marker {
+                font-size: 11px;
+                padding: 3px 6px;
+            }
+            
+            .checkbox-list {
+                max-height: 180px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .model-viewer-container {
+                height: 350px;
+            }
+            
+            .load-display {
+                width: 140px;
+                padding: 6px;
+                font-size: 11px;
+            }
+            
+            .table th, 
+            .table td {
+                padding: 5px 3px;
+                font-size: 11px;
+            }
+            
+            .calculation-btn {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            
+            .selected-count {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+        
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        /* Visual feedback for selections */
+        input[type="checkbox"]:checked + span {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        /* Custom scrollbar for better aesthetics */
+        .checkbox-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .checkbox-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .checkbox-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .checkbox-list::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Section headers */
+        .section-header {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        /* Button group styling */
+        .btn-container {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-bottom: 15px;
         }
-        
-        .model-viewer-container {
-            height: 450px;
-        }
-        
-        .load-display {
-            width: 180px;
-            padding: 10px;
-            font-size: 13px;
-        }
-        
-        .calculation-btn {
-            width: 100%;
-            margin: 10px 0;
-        }
-        
-        .selected-count {
-            display: block;
-            margin: 10px 0;
-            text-align: center;
-        }
-        
-        .table th, 
-        .table td {
-            padding: 8px 6px;
-            font-size: 12px;
-        }
-        
-        .checkbox-list {
-            max-height: 200px;
-        }
-        
-        #load-display {
-            padding: 15px;
-        }
+
+
+        .joint-marker, .set-phase-marker {
+        color: black !important;
+        background: none !important;
+        border: none !important;
+        font-weight: normal;
+        text-shadow: none;
     }
-    
-    @media (max-width: 768px) {
-        .model-viewer-container {
-            height: 400px;
-        }
-        
-        .load-display {
-            width: 160px;
-            padding: 8px;
-            font-size: 12px;
-        }
-        
-        .table th, 
-        .table td {
-            padding: 6px 4px;
-            font-size: 12px;
-        }
-        
-        .joint-marker {
-            font-size: 11px;
-            padding: 3px 6px;
-        }
-        
-        .checkbox-list {
-            max-height: 180px;
-        }
+
+    .value-marker {
+        color: black !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
-    
-    @media (max-width: 576px) {
-        .model-viewer-container {
-            height: 350px;
-        }
-        
-        .load-display {
-            width: 140px;
-            padding: 6px;
-            font-size: 11px;
-        }
-        
-        .table th, 
-        .table td {
-            padding: 5px 3px;
-            font-size: 11px;
-        }
-        
-        .calculation-btn {
-            font-size: 13px;
-            padding: 8px 12px;
-        }
-        
-        .selected-count {
-            font-size: 12px;
-            padding: 4px 8px;
-        }
+
+    /* Remove any existing background colors */
+    .joint-marker:hover, .set-phase-marker:hover {
+        background: transparent !important;
+        color: black !important;
     }
-    
-    /* Loading state */
-    .loading {
-        opacity: 0.7;
-        pointer-events: none;
+
+    .value-marker:hover {
+        /* Remove transform: scale(1.1) from here */
+        transform: translate(-50%, -50%); /* Keep only the positioning */
     }
-    
-    /* Visual feedback for selections */
-    input[type="checkbox"]:checked + span {
-        font-weight: 600;
-        color: var(--secondary-color);
+
+    /* Ensure consistent styling for all markers */
+    .value-marker {
+        transform: translate(-50%, -50%); /* Center all markers */
+        transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth transitions */
     }
-    
-    /* Custom scrollbar for better aesthetics */
-    .checkbox-list::-webkit-scrollbar {
-        width: 6px;
+
+    #model-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
     }
-    
-    .checkbox-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-    
-    .checkbox-list::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 10px;
-    }
-    
-    .checkbox-list::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-    
-    /* Section headers */
-    .section-header {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 12px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    /* Button group styling */
-    .btn-container {
+
+    /* Enhanced Drag and Drop Styles */
+    .movement-btn {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #ddd;
+        background: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
         display: flex;
         align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .movement-btn:hover {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .movement-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Enhanced drag item styles */
+    .drag-item {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .drag-item.dragging {
+        opacity: 0.6;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Canvas drag states */
+    #model-canvas.drag-over {
+        box-shadow: 0 0 0 3px #007bff inset;
+        background: rgba(0, 123, 255, 0.05);
+    }
+
+    /* Enhanced marker styles for better dragging */
+    .value-marker {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        cursor: move;
+        user-select: none;
+    }
+
+    .value-marker.dragging {
+        opacity: 0.8;
+        transform: scale(1.1);
+        z-index: 1000 !important;
+    }
+
+    /* Responsive control panel */
+    @media (max-width: 768px) {
+        .movement-btn {
+            width: 25px;
+            height: 25px;
+            font-size: 10px;
+        }
+        
+        #drop-mode, #grid-snap {
+            font-size: 11px;
+            padding: 4px;
+        }
+    }
+
+    /* Visual feedback for grid snapping */
+    .grid-snap-visual {
+        position: absolute;
+        pointer-events: none;
+        border: 1px dashed #007bff;
+        background: rgba(0, 123, 255, 0.1);
+        z-index: 999;
+    }
+
+    .combination-builder {
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+
+    .selected-items {
+        padding: 5px;
+        background: white;
+        border-radius: 3px;
+        border: 1px solid #eee;
+    }
+
+    .active-combinations-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+    .combination-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px;
+        margin: 2px 0;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+    }
+
+    .combination-text {
+        flex-grow: 1;
+    }
+
+    .remove-combination {
+        padding: 0 5px;
+        margin-left: 10px;
+        font-weight: bold;
+    }
+
+    /* Multi-select styling */
+    .form-control[multiple] {
+        min-height: 100px;
+    }
+
+    .load-case-group-header {
+        background-color: #e9ecef !important;
+    }
+
+    .combination-group-checkbox {
+        transform: scale(1.2);
+        margin-right: 8px;
+    }
+
+    .load-cases-section {
+        margin-top: 25px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e1e4e8;
+    }
+
+    .load-case-links {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 15px;
     }
 
-
-    .joint-marker, .set-phase-marker {
-    color: black !important;
-    background: none !important;
-    border: none !important;
-    font-weight: normal;
-    text-shadow: none;
-}
-
-.value-marker {
-    color: black !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-/* Remove any existing background colors */
-.joint-marker:hover, .set-phase-marker:hover {
-    background: transparent !important;
-    color: black !important;
-}
-
-.value-marker:hover {
-    /* Remove transform: scale(1.1) from here */
-    transform: translate(-50%, -50%); /* Keep only the positioning */
-}
-
-/* Ensure consistent styling for all markers */
-.value-marker {
-    transform: translate(-50%, -50%); /* Center all markers */
-    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth transitions */
-}
-
-#model-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-/* Enhanced Drag and Drop Styles */
-.movement-btn {
-    width: 30px;
-    height: 30px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    transition: all 0.2s;
-}
-
-.movement-btn:hover {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
-}
-
-.movement-btn:active {
-    transform: scale(0.95);
-}
-
-/* Enhanced drag item styles */
-.drag-item {
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.drag-item.dragging {
-    opacity: 0.6;
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Canvas drag states */
-#model-canvas.drag-over {
-    box-shadow: 0 0 0 3px #007bff inset;
-    background: rgba(0, 123, 255, 0.05);
-}
-
-/* Enhanced marker styles for better dragging */
-.value-marker {
-    transition: transform 0.2s ease, opacity 0.2s ease;
-    cursor: move;
-    user-select: none;
-}
-
-.value-marker.dragging {
-    opacity: 0.8;
-    transform: scale(1.1);
-    z-index: 1000 !important;
-}
-
-/* Responsive control panel */
-@media (max-width: 768px) {
-    .movement-btn {
-        width: 25px;
-        height: 25px;
-        font-size: 10px;
+    .load-case-link {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #f0f0f0;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+        transition: all 0.3s;
     }
-    
-    #drop-mode, #grid-snap {
-        font-size: 11px;
-        padding: 4px;
+
+    .load-case-link:hover {
+        background-color: #e0e0e0;
+        transform: translateY(-2px);
     }
-}
 
-/* Visual feedback for grid snapping */
-.grid-snap-visual {
-    position: absolute;
-    pointer-events: none;
-    border: 1px dashed #007bff;
-    background: rgba(0, 123, 255, 0.1);
-    z-index: 999;
-}
+    .load-case-link.active {
+        background-color: #1252a7;
+        color: white;
+        border-color: #1252a7;
+    }
 
-.combination-builder {
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: #f8f9fa;
-}
+    #load-cases-results {
+        margin-top: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e1e4e8;
+    }
 
-.selected-items {
-    padding: 5px;
-    background: white;
-    border-radius: 3px;
-    border: 1px solid #eee;
-}
+    .load-cases-list, .group-load-cases-list {
+        list-style-type: none;
+        padding-left: 0;
+    }
 
-.active-combinations-list {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 10px;
-}
+    .load-cases-list li, .group-load-cases-list li {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+    }
 
-.combination-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px;
-    margin: 2px 0;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 3px;
-}
+    .load-cases-list li:hover, .group-load-cases-list li:hover {
+        background-color: #f0f4f8;
+    }
 
-.combination-text {
-    flex-grow: 1;
-}
+    .load-case-group {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #e1e4e8;
+        border-radius: 8px;
+        background: white;
+    }
 
-.remove-combination {
-    padding: 0 5px;
-    margin-left: 10px;
-    font-weight: bold;
-}
+    .load-case-group h5 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        color: #1252a7;
+    }
 
-/* Multi-select styling */
-.form-control[multiple] {
-    min-height: 100px;
-}
+    .group-select-all {
+        margin-bottom: 10px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-.load-case-group-header {
-    background-color: #e9ecef !important;
-}
+    /* Selected Load Cases */
+    .selected-load-cases {
+        margin-top: 25px;
+        padding: 20px;
+        background: #e8f4ff;
+        border-radius: 8px;
+        border: 1px solid #c3d9f8;
+    }
 
-.combination-group-checkbox {
-    transform: scale(1.2);
-    margin-right: 8px;
-}
+    .selected-case {
+        display: inline-block;
+        margin: 5px;
+        padding: 8px 15px;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #c3d9f8;
+        position: relative;
+    }
+
+    .remove-case {
+        margin-left: 8px;
+        cursor: pointer;
+        color: #ff4757;
+        font-weight: bold;
+    }
+
+    .remove-case:hover {
+        color: #ff2e43;
+    }
+
+    /* Custom Group Creation Section */
+    #create-custom-group {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e1e4e8;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    #custom-group-name {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+
+    #custom-group-name:focus {
+        border-color: #1252a7;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
+    }
+
+    #create-custom-group-btn {
+        background-color: #1252a7;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        white-space: nowrap;
+    }
+
+    #create-custom-group-btn:hover {
+        background-color: #0e4285;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #create-custom-group-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Ultra transparent Movement Controls without background blur */
+    .model-viewer-container .movement-controls-panel {
+        position: absolute !important;
+        top: 50px !important;
+        right: 10px !important;
+        z-index: 100 !important;
+        background: rgba(255, 255, 255, 0.1) !important; /* Very transparent */
+        backdrop-filter: none !important; /* No blur on background */
+        -webkit-backdrop-filter: none !important;
+        padding: 15px !important;
+        border-radius: 12px !important;
+        box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        min-width: 200px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .model-viewer-container .movement-controls-panel:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 
+            0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    }
+
+    /* Even more transparent version */
+    .model-viewer-container .movement-controls-panel.ultra-clear {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 
+            0 1px 4px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Make controls visible against transparent background */
+    .movement-controls-panel h6 {
+        margin: 0 0 12px 0 !important;
+        color: #2c3e50 !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        background: rgba(255, 255, 255, 0.7) !important; /* Semi-transparent background for text */
+        padding: 5px 8px !important;
+        border-radius: 4px !important;
+    }
+
+    .movement-controls-panel label {
+        color: #2c3e50 !important;
+        font-weight: 600 !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        padding: 2px 6px !important;
+        border-radius: 3px !important;
+        display: inline-block !important;
+        margin-bottom: 5px !important;
+    }
+
+    .movement-controls-panel .movement-btn {
+        background: rgba(248, 249, 250, 0.9) !important;
+        border: 1px solid rgba(221, 221, 221, 0.8) !important;
+        font-weight: 600 !important;
+    }
+
+    .movement-controls-panel .movement-btn:hover {
+        background: rgba(0, 123, 255, 0.9) !important;
+        color: white !important;
+        border: 1px solid rgba(0, 123, 255, 0.8) !important;
+    }
+
+    .movement-controls-panel #selected-info {
+        color: #2c3e50 !important;
+        font-size: 11px !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        padding: 6px 8px !important;
+        border-radius: 4px !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .movement-controls-panel #step-size-value {
+        color: #2c3e50 !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        padding: 2px 6px !important;
+        border-radius: 3px !important;
+        display: inline-block !important;
+        margin-top: 5px !important;
+    }
+
+    /* Input range with solid background */
+    .movement-controls-panel input[type="range"] {
+        background: rgba(248, 249, 250, 0.9) !important;
+        border: 1px solid rgba(221, 221, 221, 0.8) !important;
+        border-radius: 4px !important;
+        padding: 5px !important;
+    }
+
+    /* Section backgrounds for better organization */
+    .movement-controls-panel > div {
+        background: rgba(255, 255, 255, 0.4) !important;
+        padding: 8px 10px !important;
+        border-radius: 6px !important;
+        margin-bottom: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    }
+
+    /* Enhanced Combination Buttons */
+    #create-all-combinations,
+    #create-single-combination,
+    #clear-combinations {
+        border-radius: 8px !important; /* Increased from default */
+        padding: 10px 16px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        border: none !important;
+        margin: 5px 0 !important;
+        width: 100% !important;
+        font-size: 14px !important;
+    }
+
+    #create-all-combinations {
+        background: linear-gradient(135deg, #007bff, #0056b3) !important;
+        color: white !important;
+    }
+
+    #create-single-combination {
+        background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+        color: white !important;
+    }
+
+    #clear-combinations {
+        background: linear-gradient(135deg, #6c757d, #545b62) !important;
+        color: white !important;
+    }
+
+    #create-all-combinations:hover,
+    #create-single-combination:hover,
+    #clear-combinations:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    #create-all-combinations:active,
+    #create-single-combination:active,
+    #clear-combinations:active {
+        transform: translateY(0) !important;
+    }
+
+    /* Responsive improvements for Movement Controls */
+    @media (max-width: 768px) {
+        .movement-controls-panel {
+            position: relative !important;
+            top: auto !important;
+            right: auto !important;
+            margin: 10px 0 !important;
+            width: 100% !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+        }
+        
+        #create-all-combinations,
+        #create-single-combination,
+        #clear-combinations {
+            padding: 12px 16px !important;
+            font-size: 15px !important;
+            margin: 8px 0 !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .movement-controls-panel {
+            padding: 12px !important;
+            border-radius: 10px !important;
+        }
+        
+        #create-all-combinations,
+        #create-single-combination,
+        #clear-combinations {
+            padding: 10px 14px !important;
+            font-size: 14px !important;
+        }
+    }
+
+    /* NEW: Compact Model Selection & Upload Styling */
+    .model-controls-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .model-control-card {
+        flex: 1;
+        min-width: 300px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #eaeaea;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .model-control-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .model-control-header {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .model-control-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+
+    .model-control-body {
+        padding: 16px;
+    }
+
+    .compact-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .form-group-compact {
+        flex: 1;
+        margin-bottom: 0;
+    }
+
+    .form-group-compact label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .form-control-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        transition: all 0.2s;
+    }
+
+    .form-control-sm:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-sm-compact {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn-primary-sm {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+    }
+
+    .btn-primary-sm:hover {
+        background: linear-gradient(135deg, #2980b9, #2573a7);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-success-sm {
+        background: linear-gradient(135deg, #28a745, #218838);
+        color: white;
+    }
+
+    .btn-success-sm:hover {
+        background: linear-gradient(135deg, #218838, #1e7e34);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .file-input-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border: 1px dashed #ced4da;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #6c757d;
+        transition: all 0.2s;
+    }
+
+    .file-input-wrapper:hover .file-input-display {
+        border-color: #3498db;
+        background: #f0f8ff;
+    }
+
+    .file-input-icon {
+        color: #3498db;
+        font-size: 14px;
+    }
+
+    .model-status {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 8px;
+        padding: 6px 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #3498db;
+    }
+
+    .model-status strong {
+        color: #2c3e50;
+    }
+
+    /* Responsive adjustments for compact cards */
+    @media (max-width: 768px) {
+        .model-controls-container {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .model-control-card {
+            min-width: 100%;
+        }
+        
+        .form-row {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn-sm-compact {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .model-control-body {
+            padding: 12px;
+        }
+        
+        .model-control-header {
+            padding: 10px 12px;
+        }
+        
+        .model-control-header h6 {
+            font-size: 13px;
+        }
+    }
+
 
     </style>
 
@@ -1054,111 +1601,110 @@
         </div>
     </header>
 
-<div class="container">
-    <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
-    
-    <div class="row">
-        <!-- Left side - Selection Options (reduced width) -->
-        <div class="col-md-4">
-            {% if button_type == 'joint_labels' %}
-            <!-- Show only joint labels section when joint labels button was clicked -->
-            <div class="form-group">
-                <label for="joint-labels">Attachment Joint Labels:</label>
-                <div class="checkbox-list" id="joint-labels">
-                    {% for label in joint_labels %}
-                        <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
-                            <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
-                        </label>
-                    {% endfor %}
-                </div>
-            </div>
-            {% elif button_type == 'set_phase' %}
-            <!-- Show only set/phase sections when set/phase button was clicked -->
-            <div class="form-group">
-                <label for="set-select">Set No.:</label>
-                <select id="set-select" class="form-control" multiple size="4">
-                    {% for num in set_numbers %}
-                        <option value="{{ num }}">{{ num }}</option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
-            </div>
-
-            <div class="form-group">
-                <label for="phase-select">Phase No.:</label>
-                <select id="phase-select" class="form-control" multiple size="4">
-                    {% for num in phase_numbers %}
-                        <option value="{{ num }}">{{ num }}</option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
-            </div>
-
-            <!-- Combination Builder Section -->
-            <div class="form-group">
-                <label>Create Set-Phase Combinations:</label>
-                <div class="combination-builder">
-                    <div class="selected-items mb-2">
-                        <strong>Selected Sets:</strong> 
-                        <span id="selected-sets-display">None</span>
-                    </div>
-                    <div class="selected-items mb-2">
-                        <strong>Selected Phases:</strong> 
-                        <span id="selected-phases-display">None</span>
-                    </div>
-                    <button id="create-all-combinations" class="btn btn-primary btn-sm">
-                        Create All Combinations
-                    </button>
-                    <button id="create-single-combination" class="btn btn-success btn-sm">
-                        Create Single Combination
-                    </button>
-                    <button id="clear-combinations" class="btn btn-secondary btn-sm">
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <!-- Active Combinations Display -->
-            <div class="form-group">
-                <label>Active Combinations:</label>
-                <div id="active-combinations" class="active-combinations-list">
-                    <!-- Combinations will be displayed here -->
-                </div>
-            </div>
-            {% endif %}
-        </div>
+  <div class="container">
+        <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
         
-        <!-- Right side - 3D Model Viewer (increased width) -->
-        <div class="col-md-8">
-            <div class="model-viewer-container">
-                <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
-                    <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
-                        Hide Grid
-                    </button>
-                    <!-- Enhanced Control Panel -->
-                    <div style="position: absolute; top: 50px; right: 10px; z-index: 100; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 200px;">
-                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
-                        
-                        {% comment %} <!-- Drop Mode Selection -->
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
-                            <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
-                                <option value="precise">Precise Placement</option>
-                                <option value="free">Free Placement</option>
-                            </select>
+        <div class="row">
+            <!-- Left side - Selection Options (reduced width) -->
+            <div class="col-md-4">
+                {% if button_type == 'joint_labels' %}
+                <!-- Show only joint labels section when joint labels button was clicked -->
+                <div class="form-group">
+                    <label for="joint-labels">Attachment Joint Labels:</label>
+                    <div class="checkbox-list" id="joint-labels">
+                        {% for label in joint_labels %}
+                            <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                                <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% elif button_type == 'set_phase' %}
+                <!-- Show only set/phase sections when set/phase button was clicked -->
+                <div class="form-group">
+                    <label for="set-select">Set No.:</label>
+                    <select id="set-select" class="form-control" multiple size="4">
+                        {% for num in set_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="phase-select">Phase No.:</label>
+                    <select id="phase-select" class="form-control" multiple size="4">
+                        {% for num in phase_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
+                </div>
+                <!-- Combination Builder Section -->
+                <div class="form-group">
+                    <label>Create Set-Phase Combinations:</label>
+                    <div class="combination-builder">
+                        <div class="selected-items mb-2">
+                            <strong>Selected Sets:</strong> 
+                            <span id="selected-sets-display">None</span>
                         </div>
+                        <div class="selected-items mb-2">
+                            <strong>Selected Phases:</strong> 
+                            <span id="selected-phases-display">None</span>
+                        </div>
+                        <button id="create-all-combinations" class="btn btn-primary btn-sm">
+                            Create All Combinations
+                        </button>
+                        <button id="create-single-combination" class="btn btn-success btn-sm">
+                            Create Single Combination
+                        </button>
+                        <button id="clear-combinations" class="btn btn-secondary btn-sm">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
 
-                        <!-- Grid Snapping -->
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
-                            <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
-                                <option value="0.1">Fine (0.1)</option>
-                                <option value="0.25" selected>Medium (0.25)</option>
-                                <option value="0.5">Coarse (0.5)</option>
-                                <option value="0">Off</option>
-                            </select>
-                        </div> {% endcomment %}
+                <!-- Active Combinations Display -->
+                <div class="form-group">
+                    <label>Active Combinations:</label>
+                    <div id="active-combinations" class="active-combinations-list">
+                        <!-- Combinations will be displayed here -->
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right side - 3D Model Viewer (increased width) -->
+            <div class="col-md-8">
+                <div class="model-viewer-container">
+                    <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                        <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
+                            Hide Grid
+                        </button>
+                        <!-- Enhanced Control Panel -->
+                        <div class="movement-controls-panel">
+                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
 
+                        {% comment %} <!-- Drop Mode Selection -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
+                                <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="precise">Precise Placement</option>
+                                    <option value="free">Free Placement</option>
+                                </select>
+                            </div>
+
+                            <!-- Grid Snapping -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
+                                <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="0.1">Fine (0.1)</option>
+                                    <option value="0.25" selected>Medium (0.25)</option>
+                                    <option value="0.5">Coarse (0.5)</option>
+                                    <option value="0">Off</option>
+                                </select>
+                            </div> {% endcomment %}
+                        
                         <!-- Movement Controls -->
                         <div style="margin-bottom: 10px;">
                             <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
@@ -1199,49 +1745,145 @@
                         </div>
                     </div>
                 </div>
-                <canvas id="model-canvas"></canvas>
-                <div id="joint-markers-container"></div>
-                <div id="set-markers-container"></div>
-                <div id="phase-markers-container"></div>
-                <div id="load-displays-container"></div>
+                    <canvas id="model-canvas"></canvas>
+                    <div id="joint-markers-container"></div>
+                    <div id="set-markers-container"></div>
+                    <div id="phase-markers-container"></div>
+                    <div id="load-displays-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <a href="{% url 'load_cases' %}" class="btn btn-outline-primary">
+                ⚡ Go to Load Cases Selection
+            </a>
+        </div>
+
+        <!-- NEW: Compact Model Selection & Upload Section -->
+        <div class="model-controls-container">
+            <!-- Model Selection Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Select 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-group-compact">
+                            <label for="model-select">Model:</label>
+                            <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
+                                <option value="">-- Default Model --</option>
+                                {% for model in available_models %}
+                                    <option value="{{ model.id }}" 
+                                        {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
+                                        {{ model.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="model-status">
+                            {% if selected_model %}
+                                Currently viewing: <strong>{{ selected_model.name }}</strong>
+                            {% else %}
+                                Using default tower model
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Model Upload Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Upload New 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" enctype="multipart/form-data" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group-compact">
+                                <label for="model_name">Model Name:</label>
+                                <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
+                            </div>
+                            <div class="form-group-compact">
+                                <label for="tower_model_file">3D Model File:</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
+                                    <div class="file-input-display">
+                                        <span>Choose file...</span>
+                                        <span class="file-input-icon">📁</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group-compact">
+                                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Load Display Table - now placed below and full width -->
+        <div id="load-display">
+            <h5>Load Values</h5>
+            <div class="btn-container">
+                <button id="calculate-btn" class="calculation-btn" disabled>
+                    <span>Calculate Selected Records</span>
+                </button>
+                <span id="selected-count" class="selected-count">0 selected</span>
+            </div>
+
+            <div class="table-container">
+                <table class="table table-bordered" id="load-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for column in all_columns %}
+                                <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
-    
-    <!-- Load Display Table - now placed below and full width -->
-    <div id="load-display">
-        <h5>Load Values</h5>
-        <div class="btn-container">
-            <button id="calculate-btn" class="calculation-btn" disabled>
-                <span>Calculate Selected Records</span>
-            </button>
-            <span id="selected-count" class="selected-count">0 selected</span>
-        </div>
 
-
-        <div class="table-container">
-            <table class="table table-bordered" id="load-table">
-                <thead>
-                    <tr>
-                        <th>Select</th>
-                        {% for column in all_columns %}
-                            <th>{{ column }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+    <div class="modal fade" id="aheadBackModal" tabindex="-1" role="dialog" aria-labelledby="aheadBackModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aheadBackModalLabel">Verify Combination Direction</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Please confirm the direction for the following newly created Set-Phase combinations:</p>
+                <ul id="new-combinations-list" class="list-group mb-3">
+                    </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
+                <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
+            </div>
         </div>
     </div>
 </div>
-
-
 
 <!-- Include Three.js library -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
 
 
 <script>
@@ -1264,7 +1906,8 @@
     let combinationCounter = 0; // Counter to make each combination unique
     const activeCombinations = new Map();
     let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
-    
+    let combinationsToConfirm = []; 
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     let gridHelpers = []; // Array to store all grid helpers
     let isGridVisible = true;
     let transformControls;
@@ -1323,30 +1966,77 @@
 
         // Load GLB model
         const loader = new THREE.GLTFLoader();
-        loader.load(
-            "{% static 'app1/images/powerTransmissionTower.glb' %}",
-            function (gltf) {
-                model = gltf.scene;
-                scene.add(model);
+        function loadTowerModel(modelUrl) {
+    // Remove existing model if any
+    if (model) {
+        scene.remove(model);
+        model = null;
+    }
+    
+    loader.load(
+        modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
 
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                model.position.sub(center);
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
 
-                create3DGridCage(box);
-                model.rotation.y = Math.PI / 4;
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
 
-                // NEW: Initialize enhanced event listeners
-                initEnhancedEventListeners();
-                
-                animate();
-            },
-            undefined,
-            function (error) {
-                console.error('Error loading model:', error);
-            }
-        );
+            // Initialize enhanced event listeners
+            initEnhancedEventListeners();
+            
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading model:', error);
+            // Fallback to default model
+            loadDefaultModel();
+        }
+    );
+}
+
+{% if selected_model %}
+        const selectedModelUrl = "{{ selected_model.get_file_url }}";
+        console.log('Selected Model URL:', selectedModelUrl); // ADD THIS LINE
+        loadTowerModel(selectedModelUrl);
+    {% else %}
+        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+        console.log('Default Model URL:', defaultModelUrl); // ADD THIS LINE
+        loadDefaultModel(defaultModelUrl);
+    {% endif %}
+
+// Function to load default model
+function loadDefaultModel() {
+    loader.load(
+       modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
+
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
+
+            initEnhancedEventListeners();
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading default model:', error);
+        }
+    );
+}
+
 
         window.addEventListener('resize', onWindowResize);
         renderer.domElement.addEventListener('click', onCanvasClick);
@@ -2754,7 +3444,7 @@ function createSingleCombination() {
 
 // Create individual combination
 function createCombination(set, phase) {
-    const combinationId = `comb_${combinationCounter++}_${Date.now()}`; // More unique ID
+    const combinationId = `comb_${combinationCounter++}_${Date.now()}`;
     const combination = {
         id: combinationId,
         set: set,
@@ -2766,38 +3456,208 @@ function createCombination(set, phase) {
     activeCombinations.set(combinationId, combination);
     
     console.log(`Created combination: ${combination.displayText} (ID: ${combinationId})`);
-    console.log('Active combinations count:', activeCombinations.size);
     
     // Add to 3D scene if needed
     addSetPhaseMarker(set, phase);
     
     showCombinationCreatedMessage(combination.displayText);
+    
+    syncSelectionsWithSession(); // NEW: Sync with session
     return combinationId;
+}
+
+// Function to generate combinations (Keep this logic, but decouple storage)
+function generateCombinations(mode) {
+    const selectedSets = Array.from(document.getElementById('set-select').selectedOptions).map(opt => opt.value);
+    const selectedPhases = Array.from(document.getElementById('phase-select').selectedOptions).map(opt => opt.value);
+    
+    let generatedCombinations = [];
+
+    if (mode === 'all') {
+        if (selectedSets.length === 0 || selectedPhases.length === 0) {
+            alert('Please select at least one Set and one Phase for "Create All Combinations".');
+            return [];
+        }
+        for (const set of selectedSets) {
+            for (const phase of selectedPhases) {
+                generatedCombinations.push(`${set}-${phase}`);
+            }
+        }
+    } else if (mode === 'single') {
+        if (selectedSets.length !== 1 || selectedPhases.length !== 1) {
+            alert('Please select exactly one Set and one Phase for "Create Single Combination".');
+            return [];
+        }
+        generatedCombinations.push(`${selectedSets[0]}-${selectedPhases[0]}`);
+    }
+
+    
+    return generatedCombinations;
 }
 
 // Update the active combinations display
 function updateActiveCombinationsDisplay() {
-    const container = document.getElementById('active-combinations');
-    if (!container) return;
-    
-    if (activeCombinations.size === 0) {
-        container.innerHTML = '<div class="text-muted">No active combinations</div>';
+    const displayElement = document.getElementById('active-combinations');
+    displayElement.innerHTML = ''; // Clear existing list
+
+    // Load from the session data passed by Django (which now includes status)
+    const activeCombinationsList = JSON.parse('{{ active_combinations|safe|escapejs }}');
+
+    if (activeCombinationsList.length === 0) {
+        displayElement.innerHTML = '<p class="text-muted">No combinations active.</p>';
         return;
     }
-    
-    let html = '';
-    activeCombinations.forEach((comb, id) => {
-        html += `
-            <div class="combination-item" data-combination-id="${id}">
-                <span class="combination-text">${comb.displayText}</span>
-                <button class="btn btn-sm btn-outline-danger remove-combination" 
-                        onclick="removeCombination('${id}')">×</button>
-            </div>
-        `;
+
+    activeCombinationsList.forEach(combo => {
+        // combo will be like "1-2-Ahead"
+        const [set, phase, status] = combo.split('-'); 
+        
+        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        const item = document.createElement('span');
+        item.className = 'badge badge-primary mr-1 mb-1';
+        item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
+        item.dataset.set = set;
+        item.dataset.phase = phase;
+        item.dataset.status = status;
+        // Optionally add a remove button
+        // item.innerHTML += '<button class="close ml-1" onclick="removeCombination(\'' + combo + '\')">&times;</button>';
+        displayElement.appendChild(item);
     });
-    
-    container.innerHTML = html;
 }
+
+async function storeCombinations(status) {
+    if (combinationsToConfirm.length === 0) return;
+
+    try {
+        const response = await fetch('{% url "store_set_phase_combinations" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken 
+            },
+            body: JSON.stringify({
+                combinations: combinationsToConfirm,
+                status: status
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log(result.message);
+            
+            // Use the data returned from the server to update the display
+            updateActiveCombinationsDisplayFromResponse(result.new_combinations);
+            updateTable();
+            
+            // Optionally show success message
+            showSuccessMessage(`Combinations stored as ${status}`);
+        } else {
+            alert('Error storing combinations: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Network or other error:', error);
+        alert('An unexpected error occurred. Check console.');
+    } finally {
+        combinationsToConfirm = [];
+    }
+}
+
+function updateActiveCombinationsDisplayFromResponse(newCombinations) {
+    const displayElement = document.getElementById('active-combinations');
+    displayElement.innerHTML = '';
+
+    if (!newCombinations || newCombinations.length === 0) {
+        displayElement.innerHTML = '<p class="text-muted">No combinations active.</p>';
+        return;
+    }
+
+    newCombinations.forEach(combo => {
+        // combo will be like "1-2-Ahead" (format from your Django view)
+        const [set, phase, status] = combo.split('-'); 
+        
+        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        const item = document.createElement('span');
+        item.className = 'badge badge-primary mr-1 mb-1';
+        item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
+        item.dataset.set = set;
+        item.dataset.phase = phase;
+        item.dataset.status = status;
+        displayElement.appendChild(item);
+    });
+}
+
+function showSuccessMessage(message) {
+    // You can use a toast library or simple alert
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        document.body.removeChild(toast);
+    }, 3000);
+}
+
+// Event Listeners for Create Buttons
+document.getElementById('create-all-combinations').addEventListener('click', function() {
+    const newCombinations = generateCombinations('all');
+    if (newCombinations.length > 0) {
+        combinationsToConfirm = newCombinations;
+        showAheadBackModal();
+    }
+});
+
+document.getElementById('create-single-combination').addEventListener('click', function() {
+    const newCombinations = generateCombinations('single');
+    if (newCombinations.length > 0) {
+        combinationsToConfirm = newCombinations;
+        showAheadBackModal();
+    }
+});
+
+
+function showAheadBackModal() {
+    const ul = document.getElementById('new-combinations-list');
+    ul.innerHTML = ''; // Clear previous list
+    
+    if (combinationsToConfirm.length === 0) {
+        return; // Should not happen if called correctly
+    }
+
+    combinationsToConfirm.forEach(combo => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-info';
+        const [set, phase] = combo.split('-');
+        li.textContent = `Set: ${set}, Phase: ${phase}`;
+        ul.appendChild(li);
+    });
+
+    // Show the Bootstrap modal
+    $('#aheadBackModal').modal('show');
+}
+
+// Event listeners for Modal Buttons
+document.getElementById('btn-ahead').addEventListener('click', function() {
+    storeCombinations('Ahead');
+});
+
+document.getElementById('btn-back').addEventListener('click', function() {
+    storeCombinations('Back');
+});
+
+// Call the display function on page load
+document.addEventListener('DOMContentLoaded', updateActiveCombinationsDisplay);
 
 // Remove a specific combination
 function removeCombination(combinationId) {
@@ -2812,8 +3672,10 @@ function removeCombination(combinationId) {
         
         updateActiveCombinationsDisplay();
         updateTable();
+        syncSelectionsWithSession(); // NEW: Sync with session
     }
 }
+
 
 // Clear all combinations
 function clearAllCombinations() {
@@ -2826,7 +3688,9 @@ function clearAllCombinations() {
     
     updateActiveCombinationsDisplay();
     updateTable();
+    syncSelectionsWithSession(); // NEW: Sync with session
 }
+
 
 // Helper function to remove set-phase marker by combination
 function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
@@ -2837,6 +3701,49 @@ function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
             removeSetPhaseMarker(uniqueId);
         }
     });
+}
+
+function syncSelectionsWithSession() {
+    const selectedJointsArray = Array.from(selectedJoints);
+    const activeCombinationsArray = Array.from(activeCombinations.values());
+    
+    const formData = new FormData();
+    selectedJointsArray.forEach(joint => formData.append('selected_joints[]', joint));
+    formData.append('active_combinations', JSON.stringify(activeCombinationsArray));
+    
+    fetch('/update-selection-session/', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Selections synced with session:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error syncing selections:', error);
+    });
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
     // Set up event listeners
@@ -2925,25 +3832,27 @@ function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
 
         // Joint selection (keep existing)
         const jointContainer = document.getElementById('joint-labels');
-        if (jointContainer) {
-            jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const jointValue = this.value;
+            if (jointContainer) {
+                jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const jointValue = this.value;
 
-                    if (this.checked) {
-                        selectedJoints.add(jointValue);
-                        // Add marker if it doesn't exist
-                        if (!jointMarkers[jointValue]) {
-                            addJointMarker(jointValue);
+                        if (this.checked) {
+                            selectedJoints.add(jointValue);
+                            // Add marker if it doesn't exist
+                            if (!jointMarkers[jointValue]) {
+                                addJointMarker(jointValue);
+                            }
+                        } else {
+                            selectedJoints.delete(jointValue);
+                            removeJointMarker(jointValue);
                         }
-                    } else {
-                        selectedJoints.delete(jointValue);
-                        removeJointMarker(jointValue);
-                    }
-                    updateTable();
+                        updateTable();
+                        syncSelectionsWithSession(); // NEW: Sync with session
+                    });
                 });
-            });
-        }
+            }
+
 
 
     document.querySelectorAll('.drag-item').forEach(item => {
@@ -3228,6 +4137,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+ <script>
+        // File input display update
+        document.getElementById('tower_model_file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'Choose file...';
+            const displayElement = this.parentNode.querySelector('.file-input-display span:first-child');
+            displayElement.textContent = fileName;
+        });
+
+        // Step size display update
+        const stepSizeSlider = document.getElementById('step-size');
+        const stepSizeValue = document.getElementById('step-size-value');
+        
+        if (stepSizeSlider && stepSizeValue) {
+            stepSizeSlider.addEventListener('input', function() {
+                stepSizeValue.textContent = this.value + ' units';
+            });
+        }
+    </script>
 
  </body>
 </html>

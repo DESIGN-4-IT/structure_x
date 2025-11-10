@@ -372,144 +372,130 @@ import json
 
 
 from django.templatetags.static import static
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
+
+@require_http_methods(["POST"])
+@csrf_exempt # Consider removing this and passing the CSRF token in AJAX
+def store_set_phase_combinations(request):
+    """
+    Handles the AJAX request to store the created Set-Phase combinations
+    along with their 'Ahead' or 'Back' status in the session.
+    """
+    try:
+        # Load the JSON data sent from the frontend
+        data = json.loads(request.body)
+        
+        # The data should contain the list of combinations and the status
+        combinations_to_add = data.get('combinations', [])
+        status = data.get('status') # 'Ahead' or 'Back'
+        
+        if not combinations_to_add or status not in ['Ahead', 'Back']:
+            return JsonResponse({'status': 'error', 'message': 'Invalid data provided.'}, status=400)
+
+        # Get the current active combinations from the session
+        # Initialize if it doesn't exist
+        selected_values = request.session.get('selected_values', {})
+        active_combinations = selected_values.get('active_combinations', [])
+
+        # Process the new combinations: Add the status
+        new_active_combinations = []
+        for combo in combinations_to_add:
+      
+            combo_with_status = f"{combo}-{status}" 
+            new_active_combinations.append(combo_with_status)
+
+        active_combinations.extend(new_active_combinations)
+
+        # Update the session with the new list
+        request.session['selected_values']['active_combinations'] = active_combinations
+        request.session.modified = True
+
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'Successfully stored {len(combinations_to_add)} combinations as {status}.',
+            'new_combinations': new_active_combinations
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON format.'}, status=400)
+    except Exception as e:
+        print(f"Error storing combinations: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 def hdata1(request):
+                               # **********8
+    available_models = TowerModel.objects.all().order_by('name')
+    selected_model_id = request.session.get('selected_model_id')
+    
+    if request.method == 'POST' and 'selected_model' in request.POST:
+        selected_model_id = request.POST.get('selected_model')
+        if selected_model_id:
+            request.session['selected_model_id'] = selected_model_id
+        else:
+            # Clear selection if "None" is selected
+            request.session.pop('selected_model_id', None)
+    
+    # Handle new model upload
+    if request.method == 'POST' and 'tower_model_file' in request.FILES:
+        model_name = request.POST.get('model_name', 'Unnamed Model')
+        model_file = request.FILES['tower_model_file']
+        
+        # Validate file type
+        if model_file.name.endswith(('.glb', '.gltf')):
+            new_model = TowerModel.objects.create(
+                name=model_name,
+                model_file=model_file
+            )
+            # Optionally select the newly uploaded model
+            request.session['selected_model_id'] = new_model.id
+    
+    # Get selected model if any
+    selected_model = None
+    if selected_model_id:
+        try:
+            selected_model = TowerModel.objects.get(id=selected_model_id)
+        except TowerModel.DoesNotExist:
+            pass                                       # **********8
     # Get selected values from session
     selected_values = request.session.get('selected_values', {})
+    active_combinations = selected_values.get('active_combinations', [])
     structure_id = selected_values.get('structure_id')
     button_type = selected_values.get('button_type', '')
-    selected_load_cases = selected_values.get('load_cases', [])
     
-    # If coming directly from buttons without specific filters
-    if not structure_id and 'go_button' in request.POST:
-        structure_id = request.POST.get('structure_id')
-        button_type = request.POST.get('go_button')
-        load_case_values = request.POST.get('load_case_values', '')
-        
-        # Convert comma-separated string to list
-        if load_case_values:
-            selected_load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-        else:
-            selected_load_cases = []
-            
-        if structure_id:
-            selected_values = {
-                'structure_id': structure_id,
-                'button_type': button_type,
-                'load_cases': selected_load_cases
-            }
-            request.session['selected_values'] = selected_values
     
+    # Keep only the canvas container logic
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             
             # Try to get the latest file from different models
             latest_file = None
-            file_model = None
+            file_models = [
+                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+            ]
             
-            # Check different file models in order of priority
-            if tUploadedFile6.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile6'
-            elif hUploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile1'
-            elif tUploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile1'
-            elif tUploadedFile2.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile2'
-            elif tUploadedFile3.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile3'
-            elif tUploadedFile4.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile4'
-            elif tUploadedFile5.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile5'
-            elif hUploadedFile2.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile2'
-            elif hUploadedFile3.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile3'
-            elif hUploadedFile4.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile4'
-                
-            elif tUploadedFile7.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile7'
-                
-            elif tUploadedFile8.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile8'
-                
-            elif tUploadedFile9.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile9'
-                
-            elif tUploadedFile10.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile10'
-                
-            elif tUploadedFile11.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile11'
-                
-            elif UploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = UploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'UploadedFile1'
-                
-            elif UploadedFile22.objects.filter(structure=structure).exists():
-                latest_file = UploadedFile22.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'UploadedFile22'
-                
-            elif mUploadedFile5.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile5'
-                
-            elif mUploadedFile6.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile6'
-        
-            elif mUploadedFile7.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile7'
-                
-            elif mUploadedFile8.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile8'
-                
-            elif mUploadedFile9.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile9'
-                
-            elif mUploadedFile10.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile10'
-            
-            elif mUploadedFile11.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile11'
-                
-                
-    
+            for model in file_models:
+                if model.objects.filter(structure=structure).exists():
+                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                    break
             
             if not latest_file:
                 raise Exception("No uploaded file found for this structure")
                 
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            # Filter by selected load cases if any are selected
+            # Get selected load cases from session to filter data
+            selected_load_cases = selected_values.get('load_cases', [])
             if selected_load_cases and 'Load Case Description' in df.columns:
-                print(f"Filtering by load cases: {selected_load_cases}")
                 df = df[df['Load Case Description'].isin(selected_load_cases)]
-                print(f"Filtered dataframe shape: {df.shape}")
 
             # Prepare complete data for table display
             load_data = []
@@ -541,8 +527,59 @@ def hdata1(request):
         set_numbers = []
         phase_numbers = []
         load_data = []
+    
+    # NEW: Initialize session storage for selections
+    if 'selected_values' not in request.session:
+        request.session['selected_values'] = {}
+    
+    # Initialize empty arrays if they don't exist
+    if 'selected_joints' not in request.session['selected_values']:
+        request.session['selected_values']['selected_joints'] = []
+    
+    if 'active_combinations' not in request.session['selected_values']:
+        request.session['selected_values']['active_combinations'] = []
+    
+    # Get current selections from session
+    selected_joints = request.session['selected_values'].get('selected_joints', [])
+    # IMPORTANT: The active_combinations now includes the 'Ahead'/'Back' status
+    active_combinations = request.session['selected_values'].get('active_combinations', [])
+    
+    # Build filter criteria
+    filter_criteria = {}
+    
+    # Store joint labels if any are selected
+    if selected_joints:
+        filter_criteria['joint_labels'] = selected_joints
+    
+    # Store set-phase combinations if any are active
+    set_phase_pairs = []
+    if active_combinations:
+        for combo in active_combinations:
+            if isinstance(combo, str):
+                # New, correct format: "1-2-Ahead"
+                # We need the first two parts ("1" and "2")
+                set_phase_pairs.append(combo.split('-')[:2])
+            elif isinstance(combo, dict):
+                # Handle potential LEGACY dictionary format (e.g., {'set': 1, 'phase': 2})
+                # If your old format was different, adjust this logic.
+                set_val = str(combo.get('set'))
+                phase_val = str(combo.get('phase'))
+                if set_val and phase_val:
+                    set_phase_pairs.append([set_val, phase_val])
+                # NOTE: If you don't need to support the legacy dict format, you can
+                # just add a 'pass' or continue to skip it.
+            # else: skip other unexpected data types
+
+    if set_phase_pairs:
+        filter_criteria['set_phase_combinations'] = set_phase_pairs
+    
+    # Store filter criteria in session
+    request.session['selected_values']['filter_criteria'] = filter_criteria
+    request.session.modified = True
 
     return render(request, 'app1/hdata1.html', {
+        'available_models': available_models,   # **********8
+        'selected_model': selected_model,        # **********8
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
@@ -550,9 +587,547 @@ def hdata1(request):
         'load_data_json': json.dumps(load_data),
         'selected_values': selected_values,
         'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
-        'button_type': button_type
+        'button_type': button_type,
+        'structure_id': structure_id,
+        'filter_criteria': filter_criteria,
+        'selected_joints': selected_joints,  # NEW: Pass to template
+        'active_combinations': active_combinations,  # NEW: Pass to template
     })
     
+# Add this function to your views.py
+def update_selection_session(request):
+    """Update session with current selections"""
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if request.method == 'POST':
+            selected_joints = request.POST.getlist('selected_joints[]')
+            active_combinations_json = request.POST.get('active_combinations', '[]')
+            
+            try:
+                active_combinations = json.loads(active_combinations_json)
+            except json.JSONDecodeError:
+                active_combinations = []
+            
+            # Ensure Set and Phase values are consistently stored as strings,
+            # potentially converting numbers to their integer string representation if they are whole.
+            normalized_combinations = []
+            for combo in active_combinations:
+                normalized_combo = {}
+                for key, value in combo.items():
+                    if isinstance(value, (int, float)):
+                        # If it's a whole number, store as integer string '2' instead of '2.0'
+                        if value == int(value):
+                            normalized_combo[key] = str(int(value))
+                        else:
+                            normalized_combo[key] = str(value)
+                    else:
+                        normalized_combo[key] = str(value).strip() # Ensure no leading/trailing spaces
+                normalized_combinations.append(normalized_combo)
+
+            if 'selected_values' not in request.session:
+                request.session['selected_values'] = {}
+            
+            request.session['selected_values']['selected_joints'] = selected_joints
+            request.session['selected_values']['active_combinations'] = normalized_combinations # Use normalized combinations
+            
+            filter_criteria = {}
+            if selected_joints:
+                filter_criteria['joint_labels'] = selected_joints
+            if normalized_combinations:
+                filter_criteria['set_phase_combinations'] = normalized_combinations # Use normalized combinations
+            
+            request.session['selected_values']['filter_criteria'] = filter_criteria
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'selected_joints': selected_joints,
+                'active_combinations': normalized_combinations, # Return normalized combinations
+                'filter_criteria': filter_criteria
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+def apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases=None):
+    """Apply filter based on previous page selection (Set+Phase or Joint Label)"""
+    if not structure_id or not filter_criteria:
+        return []
+    
+    try:
+        structure = ListOfStructure.objects.get(id=structure_id)
+        
+        latest_file = None
+        file_models = [
+            tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+            tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+            hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+            tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+            UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+            mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+        ]
+        
+        for model in file_models:
+            if model.objects.filter(structure=structure).exists():
+                latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                break
+        
+        if not latest_file:
+            print("DEBUG: No latest file found.") # Added debug
+            return []
+            
+        df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+        
+        print(f"DEBUG: Original dataframe shape: {df.shape}")
+        print(f"DEBUG: Filter criteria: {filter_criteria}")
+        print(f"DEBUG: Selected load cases: {selected_load_cases}")
+        
+        if selected_load_cases and 'Load Case Description' in df.columns:
+            df = df[df['Load Case Description'].isin(selected_load_cases)]
+            print(f"DEBUG: After load case filter: {df.shape}")
+        
+        if 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
+            joint_labels = [str(label).strip() for label in filter_criteria['joint_labels']] # Ensure stripping
+            print(f"DEBUG: Filtering by joint labels: {joint_labels}")
+            if 'Attach. Joint Labels' in df.columns:
+                df['Attach. Joint Labels'] = df['Attach. Joint Labels'].astype(str).str.strip() # Strip whitespace
+                df = df[df['Attach. Joint Labels'].isin(joint_labels)]
+                print(f"DEBUG: After joint filter: {df.shape}")
+        
+        if 'set_phase_combinations' in filter_criteria and filter_criteria['set_phase_combinations']:
+            combinations = filter_criteria['set_phase_combinations']
+            print(f"DEBUG: Filtering by combinations: {combinations}")
+            
+            # Prepare dataframe columns for robust comparison
+            df_set_col_exists = 'Set No.' in df.columns
+            df_phase_col_exists = 'Phase No.' in df.columns
+
+            if df_set_col_exists:
+                df['Set No._norm'] = df['Set No.'].apply(lambda x: str(int(x)) if pd.notna(x) and x == int(x) else str(x) if pd.notna(x) else '').str.strip()
+            if df_phase_col_exists:
+                df['Phase No._norm'] = df['Phase No.'].apply(lambda x: str(int(x)) if pd.notna(x) and x == int(x) else str(x) if pd.notna(x) else '').str.strip()
+            
+            combination_mask = pd.Series([False] * len(df))
+            
+            for combination in combinations:
+                # Retrieve the normalized values from the session
+                set_val = combination.get('set', '')
+                phase_val = combination.get('phase', '')
+                
+                print(f"DEBUG: Looking for Set: '{set_val}', Phase: '{phase_val}'")
+                
+                # Apply filters using the new normalized columns
+                set_filter = (df['Set No._norm'] == set_val) if df_set_col_exists else pd.Series([False] * len(df))
+                phase_filter = (df['Phase No._norm'] == phase_val) if df_phase_col_exists else pd.Series([False] * len(df))
+                
+                combo_filter = set_filter & phase_filter
+                
+                matching_count = combo_filter.sum()
+                print(f"DEBUG: Records matching Set '{set_val}' AND Phase '{phase_val}': {matching_count}")
+                
+                if matching_count > 0:
+                    print(f"DEBUG: Sample matching records:")
+                    matching_records = df[combo_filter].head(3)
+                    for _, record in matching_records.iterrows():
+                        print(f"  - Set: {record.get('Set No.', 'N/A')}, Phase: {record.get('Phase No.', 'N/A')}, Load Case: {record.get('Load Case Description', 'N/A')}")
+                
+                combination_mask = combination_mask | combo_filter
+            
+            if combination_mask.any():
+                df = df[combination_mask]
+                print(f"DEBUG: After combination filter: {df.shape}")
+            else:
+                print(f"DEBUG: No records matched any combination in the remaining data.")
+                return [] # No records matched after all filters
+        
+        # Original logic for returning filtered data records
+        filtered_data = []
+        for _, row in df.iterrows():
+            row_data = {}
+            for col in df.columns:
+                # Exclude temporary normalized columns from final output
+                if col.endswith('_norm'):
+                    continue 
+
+                # Handle NaN values and data types for output
+                val = row[col]
+                if pd.isna(val):
+                    row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                elif pd.api.types.is_numeric_dtype(df[col]):
+                    row_data[col] = float(val)
+                else:
+                    row_data[col] = str(val)
+            filtered_data.append(row_data)
+        
+        print(f"DEBUG: Final filtered records count: {len(filtered_data)}")
+        return filtered_data
+            
+    except Exception as e:
+        print(f"Error applying filter: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return []
+    
+def load_cases_page(request):
+    """New dedicated page for Load Cases Selection and Load Values"""
+    # Get selected values from session
+    selected_values = request.session.get('selected_values', {})
+    structure_id = selected_values.get('structure_id')
+    selected_load_cases = selected_values.get('load_cases', [])
+    
+    # NEW: Get filter criteria from previous page
+    filter_criteria = selected_values.get('filter_criteria', {})
+    
+    # Handle load cases selection via AJAX only
+    if request.method == 'POST' and 'load_cases_selection' in request.POST:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            selected_load_cases = request.POST.getlist('selected_load_cases')
+            # Store selected load cases in session
+            if 'selected_values' not in request.session:
+                request.session['selected_values'] = {}
+            request.session['selected_values']['load_cases'] = selected_load_cases
+            request.session.modified = True
+            
+            # Return JSON response for AJAX requests
+            return JsonResponse({'success': True, 'selected_cases': selected_load_cases})
+    
+    # NEW: Handle filter by previous selection
+    if request.method == 'POST' and 'filter_by_previous' in request.POST:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            print(f"DEBUG: Filtering by previous selection - Criteria: {filter_criteria}")
+            print(f"DEBUG: Current selected load cases: {selected_load_cases}")
+            
+            # Apply filter criteria to get filtered data - ONLY use currently selected load cases
+            filtered_data = apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases)
+            
+            # DO NOT update the selected_load_cases in session - keep user's current selection
+            # Only return the filtered data for display
+            
+            print(f"DEBUG: Filtered data count: {len(filtered_data)}")
+            
+            return JsonResponse({
+                'success': True, 
+                'filtered_data': filtered_data,  # Return the actual data
+                'filter_criteria': filter_criteria,
+                'record_count': len(filtered_data),
+                'current_selected_cases': selected_load_cases  # Return current selection for reference
+            })
+
+
+    
+    # AJAX handlers (moved from hdata1)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return handle_load_cases_ajax(request)
+    
+    # Data processing for Load Values display
+    load_data = []
+    available_load_cases = []
+    all_columns = []
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # Try to get the latest file from different models
+            latest_file = None
+            file_models = [
+                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+            ]
+            
+            for model in file_models:
+                if model.objects.filter(structure=structure).exists():
+                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                    break
+            
+            if latest_file:
+                df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+                # Get available load cases for selection
+                if 'Load Case Description' in df.columns:
+                    available_load_cases = df['Load Case Description'].dropna().unique().tolist()
+
+                # NEW: Apply filter criteria if available and no specific load cases selected
+                if not selected_load_cases and filter_criteria:
+                    filtered_load_cases = apply_previous_selection_filter(structure_id, filter_criteria)
+                    if filtered_load_cases and 'Load Case Description' in df.columns:
+                        df = df[df['Load Case Description'].isin(filtered_load_cases)]
+                # Existing: Filter by selected load cases if any are selected
+                elif selected_load_cases and 'Load Case Description' in df.columns:
+                    df = df[df['Load Case Description'].isin(selected_load_cases)]
+
+                # Prepare complete data for table display
+                for _, row in df.iterrows():
+                    row_data = {}
+                    for col in df.columns:
+                        if pd.notna(row[col]):
+                            if pd.api.types.is_numeric_dtype(df[col]):
+                                row_data[col] = float(row[col])
+                            else:
+                                row_data[col] = str(row[col])
+                        else:
+                            row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                    load_data.append(row_data)
+
+                all_columns = list(df.columns)
+
+        except Exception as e:
+            print(f"Error processing Excel file: {str(e)}")
+
+    # Handle calculation request
+    if request.method == 'GET' and 'calculation_data' in request.GET:
+        try:
+            calculation_data = json.loads(request.GET.get('calculation_data', '[]'))
+            return render(request, 'app1/calculation_results.html', {
+                'calculation_data': calculation_data,
+                'structure_id': structure_id
+            })
+        except json.JSONDecodeError:
+            pass
+
+    return render(request, 'app1/load_cases.html', {
+        'load_data': load_data,
+        'load_data_json': json.dumps(load_data),
+        'selected_values': selected_values,
+        'all_columns': all_columns,
+        'available_load_cases': available_load_cases,
+        'selected_load_cases': selected_load_cases,
+        'structure_id': structure_id,
+        'filter_criteria': filter_criteria,  # NEW: Pass filter criteria to template
+    })
+    
+def get_filtered_load_data(request):
+    """Get filtered load data based on selected load cases"""
+    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+    
+    structure_id = request.GET.get('structure_id')
+    selected_load_cases = request.GET.getlist('selected_load_cases') or []
+    
+    if not structure_id:
+        return JsonResponse({'error': 'Structure ID is required'}, status=400)
+    
+    try:
+        structure = ListOfStructure.objects.get(id=structure_id)
+        load_data = []
+        all_columns = []
+        
+        # Try to get the latest file from different models
+        latest_file = None
+        file_models = [
+            tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+            tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+            hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+            tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+            UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+            mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+        ]
+        
+        for model in file_models:
+            if model.objects.filter(structure=structure).exists():
+                latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                break
+        
+        if latest_file:
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            # Filter by selected load cases if any are selected
+            if selected_load_cases and 'Load Case Description' in df.columns:
+                df = df[df['Load Case Description'].isin(selected_load_cases)]
+
+            # Prepare complete data for table display
+            for _, row in df.iterrows():
+                row_data = {}
+                for col in df.columns:
+                    if pd.notna(row[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                load_data.append(row_data)
+
+            all_columns = list(df.columns)
+            
+            return JsonResponse({
+                'load_data': load_data,
+                'all_columns': all_columns,
+                'record_count': len(load_data)
+            })
+        else:
+            return JsonResponse({'error': 'No file found for this structure'}, status=404)
+            
+    except ListOfStructure.DoesNotExist:
+        return JsonResponse({'error': 'Structure not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def handle_load_cases_ajax(request):
+    """Handle all AJAX requests for load cases (moved from hdata1)"""
+    structure_id = request.GET.get('structure_id') or request.POST.get('structure_id')
+    
+    if not structure_id:
+        return JsonResponse({'error': 'Structure ID is required'}, status=400)
+        
+    try:
+        structure = ListOfStructure.objects.get(id=structure_id)
+        
+        # Handle custom group creation
+        if request.method == 'POST' and 'create_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if group_name and selected_cases:
+                custom_group = LoadCaseGroup.objects.create(
+                    name=group_name,
+                    structure=structure,
+                    is_custom=True
+                )
+                
+                for case_name in selected_cases:
+                    LoadCase.objects.create(
+                        name=case_name,
+                        group=custom_group,
+                        structure=structure
+                    )
+                
+                return JsonResponse({'success': True})
+            return JsonResponse({'success': False, 'error': 'Group name and cases are required'})
+        
+        # Handle custom group deletion
+        elif request.method == 'POST' and 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name:
+                LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    name=group_name, 
+                    is_custom=True
+                ).delete()
+                return JsonResponse({'success': True})
+            return JsonResponse({'success': False, 'error': 'Group name is required'})
+        
+        # Handle custom group update
+        elif request.method == 'POST' and 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            
+            if old_group_name and new_group_name:
+                groups = LoadCaseGroup.objects.filter(
+                    structure=structure,
+                    name=old_group_name,
+                    is_custom=True
+                )
+                
+                if not groups.exists():
+                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
+                
+                for group in groups:
+                    group.name = new_group_name
+                    group.save()
+                
+                return JsonResponse({'success': True})
+            return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
+        
+        # Handle GET requests for load case data
+        elif request.method == 'GET':
+            # Get filtered load data for table
+            if request.GET.get('get_filtered_load_data'):
+                return get_filtered_load_data(request)
+            
+            # Get imported load cases
+            elif request.GET.get('get_load_cases'):
+                return get_imported_load_cases(structure)
+            
+            # Get grouped load cases
+            elif request.GET.get('get_grouped_load_cases'):
+                return get_grouped_load_cases(structure)
+            
+            # Get custom groups
+            elif request.GET.get('get_custom_groups_for_selection'):
+                return get_custom_groups(structure)
+    
+    except ListOfStructure.DoesNotExist:
+        return JsonResponse({'error': 'Structure not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def get_imported_load_cases(structure):
+    """Get imported load cases from Excel files"""
+    latest_file = None
+    file_models = [
+        hUploadedFile1, tUploadedFile6, tUploadedFile1, tUploadedFile2,
+        tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+        hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+        tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+        UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+        mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+    ]
+    
+    for model in file_models:
+        if model.objects.filter(structure=structure).exists():
+            latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+            break
+    
+    if latest_file:
+        df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+        if 'Load Case Description' in df.columns:
+            load_cases = df['Load Case Description'].dropna().unique().tolist()
+            return JsonResponse({'values': load_cases})
+    
+    return JsonResponse({'error': 'No load cases found'}, status=404)
+
+def get_grouped_load_cases(structure):
+    """Get grouped load cases from Excel files"""
+    latest_file = None
+    file_models = [hUploadedFile1, tUploadedFile6, tUploadedFile1]
+    
+    for model in file_models:
+        if model.objects.filter(structure=structure).exists():
+            latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+            break
+    
+    if latest_file:
+        df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+        if 'Load Case Description' in df.columns:
+            load_cases = df['Load Case Description'].dropna().unique().tolist()
+            
+            # Group load cases by prefix
+            grouped_cases = {}
+            for case in load_cases:
+                if ' ' in case:
+                    prefix = case.split(' ')[0]
+                else:
+                    prefix = case
+                    
+                if prefix not in grouped_cases:
+                    grouped_cases[prefix] = []
+                grouped_cases[prefix].append(case)
+            
+            return JsonResponse({'groups': grouped_cases})
+    
+    return JsonResponse({'error': 'No grouped load cases found'}, status=404)
+
+def get_custom_groups(structure):
+    """Get custom groups from database"""
+    custom_groups = LoadCaseGroup.objects.filter(
+        structure=structure, 
+        is_custom=True
+    ).prefetch_related('load_cases')
+    
+    groups_data = {}
+    for group in custom_groups:
+        groups_data[group.name] = [case.name for case in group.load_cases.all()]
+    
+    return JsonResponse({'custom_groups': groups_data})
+
+
 import math
 import json
 from django.shortcuts import render
@@ -4032,105 +4607,21 @@ def hupload1(request):
                     for error in errors:
                         messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
-        elif 'create_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    
-                    # Create custom group
-                    custom_group = LoadCaseGroup.objects.create(
-                        name=group_name,
-                        structure=structure,
-                        is_custom=True
-                    )
-                    
-                    # Add selected cases to the custom group
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=custom_group,
-                            structure=structure
-                        )
-                    
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle custom group deletion (POST)
-        elif 'delete_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-            else:
-                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
-        
-        # Handle custom group update (POST)
-        elif 'update_custom_group' in request.POST:
-            old_group_name = request.POST.get('old_group_name')
-            new_group_name = request.POST.get('new_group_name')
-            structure_id = request.POST.get('structure_id')  # Optional
-            
-            if not old_group_name or not new_group_name:
-                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
-            
-            try:
-                if structure_id:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    groups = LoadCaseGroup.objects.filter(
-                        structure=structure,
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                else:
-                    groups = LoadCaseGroup.objects.filter(
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                
-                if not groups.exists():
-                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
-                
-                for group in groups:
-                    group.name = new_group_name
-                    group.save()
-                
-                return JsonResponse({'success': True})
-                
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
-            
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
+        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
             selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
+                'button_type': 'set_phase',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id
             }
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
@@ -4164,49 +4655,6 @@ def hupload1(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
-            elif request.GET.get('get_load_cases'):
-                # Process load cases - extract unique load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    return JsonResponse({'values': load_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-                    
-            elif request.GET.get('get_grouped_load_cases'):
-                # Process grouped load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    
-                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
-                    grouped_cases = {}
-                    for case in load_cases:
-                        # Extract the prefix (first word before space)
-                        if ' ' in case:
-                            prefix = case.split(' ')[0]
-                        else:
-                            prefix = case
-                            
-                        if prefix not in grouped_cases:
-                            grouped_cases[prefix] = []
-                        grouped_cases[prefix].append(case)
-                    
-                    return JsonResponse({'groups': grouped_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-            
-            # New: Get custom groups for a structure
-            elif request.GET.get('get_custom_groups_for_selection'):
-                custom_groups = LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    is_custom=True
-                ).prefetch_related('load_cases')
-                
-                groups_data = {}
-                for group in custom_groups:
-                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
-                
-                return JsonResponse({'custom_groups': groups_data})
                 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

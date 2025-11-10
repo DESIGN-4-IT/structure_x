@@ -1,0 +1,1708 @@
+{% extends "app1/base.html" %}
+{% load static %}  <!-- Load static here too for good measure -->
+
+{% block title %}KOmatrix LoadView{% endblock %}
+
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+
+:root {
+            /* Primary Colors */
+            --primary-blue: #4976b5ff;  /* Deepened primary blue */
+            --dark-blue: #0d3a7a;
+            --light-blue: #e1eaf5;
+            --middle-blue:#1252a7;
+            
+            /* Accent Colors */
+            --accent-yellow: #ffc107;
+            --dark-yellow: #e6a800;
+            --light-yellow: #fff8e6;
+            
+            /* Background Colors */
+            --bg-light: #f8fafc;
+            --bg-medium: #f0f4f8;
+            --bg-dark: #e1e8ed;
+            
+            /* Text Colors */
+            --text-dark: #2d3748;
+            --text-medium: #4a5568;
+            --text-light: #718096;
+            
+            /* UI Colors */
+            --ui-white: #ffffff;
+            --ui-light: #edf2f7;
+            --ui-medium: #e2e8f0;
+            --ui-dark: #cbd5e0;
+            
+            /* Status Colors */
+            --success: #38a169;
+            --warning: #dd6b20;
+            --error: #e53e3e;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            
+            /* Transitions */
+            --transition-fast: all 0.15s ease;
+            --transition-normal: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Spacing */
+            --space-xs: 2.95rem;
+            --space-sm: 0.5rem;
+
+            --space-smm: 0.8rem;
+            --space-mdd: 2rem;
+
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            box-shadow: var(--shadow-lg);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            padding: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+            height: 60px;
+            position: relative; /* Added for better positioning control */
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1; /* Allow it to take available space */
+        }
+
+        .logo img {
+            height: 36px;
+            width: auto;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+            margin-top:2px;
+        }
+
+        .header-title {
+            color: var(--accent-yellow);
+            font-size: 1.25rem;
+            font-weight: 600;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Navigation */
+        .main-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the navigation */
+            flex: 2; /* Take more space to help with centering */
+        }
+
+
+        .menu {
+            display: flex;
+            list-style: none;
+            gap: var(--space-xs);
+            justify-content: center; /* Center menu items */
+            width: 100%; /* Take full width of its container */
+        }
+
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            padding: var(--space-sm) var(--space-md); /* Increased padding */
+            display: block;
+            font-weight: 500;
+            transition: var(--transition-fast);
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            position: relative;
+            margin-top:7px;
+        }
+
+        .menu-link:hover, 
+        .menu-item:hover .menu-link {
+            color: var(--ui-white);
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: var(--accent-yellow);
+            transition: var(--transition-fast);
+        }
+
+        .menu-item:hover .menu-link::after {
+            width: 60%;
+        }
+   
+
+        .menu-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+        }
+
+
+        /* Search Bar */
+        .search {
+            position: relative;
+            display: flex;
+            justify-content: flex-end; /* Push search to the right */
+            flex: 1; /* Allow it to take available space */
+            margin-left:100px;
+        }
+        .search-input {
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            width: 200px;
+            transition: var(--transition-normal);
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--ui-white);
+            backdrop-filter: blur(5px);
+            padding:5px;
+            margin-top:-5px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+            width: 250px;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-highlight {
+            background-color: rgba(255, 193, 7, 0.3);
+            border-radius: 2px;
+        }
+/* ----------- General Page Layout ----------- */
+.btn-outline-secondary {
+    color: #007bff;
+    border-color: #007bff;
+    background-color: transparent;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #007bff;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 123, 255, 0.4);
+}
+
+
+h3, h4, h5 {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.container-fluid {
+    max-width: 1400px;
+}
+
+/* ----------- Navigation & Buttons ----------- */
+.btn {
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* ----------- Load Case Links ----------- */
+.load-case-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.load-case-link {
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    color: #495057;
+    background-color: #fff;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.load-case-link.active {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+    box-shadow: 0 2px 6px rgba(0,123,255,0.3);
+}
+
+.load-case-link:hover {
+    background-color: #e9ecef;
+    color: #000;
+}
+
+/* ----------- Section Containers ----------- */
+.load-cases-section,
+#load-values-section {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.filter-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* ----------- Selected Load Cases ----------- */
+.selected-load-cases {
+    background: #f9f9f9;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+#selected-cases-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.selected-case {
+    background: #007bff;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* ----------- Custom Group Section ----------- */
+#create-custom-group {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+#create-custom-group input {
+    border-radius: 6px;
+}
+
+/* Scrollable area inside Load Cases Selection */
+#load-cases-results {
+    max-height: 400px; /* adjust height if needed */
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* Custom scrollbar styling (optional but nice) */
+#load-cases-results::-webkit-scrollbar {
+    width: 8px;
+}
+
+#load-cases-results::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 8px;
+}
+
+#load-cases-results::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 8px;
+}
+
+#load-cases-results::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+
+
+/* ----------- Table Section ----------- */
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #343a40;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f3f5;
+}
+
+/* ----------- Badge & Buttons ----------- */
+.selected-count {
+    font-size: 0.9rem;
+    border-radius: 12px;
+}
+
+/* ----------- Notifications ----------- */
+.custom-notification {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ----------- Responsive Adjustments ----------- */
+@media (max-width: 768px) {
+    h3, h4 {
+        font-size: 1.2rem;
+    }
+
+    .load-case-links {
+        flex-direction: column;
+    }
+
+    .load-case-link {
+        text-align: center;
+    }
+
+    #selected-cases-list {
+        flex-direction: column;
+    }
+
+    .btn-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .table th, .table td {
+        font-size: 0.85rem;
+        padding: 6px;
+    }
+}
+</style>
+
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h3>Load Cases Selection & Load Values</h3>
+                
+                <!-- Navigation back to canvas container -->
+                <div class="mb-3">
+                    <a href="{% url 'hdata1' %}" class="btn btn-outline-secondary">
+                        ← Back to Canvas Container
+                    </a>
+                </div>
+
+                <!-- Load Cases Selection Section -->
+                <div class="load-cases-section mb-4">
+                    <h4>Load Cases Selection</h4>
+                    
+                    <div class="load-case-links mb-3">
+                        <a href="#" id="imported-load-cases-link" class="load-case-link active">Imported Load Cases</a>
+                        <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
+                        <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
+                    </div>
+                    
+                    <div id="load-cases-results" class="mb-3 p-3 border rounded bg-light">
+                        <!-- Load cases will be displayed here -->
+                    </div>
+                    
+                    <!-- Selected Load Cases Display -->
+                    <div class="selected-load-cases mb-3 p-3 border rounded bg-light" id="selected-load-cases" style="display: none;">
+                        <h5>Selected Load Cases:</h5>
+                        <div id="selected-cases-list" class="d-flex flex-wrap gap-2"></div>
+                        
+                        <!-- Custom Group Creation -->
+                        <div id="create-custom-group" class="mt-3 p-3 border rounded" style="display: none;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <input type="text" id="custom-group-name" placeholder="Enter custom group name" 
+                                       class="form-control" style="min-width: 200px;">
+                                <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Load Case Selection Form -->
+                    <form method="post" id="load-cases-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="load_cases_selection" value="true">
+                        <input type="hidden" name="selected_load_cases_input" id="selected-load-cases-input">
+                        
+                        <button type="submit" class="btn btn-primary mt-2">Apply Selected Load Cases</button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <div class="filter-section mb-3">
+                <form method="post" id="filter-previous-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="filter_by_previous" value="true">
+                    <button type="submit" class="btn btn-info" id="filter-previous-btn">
+                        🔍 Filter by Set+Phase Combinations
+                    </button>
+                    <small class="text-muted ms-2">
+                        {% if filter_criteria %}
+                            Active filters: 
+                            {% if filter_criteria.joint_labels %}
+                                Joint Labels ({{ filter_criteria.joint_labels|length }})
+                            {% endif %}
+                            {% if filter_criteria.set_phase_combinations %}
+                                Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
+                                <!-- Debug info -->
+                                <div class="debug-info small text-info mt-1">
+                                    Combinations: 
+                                    {% for combo in filter_criteria.set_phase_combinations %}
+                                        Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            No previous selection found
+                        {% endif %}
+                    </small>
+                </form>
+            </div>
+
+                <!-- Load Values Display Section -->
+                <div id="load-values-section">
+                    <h4>Load Values</h4>
+                    <p class="text-muted">This data will be used for calculations based on your selected load cases.</p>
+                    
+                    <div class="btn-container mb-3">
+                        <button id="calculate-btn" class="btn btn-success calculation-btn" disabled>
+                            Calculate Selected Records
+                        </button>
+                        <span id="selected-count" class="selected-count badge bg-secondary ms-2">0 selected</span>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table table-bordered table-striped" id="load-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Select</th>
+                                    {% for column in all_columns %}
+                                        <th>{{ column }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    {% endblock %}
+
+{% block extra_js %}
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const structureId = '{{ structure_id }}';
+    const loadCasesResults = document.getElementById('load-cases-results');
+    const selectedLoadCasesSection = document.getElementById('selected-load-cases');
+    const selectedCasesList = document.getElementById('selected-cases-list');
+    const selectedLoadCasesInput = document.getElementById('selected-load-cases-input');
+    const createCustomGroupSection = document.getElementById('create-custom-group');
+    const customGroupNameInput = document.getElementById('custom-group-name');
+    const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
+    const loadCasesForm = document.getElementById('load-cases-form');
+    const loadTable = document.getElementById('load-table');
+    const loadTableBody = loadTable.querySelector('tbody');
+    const calculateBtn = document.getElementById('calculate-btn');
+    const selectedCount = document.getElementById('selected-count');
+    
+    const selectedLoadCases = new Set([...{{ selected_load_cases|safe }}]);
+    const loadCaseLinks = document.querySelectorAll('.load-case-link');
+    const selectedRecords = new Set();
+    let allTableData = [];
+
+    // Initialize with imported load cases
+    loadImportedLoadCases();
+    
+    function updateSelectedLoadCases() {
+        if (selectedLoadCases.size > 0) {
+            selectedLoadCasesSection.style.display = 'block';
+            selectedCasesList.innerHTML = '';
+            
+            selectedLoadCases.forEach(caseName => {
+                const caseElement = document.createElement('span');
+                caseElement.className = 'badge bg-primary selected-case';
+                caseElement.innerHTML = `
+                    ${caseName}
+                    <span class="remove-case ms-1" data-case="${caseName}" style="cursor: pointer;">×</span>
+                `;
+                selectedCasesList.appendChild(caseElement);
+            });
+            
+            // Show create custom group option
+            createCustomGroupSection.style.display = 'block';
+            
+            // Update hidden input
+            selectedLoadCasesInput.value = Array.from(selectedLoadCases).join(',');
+            
+            // Add remove event listeners
+            document.querySelectorAll('.remove-case').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const caseName = this.dataset.case;
+                    selectedLoadCases.delete(caseName);
+                    updateSelectedLoadCases();
+                    uncheckCorrespondingCheckbox(caseName);
+                });
+            });
+        } else {
+            selectedLoadCasesSection.style.display = 'none';
+            createCustomGroupSection.style.display = 'none';
+            selectedLoadCasesInput.value = '';
+        }
+    }
+    
+    function uncheckCorrespondingCheckbox(caseName) {
+        const checkboxes = document.querySelectorAll(`input[type="checkbox"][value="${caseName}"]`);
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+        });
+    }
+    
+    // NEW: Function to clear all selections when switching tabs
+    function clearAllSelections() {
+        selectedLoadCases.clear();
+        updateSelectedLoadCases();
+        // Also clear any checkboxes in the current results section
+        loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+    }
+    
+    // Load Case Links Event Listeners - MODIFIED to clear selections
+    document.getElementById('imported-load-cases-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        setActiveLink(this);
+        clearAllSelections(); // NEW: Clear selections when switching tabs
+        loadImportedLoadCases();
+    });
+    
+    document.getElementById('group-load-cases-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        setActiveLink(this);
+        clearAllSelections(); // NEW: Clear selections when switching tabs
+        loadGroupedLoadCases();
+    });
+    
+    document.getElementById('custom-groups-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        setActiveLink(this);
+        clearAllSelections(); // NEW: Clear selections when switching tabs
+        loadCustomGroups();
+    });
+    
+    function setActiveLink(activeLink) {
+        loadCaseLinks.forEach(link => link.classList.remove('active'));
+        activeLink.classList.add('active');
+    }
+    
+    // Load Imported Load Cases - MODIFIED to add "Select All" functionality
+    function loadImportedLoadCases() {
+        if (!structureId) {
+            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
+            return;
+        }
+        
+        fetch(`/load-cases/?get_load_cases=true&structure_id=${structureId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            let html = '<h5>Imported Load Cases</h5>';
+            
+            // NEW: Add "Select All" checkbox for imported load cases
+            if (data.values && data.values.length > 0) {
+                html += `
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="select-all-imported">
+                        <label class="form-check-label fw-bold" for="select-all-imported">
+                            Select All Imported Load Cases
+                        </label>
+                    </div>
+                `;
+                
+                html += '<div class="load-cases-list">';
+                data.values.forEach(caseName => {
+                    const isChecked = selectedLoadCases.has(caseName);
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input imported-case-checkbox" type="checkbox" value="${caseName}" 
+                                   id="imported-${caseName.replace(/\s+/g, '-')}" 
+                                   ${isChecked ? 'checked' : ''}>
+                            <label class="form-check-label" for="imported-${caseName.replace(/\s+/g, '-')}">
+                                ${caseName}
+                            </label>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-muted">No load cases found</p>';
+            }
+            loadCasesResults.innerHTML = html;
+            
+            // NEW: Add "Select All" functionality for imported cases
+            const selectAllImported = document.getElementById('select-all-imported');
+            if (selectAllImported) {
+                selectAllImported.addEventListener('change', function() {
+                    const importedCheckboxes = document.querySelectorAll('.imported-case-checkbox');
+                    importedCheckboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                        if (this.checked) {
+                            selectedLoadCases.add(cb.value);
+                        } else {
+                            selectedLoadCases.delete(cb.value);
+                        }
+                    });
+                    updateSelectedLoadCases();
+                });
+            }
+            
+            // Add event listeners for individual checkboxes
+            document.querySelectorAll('.imported-case-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedLoadCases.add(this.value);
+                    } else {
+                        selectedLoadCases.delete(this.value);
+                        // Uncheck "Select All" if any checkbox is unchecked
+                        if (selectAllImported) {
+                            selectAllImported.checked = false;
+                        }
+                    }
+                    updateSelectedLoadCases();
+                });
+            });
+        })
+        .catch(error => {
+            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
+        });
+    }
+    
+    // Load Grouped Load Cases - MODIFIED to enhance "Select All" functionality
+    function loadGroupedLoadCases() {
+        if (!structureId) {
+            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
+            return;
+        }
+        
+        fetch(`/load-cases/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            let html = '<h5>Group Load Cases</h5>';
+            if (data.groups && Object.keys(data.groups).length > 0) {
+                // NEW: Add "Select All Groups" master checkbox
+                html += `
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="select-all-groups">
+                        <label class="form-check-label fw-bold" for="select-all-groups">
+                            Select All Groups
+                        </label>
+                    </div>
+                `;
+                
+                for (const [groupName, cases] of Object.entries(data.groups)) {
+                    html += `
+                        <div class="load-case-group mb-3 p-3 border rounded">
+                            <h6 class="d-flex align-items-center">
+                                ${groupName}
+                                <div class="form-check ms-2">
+                                    <input class="form-check-input select-all-group" type="checkbox" 
+                                           id="select-all-${groupName.replace(/\s+/g, '-')}">
+                                    <label class="form-check-label small" for="select-all-${groupName.replace(/\s+/g, '-')}">
+                                        Select All in Group
+                                    </label>
+                                </div>
+                            </h6>
+                            <div class="group-cases ms-3">`;
+                    
+                    cases.forEach(caseName => {
+                        const isChecked = selectedLoadCases.has(caseName);
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input group-case-checkbox" type="checkbox" 
+                                       value="${caseName}" data-group="${groupName}"
+                                       id="group-${caseName.replace(/\s+/g, '-')}" 
+                                       ${isChecked ? 'checked' : ''}>
+                                <label class="form-check-label" for="group-${caseName.replace(/\s+/g, '-')}">
+                                    ${caseName}
+                                </label>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div></div>';
+                }
+            } else {
+                html += '<p class="text-muted">No grouped load cases found</p>';
+            }
+            loadCasesResults.innerHTML = html;
+            
+            // NEW: Add master "Select All Groups" functionality
+            const selectAllGroups = document.getElementById('select-all-groups');
+            if (selectAllGroups) {
+                selectAllGroups.addEventListener('change', function() {
+                    const groupSelectAlls = document.querySelectorAll('.select-all-group');
+                    const groupCaseCheckboxes = document.querySelectorAll('.group-case-checkbox');
+                    
+                    groupSelectAlls.forEach(cb => {
+                        cb.checked = this.checked;
+                    });
+                    
+                    groupCaseCheckboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                        if (this.checked) {
+                            selectedLoadCases.add(cb.value);
+                        } else {
+                            selectedLoadCases.delete(cb.value);
+                        }
+                    });
+                    updateSelectedLoadCases();
+                });
+            }
+            
+            // Add select all functionality for individual groups
+            document.querySelectorAll('.select-all-group').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const groupName = this.id.replace('select-all-', '');
+                    const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
+                    caseCheckboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                        if (this.checked) {
+                            selectedLoadCases.add(cb.value);
+                        } else {
+                            selectedLoadCases.delete(cb.value);
+                        }
+                    });
+                    updateSelectedLoadCases();
+                    
+                    // Update master "Select All Groups" checkbox
+                    updateMasterSelectAllGroups();
+                });
+            });
+            
+            // Add individual checkbox listeners
+            document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedLoadCases.add(this.value);
+                    } else {
+                        selectedLoadCases.delete(this.value);
+                        // Uncheck group's select-all
+                        const groupName = this.dataset.group;
+                        const selectAll = document.getElementById(`select-all-${groupName}`);
+                        if (selectAll) selectAll.checked = false;
+                    }
+                    updateSelectedLoadCases();
+                    
+                    // Update master "Select All Groups" checkbox
+                    updateMasterSelectAllGroups();
+                });
+            });
+            
+            // NEW: Helper function to update master "Select All Groups" checkbox
+            function updateMasterSelectAllGroups() {
+                const selectAllGroups = document.getElementById('select-all-groups');
+                if (selectAllGroups) {
+                    const allGroupCheckboxes = document.querySelectorAll('.group-case-checkbox');
+                    const allChecked = Array.from(allGroupCheckboxes).every(cb => cb.checked);
+                    selectAllGroups.checked = allChecked;
+                }
+            }
+        })
+        .catch(error => {
+            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
+        });
+    }
+    
+    // Load Custom Groups - MODIFIED to enhance "Select All" functionality
+    function loadCustomGroups() {
+        if (!structureId) {
+            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
+            return;
+        }
+        
+        fetch(`/load-cases/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            let html = '<h5>Custom Groups</h5>';
+            if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+                // NEW: Add "Select All Custom Groups" master checkbox
+                html += `
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="select-all-custom-groups">
+                        <label class="form-check-label fw-bold" for="select-all-custom-groups">
+                            Select All Custom Groups
+                        </label>
+                    </div>
+                `;
+                
+                for (const [groupName, cases] of Object.entries(data.custom_groups)) {
+                    html += `
+                        <div class="load-case-group mb-3 p-3 border rounded" id="custom-group-${groupName.replace(/\s+/g, '-')}">
+                            <h6 class="d-flex align-items-center">
+                                <span class="group-name-display">${groupName}</span>
+                                <div class="ms-2">
+                                    <button class="btn btn-sm btn-outline-primary edit-group" data-group="${groupName}">Rename</button>
+                                    <button class="btn btn-sm btn-outline-danger delete-group" data-group="${groupName}">Delete</button>
+                                </div>
+                                <div class="form-check ms-2">
+                                    <input class="form-check-input select-all-custom-group" type="checkbox" 
+                                           id="select-all-custom-${groupName.replace(/\s+/g, '-')}">
+                                    <label class="form-check-label small" for="select-all-custom-${groupName.replace(/\s+/g, '-')}">
+                                        Select All in Group
+                                    </label>
+                                </div>
+                            </h6>
+                            <div class="group-edit-form mt-2" style="display: none;">
+                                <div class="d-flex gap-2">
+                                    <input type="text" class="form-control form-control-sm edit-group-input" value="${groupName}">
+                                    <button class="btn btn-sm btn-success save-edit" data-group="${groupName}">Save</button>
+                                    <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}">Cancel</button>
+                                </div>
+                            </div>
+                            <div class="group-cases ms-3 mt-2">`;
+                    
+                    cases.forEach(caseName => {
+                        const isChecked = selectedLoadCases.has(caseName);
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input custom-group-case-checkbox" type="checkbox" 
+                                       value="${caseName}" data-group="${groupName}"
+                                       id="custom-${caseName.replace(/\s+/g, '-')}" 
+                                       ${isChecked ? 'checked' : ''}>
+                                <label class="form-check-label" for="custom-${caseName.replace(/\s+/g, '-')}">
+                                    ${caseName}
+                                </label>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div></div>';
+                }
+            } else {
+                html += '<p class="text-muted">No custom groups found</p>';
+            }
+            loadCasesResults.innerHTML = html;
+            
+            // Add custom group functionality
+            setupCustomGroupFunctionality();
+        })
+        .catch(error => {
+            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
+        });
+    }
+    
+    // Setup custom group functionality (edit, delete, select all) - MODIFIED
+    function setupCustomGroupFunctionality() {
+        // NEW: Add master "Select All Custom Groups" functionality
+        const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
+        if (selectAllCustomGroups) {
+            selectAllCustomGroups.addEventListener('change', function() {
+                const groupSelectAlls = document.querySelectorAll('.select-all-custom-group');
+                const customGroupCaseCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
+                
+                groupSelectAlls.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                
+                customGroupCaseCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                    if (this.checked) {
+                        selectedLoadCases.add(cb.value);
+                    } else {
+                        selectedLoadCases.delete(cb.value);
+                    }
+                });
+                updateSelectedLoadCases();
+            });
+        }
+        
+        // Select all functionality for individual custom groups
+        document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const groupName = this.id.replace('select-all-custom-', '');
+                const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                caseCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                    if (this.checked) {
+                        selectedLoadCases.add(cb.value);
+                    } else {
+                        selectedLoadCases.delete(cb.value);
+                    }
+                });
+                updateSelectedLoadCases();
+                
+                // Update master "Select All Custom Groups" checkbox
+                updateMasterSelectAllCustomGroups();
+            });
+        });
+        
+        // Individual checkbox listeners
+        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedLoadCases.add(this.value);
+                } else {
+                    selectedLoadCases.delete(this.value);
+                    const groupName = this.dataset.group;
+                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
+                    if (selectAll) selectAll.checked = false;
+                }
+                updateSelectedLoadCases();
+                
+                // Update master "Select All Custom Groups" checkbox
+                updateMasterSelectAllCustomGroups();
+            });
+        });
+        
+        // NEW: Helper function to update master "Select All Custom Groups" checkbox
+        function updateMasterSelectAllCustomGroups() {
+            const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
+            if (selectAllCustomGroups) {
+                const allCustomGroupCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
+                const allChecked = allCustomGroupCheckboxes.length > 0 && 
+                                 Array.from(allCustomGroupCheckboxes).every(cb => cb.checked);
+                selectAllCustomGroups.checked = allChecked;
+            }
+        }
+        
+        // Edit group functionality
+        document.querySelectorAll('.edit-group').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                displayElement.style.display = 'none';
+                this.style.display = 'none';
+                groupElement.querySelector('.delete-group').style.display = 'none';
+                editForm.style.display = 'block';
+            });
+        });
+        
+        // Cancel edit
+        document.querySelectorAll('.cancel-edit').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                editForm.style.display = 'none';
+                displayElement.style.display = 'inline';
+                groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                groupElement.querySelector('.delete-group').style.display = 'inline-block';
+            });
+        });
+        
+        // Save edit
+        document.querySelectorAll('.save-edit').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const oldGroupName = this.dataset.group;
+                const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
+                
+                if (!newGroupName) {
+                    alert('Group name cannot be empty');
+                    return;
+                }
+                
+                if (newGroupName === oldGroupName) {
+                    this.closest('.group-edit-form').querySelector('.cancel-edit').click();
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('update_custom_group', 'true');
+                formData.append('old_group_name', oldGroupName);
+                formData.append('new_group_name', newGroupName);
+                formData.append('structure_id', structureId);
+                
+                fetch('/load-cases/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload custom groups to reflect changes
+                        loadCustomGroups();
+                    } else {
+                        alert('Error updating group: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating group: ' + error);
+                });
+            });
+        });
+        
+        // Delete group functionality
+        document.querySelectorAll('.delete-group').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const groupName = this.dataset.group;
+                if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+                    const formData = new FormData();
+                    formData.append('delete_custom_group', 'true');
+                    formData.append('structure_id', structureId);
+                    formData.append('group_name', groupName);
+                    
+                    fetch('/load-cases/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reload custom groups
+                            loadCustomGroups();
+                        } else {
+                            alert('Error deleting group: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error deleting group: ' + error);
+                    });
+                }
+            });
+        });
+    }
+    
+    // Create Custom Group
+    createCustomGroupBtn.addEventListener('click', function() {
+        const groupName = customGroupNameInput.value.trim();
+        
+        if (!structureId) {
+            alert('Please select a structure first');
+            return;
+        }
+        
+        if (!groupName) {
+            alert('Please enter a group name');
+            return;
+        }
+        
+        if (selectedLoadCases.size === 0) {
+            alert('Please select at least one load case');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('create_custom_group', 'true');
+        formData.append('structure_id', structureId);
+        formData.append('group_name', groupName);
+        selectedLoadCases.forEach(caseName => {
+            formData.append('selected_cases', caseName);
+        });
+        
+        fetch('/load-cases/', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Custom group "${groupName}" created successfully!`);
+                customGroupNameInput.value = '';
+                // Switch to custom groups tab
+                document.getElementById('custom-groups-link').click();
+            } else {
+                alert('Error creating custom group: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error creating custom group: ' + error);
+        });
+    });
+    
+    // Function to update the load values table with filtered data
+    function updateLoadValuesTable(selectedCases) {
+    if (!structureId) {
+        return;
+    }
+    
+    // Show loading state
+    loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+    
+    // Build URL with selected load cases
+    const url = new URL('/load-cases/', window.location.origin);
+    url.searchParams.append('get_filtered_load_data', 'true');
+    url.searchParams.append('structure_id', structureId);
+    selectedCases.forEach(caseName => {
+        url.searchParams.append('selected_load_cases', caseName);
+    });
+    
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            loadTableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger py-4">${data.error}</td></tr>`;
+            return;
+        }
+        
+        // Clear existing table data
+        loadTableBody.innerHTML = '';
+        allTableData = []; // Reset all table data
+        selectedRecords.clear(); // Clear previous selections
+        
+        if (data.load_data && data.load_data.length > 0) {
+            // Update table header if columns changed
+            updateTableHeader(data.all_columns);
+            
+            // Populate table rows
+            data.load_data.forEach((rowData, index) => {
+                const row = document.createElement('tr');
+                
+                // Add select checkbox
+                const selectCell = document.createElement('td');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'row-select';
+                checkbox.dataset.index = index;
+                selectCell.appendChild(checkbox);
+                row.appendChild(selectCell);
+                
+                // Add data cells
+                data.all_columns.forEach(column => {
+                    const cell = document.createElement('td');
+                    cell.textContent = rowData[column] || '';
+                    row.appendChild(cell);
+                });
+                
+                loadTableBody.appendChild(row);
+                
+                // Store the row data in allTableData
+                allTableData.push(rowData);
+            });
+            
+            // Update record count
+            selectedCount.textContent = `${data.load_data.length} records`;
+            calculateBtn.disabled = true; // Start with disabled calculate button
+            
+            // Add row selection functionality
+            setupRowSelection();
+            updateSelectedCount();
+            
+        } else {
+            loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No data found for selected load cases</td></tr>';
+            selectedCount.textContent = '0 records';
+            calculateBtn.disabled = true;
+        }
+    })
+    .catch(error => {
+        loadTableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger py-4">Error loading data: ${error}</td></tr>`;
+    });
+}
+
+// Add select all functionality (optional but recommended)
+function addSelectAllFunctionality() {
+    // Add select all checkbox in header
+    const thead = loadTable.querySelector('thead');
+    const headerRow = thead.querySelector('tr');
+    
+    // Check if select all checkbox already exists
+    if (!headerRow.querySelector('.select-all-checkbox')) {
+        const selectAllTh = headerRow.querySelector('th:first-child');
+        if (selectAllTh) {
+            const selectAllCheckbox = document.createElement('input');
+            selectAllCheckbox.type = 'checkbox';
+            selectAllCheckbox.className = 'select-all-checkbox';
+            selectAllCheckbox.addEventListener('change', function() {
+                const rowCheckboxes = document.querySelectorAll('.row-select');
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    const index = parseInt(checkbox.dataset.index);
+                    const record = allTableData[index];
+                    
+                    if (this.checked) {
+                        selectedRecords.add(record);
+                    } else {
+                        selectedRecords.delete(record);
+                    }
+                });
+                updateSelectedCount();
+            });
+            selectAllTh.innerHTML = '';
+            selectAllTh.appendChild(selectAllCheckbox);
+        }
+    }
+}
+    // Function to update table header
+    function updateTableHeader(columns) {
+    const thead = loadTable.querySelector('thead');
+    const headerRow = thead.querySelector('tr');
+    
+    // Keep the select column and update data columns
+    headerRow.innerHTML = '<th>Select</th>';
+    columns.forEach(column => {
+        const th = document.createElement('th');
+        th.textContent = column;
+        headerRow.appendChild(th);
+    });
+    
+    // Add select all functionality
+    addSelectAllFunctionality();
+}
+    
+    // Function to setup row selection
+    function setupRowSelection() {
+    const rowSelects = document.querySelectorAll('.row-select');
+    selectedRecords.clear();
+    
+    rowSelects.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const index = parseInt(this.dataset.index);
+            const record = allTableData[index];
+            
+            if (this.checked) {
+                selectedRecords.add(record);
+            } else {
+                selectedRecords.delete(record);
+            }
+            updateSelectedCount();
+        });
+    });
+    }
+    
+    function updateSelectedCount() {
+    const selectedCount = document.getElementById('selected-count');
+    const calculateBtn = document.getElementById('calculate-btn');
+    
+    selectedCount.textContent = `${selectedRecords.size} selected`;
+    calculateBtn.disabled = selectedRecords.size === 0;
+}
+
+// Add event listener for calculate button
+document.getElementById('calculate-btn').addEventListener('click', function() {
+    if (selectedRecords.size > 0) {
+        // Prepare data for calculation - convert Set to Array
+        const calculationData = Array.from(selectedRecords);
+        
+        // Create a form to submit the data (same as hdata1)
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '/calculation/';  // Or your calculation endpoint
+        form.target = '_blank';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'calculation_data';
+        input.value = JSON.stringify(calculationData);
+        form.appendChild(input);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+});
+    // Handle form submission with AJAX to prevent page refresh
+    loadCasesForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default form submission
+        
+        const formData = new FormData(this);
+        
+        // Add selected load cases to form data
+        selectedLoadCases.forEach(caseName => {
+            formData.append('selected_load_cases', caseName);
+        });
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the table with filtered data
+                updateLoadValuesTable(Array.from(selectedLoadCases));
+                
+                // Show success message (optional - you can remove this if you don't want popup)
+                // showNotification('Load cases applied successfully!', 'success');
+            } else {
+                showNotification('Error applying load cases', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error applying load cases: ' + error, 'error');
+        });
+    });
+    
+    // Function to show notifications
+document.getElementById('filter-previous-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const filterBtn = document.getElementById('filter-previous-btn');
+    const originalText = filterBtn.innerHTML;
+    
+    // Show loading state
+    filterBtn.innerHTML = '⏳ Applying Filter...';
+    filterBtn.disabled = true;
+    
+    console.log('Current selected load cases:', Array.from(selectedLoadCases));
+    console.log('Applying filter with criteria:', {{ filter_criteria|default:"{}"|safe }});
+    
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Filter response:', data);
+        
+        if (data.success) {
+            // DO NOT update selectedLoadCases - keep user's current selection
+            // Only update the table with filtered data
+            
+            // Update the table with the actual filtered data
+            if (data.filtered_data && data.filtered_data.length > 0) {
+                updateTableWithFilteredData(data.filtered_data);
+                
+                // Show appropriate message based on filter type
+                let filterType = '';
+                if (data.filter_criteria.joint_labels) {
+                    filterType = `Joint Labels (${data.filter_criteria.joint_labels.length})`;
+                }
+                if (data.filter_criteria.set_phase_combinations) {
+                    filterType = `Set+Phase Combinations (${data.filter_criteria.set_phase_combinations.length})`;
+                }
+                
+                showNotification(`✅ Filter applied! Found ${data.record_count} records matching ${filterType}`, 'success');
+            } else {
+                loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-warning py-4">No matching records found for the current selection</td></tr>';
+                selectedCount.textContent = '0 records';
+                calculateBtn.disabled = true;
+                showNotification('⚠️ No matching records found for the current selection', 'warning');
+            }
+            
+            // DO NOT update checkboxes - keep user's current selection
+            
+        } else {
+            showNotification('❌ Error applying filter', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Filter error:', error);
+        showNotification('❌ Error applying filter: ' + error, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        filterBtn.innerHTML = '🔍 Filter by Previous Selection';
+        filterBtn.disabled = false;
+    });
+});
+
+
+// NEW: Function to update table with pre-filtered data
+function updateTableWithFilteredData(filteredData) {
+    // Clear existing table data
+    loadTableBody.innerHTML = '';
+    allTableData = []; // Reset all table data
+    selectedRecords.clear(); // Clear previous selections
+    
+    if (filteredData && filteredData.length > 0) {
+        // Get columns from the first data item
+        const columns = Object.keys(filteredData[0]);
+        
+        // Update table header if needed
+        updateTableHeader(columns);
+        
+        // Populate table rows with filtered data
+        filteredData.forEach((rowData, index) => {
+            const row = document.createElement('tr');
+            
+            // Add select checkbox
+            const selectCell = document.createElement('td');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'row-select';
+            checkbox.dataset.index = index;
+            selectCell.appendChild(checkbox);
+            row.appendChild(selectCell);
+            
+            // Add data cells
+            columns.forEach(column => {
+                const cell = document.createElement('td');
+                const value = rowData[column] || '';
+                cell.textContent = value;
+                
+                // Highlight Set No. and Phase No. columns for better visibility
+                if (column === 'Set No.' || column === 'Phase No.') {
+                    cell.style.fontWeight = 'bold';
+                    cell.style.backgroundColor = '#e8f5e8'; // Light green
+                    cell.style.borderLeft = '3px solid #28a745';
+                }
+                
+                // Highlight Load Case Description
+                if (column === 'Load Case Description') {
+                    cell.style.fontWeight = 'bold';
+                    cell.style.backgroundColor = '#e3f2fd'; // Light blue
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            loadTableBody.appendChild(row);
+            
+            // Store the row data in allTableData
+            allTableData.push(rowData);
+        });
+        
+        // Update record count
+        selectedCount.textContent = `${filteredData.length} records`;
+        calculateBtn.disabled = true; // Start with disabled calculate button
+        
+        // Add row selection functionality
+        setupRowSelection();
+        updateSelectedCount();
+        
+        // Add select all functionality
+        addSelectAllFunctionality();
+        
+    } else {
+        loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No matching records found for the selected Set+Phase combinations</td></tr>';
+        selectedCount.textContent = '0 records';
+        calculateBtn.disabled = true;
+    }
+}
+
+
+// NEW: Update all checkboxes based on filtered results
+function updateAllCheckboxes(filteredCases) {
+    // Update imported load cases checkboxes
+    document.querySelectorAll('#load-cases-results input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = filteredCases.includes(checkbox.value);
+    });
+    
+    // Update grouped load cases checkboxes
+    document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
+        checkbox.checked = filteredCases.includes(checkbox.value);
+    });
+    
+    // Update custom group checkboxes  
+    document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+        checkbox.checked = filteredCases.includes(checkbox.value);
+    });
+}
+
+// NEW: Enhanced notification function
+// NEW: Enhanced notification function with better styling
+function showNotification(message, type) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : type === 'info' ? 'info' : 'danger'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-weight: 500;
+    `;
+    
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <span class="me-2">${getNotificationIcon(type)}</span>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Helper function for notification icons
+function getNotificationIcon(type) {
+    switch(type) {
+        case 'success': return '✅';
+        case 'warning': return '⚠️';
+        case 'info': return 'ℹ️';
+        case 'error': return '❌';
+        default: return '💡';
+    }
+}
+    
+    // Initialize selected cases display
+    updateSelectedLoadCases();
+    
+    // Initialize table with current data on page load
+    if (selectedLoadCases.size > 0) {
+        updateLoadValuesTable(Array.from(selectedLoadCases));
+    }
+});
+</script>
+
+
+    {% endblock %}

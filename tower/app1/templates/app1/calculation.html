@@ -516,58 +516,7 @@
                 </div>
             </div>
 
-            <!-- Original Combined Results (for reference) -->
-            <div class="card">
-                <h3><i class="fas fa-layer-group"></i> Original Combined Results (Max Resultant)</h3>
-                
-                <div class="stats-grid">
-                    {% for set_no, values in max_resultant_values.items %}
-                    <div class="stat-card">
-                        <div class="stat-label">Set {{ set_no }}</div>
-                        <div class="stat-value">{{ values.vert|floatformat:2 }}</div>
-                        <div class="stat-label">Vert (lbs)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Set {{ set_no }}</div>
-                        <div class="stat-value">{{ values.trans|floatformat:2 }}</div>
-                        <div class="stat-label">Trans (lbs)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Set {{ set_no }}</div>
-                        <div class="stat-value">{{ values.long|floatformat:2 }}</div>
-                        <div class="stat-label">Long (lbs)</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                <div class="table-container">
-                    <table>
-                        <tr>
-                            <th>Set No.</th>
-                            <th>Vert (lbs)</th>
-                            <th>Trans (lbs)</th>
-                            <th>Long (lbs)</th>
-                            <th>Resultant (lbs)</th>
-                        </tr>
-                        {% for set_no, values in max_resultant_values.items %}
-                        <tr>
-                            <td>{{ set_no }}</td>
-                            <td>{{ values.vert|floatformat:2 }}</td>
-                            <td>{{ values.trans|floatformat:2 }}</td>
-                            <td>{{ values.long|floatformat:2 }}</td>
-                            <td>{{ values.resultant|floatformat:2 }}</td>
-                        </tr>
-                        {% endfor %}
-                        <tr class="highlight">
-                            <td><strong>Sum</strong></td>
-                            <td><strong>{{ combined_vert|floatformat:2 }}</strong></td>
-                            <td><strong>{{ combined_trans|floatformat:2 }}</strong></td>
-                            <td><strong>{{ combined_long|floatformat:2 }}</strong></td>
-                            <td><strong>{{ combined_sqrt|floatformat:2 }}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
+
 
             <div class="card">
                 <h3><i class="fas fa-calculator"></i> Buffer Configuration</h3>
@@ -739,6 +688,7 @@ function goToLoadConditions() {
 
 <script>
 // Buffer Configuration Logic
+// Corrected Buffer Configuration Logic
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle buffer settings visibility
     const applyBufferCheckbox = document.getElementById('applyBuffer');
@@ -756,6 +706,12 @@ document.addEventListener('DOMContentLoaded', function() {
         applyBufferBtn.addEventListener('click', function() {
             applyBufferToResults();
         });
+    }
+    
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
     }
     
     function applyBufferToResults() {
@@ -798,15 +754,15 @@ document.addEventListener('DOMContentLoaded', function() {
             processedSumValues.trans = originalSumValues.trans + transBuffer;
             processedSumValues.long = originalSumValues.long + longBuffer;
             
-            // Apply rounding to sum values
+            // Apply rounding to sum values using correct rounding function
             if (vertRounding > 0) {
-                processedSumValues.vert = Math.ceil(processedSumValues.vert / vertRounding) * vertRounding;
+                processedSumValues.vert = roundToNearest(processedSumValues.vert, vertRounding);
             }
             if (transRounding > 0) {
-                processedSumValues.trans = Math.ceil(processedSumValues.trans / transRounding) * transRounding;
+                processedSumValues.trans = roundToNearest(processedSumValues.trans, transRounding);
             }
             if (longRounding > 0) {
-                processedSumValues.long = Math.ceil(processedSumValues.long / longRounding) * longRounding;
+                processedSumValues.long = roundToNearest(processedSumValues.long, longRounding);
             }
             
             // Recalculate resultant after buffer and rounding
@@ -1092,6 +1048,12 @@ function initializeBufferLogic() {
         });
     }
     
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
+    }
+    
     // Handle buffer application
     const applyBufferBtn = document.getElementById('applyBufferBtn');
     if (applyBufferBtn) {
@@ -1127,15 +1089,15 @@ function initializeBufferLogic() {
             processedValues.totalTrans = originalValues.totalTrans + transBuffer;
             processedValues.totalLong = originalValues.totalLong + longBuffer;
             
-            // Apply rounding to sum values
+            // Apply rounding to sum values using correct rounding function
             if (vertRounding > 0) {
-                processedValues.totalVert = Math.ceil(processedValues.totalVert / vertRounding) * vertRounding;
+                processedValues.totalVert = roundToNearest(processedValues.totalVert, vertRounding);
             }
             if (transRounding > 0) {
-                processedValues.totalTrans = Math.ceil(processedValues.totalTrans / transRounding) * transRounding;
+                processedValues.totalTrans = roundToNearest(processedValues.totalTrans, transRounding);
             }
             if (longRounding > 0) {
-                processedValues.totalLong = Math.ceil(processedValues.totalLong / longRounding) * longRounding;
+                processedValues.totalLong = roundToNearest(processedValues.totalLong, longRounding);
             }
             
             // Recalculate resultant after buffer and rounding

@@ -1,158 +1,129 @@
-Read the complete code carefully and act as an experienced developer.
 
-Currently, we are displaying only one 3D tower model in the canvas container for assigning values. But now, the user wants an additional functionality:
+first read complete code and act as experience developer 
+there is small issue 
+Active Combinations: not shows all created combination only shows latest once 
+check code complete and modify also give hint where to modify code 
 
-The user should be able to select multiple 3D tower models based on their needs.
+this is views 
+"@require_http_methods(["POST"])
+@csrf_exempt # Consider removing this and passing the CSRF token in AJAX
+def store_set_phase_combinations(request):
+    """
+    Handles the AJAX request to store the created Set-Phase combinations
+    along with their 'Ahead' or 'Back' status in the session.
+    """
+    try:
+        # Load the JSON data sent from the frontend
+        data = json.loads(request.body)
+        
+        # The data should contain the list of combinations and the status
+        combinations_to_add = data.get('combinations', [])
+        status = data.get('status') # 'Ahead' or 'Back'
+        
+        if not combinations_to_add or status not in ['Ahead', 'Back']:
+            return JsonResponse({'status': 'error', 'message': 'Invalid data provided.'}, status=400)
 
-A dropdown list should display all available 3D tower models.
+        # Get the current active combinations from the session
+        # Initialize if it doesn't exist
+        selected_values = request.session.get('selected_values', {})
+        active_combinations = selected_values.get('active_combinations', [])
 
-When the user selects any 3D model from the dropdown, the corresponding model should be displayed in the canvas container.
+        # Process the new combinations: Add the status
+        new_active_combinations = []
+        for combo in combinations_to_add:
+      
+            combo_with_status = f"{combo}-{status}" 
+            new_active_combinations.append(combo_with_status)
 
-Only one 3D model should be visible in the canvas container at a time — when a new model is selected, the currently displayed model must be removed/hidden.
+        active_combinations.extend(new_active_combinations)
 
-We also need a backend feature to upload/add new 3D tower models so they automatically appear in the dropdown list.
+        # Update the session with the new list
+        request.session['selected_values']['active_combinations'] = active_combinations
+        request.session.modified = True
 
-✅ And I do not want to change the previous/ existing functionality of this page — everything should continue to work as it currently does.
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'Successfully stored {len(combinations_to_add)} combinations as {status}.',
+            'new_combinations': new_active_combinations
+        })
 
-Now, update/modify the code with this new feature while keeping all existing functionality working properly.
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON format.'}, status=400)
+    except Exception as e:
+        print(f"Error storing combinations: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-this is view 
-"def hdata1(request):
+def hdata1(request):
+                               # **********8
+    available_models = TowerModel.objects.all().order_by('name')
+    selected_model_id = request.session.get('selected_model_id')
+    
+    if request.method == 'POST' and 'selected_model' in request.POST:
+        selected_model_id = request.POST.get('selected_model')
+        if selected_model_id:
+            request.session['selected_model_id'] = selected_model_id
+        else:
+            # Clear selection if "None" is selected
+            request.session.pop('selected_model_id', None)
+    
+    # Handle new model upload
+    if request.method == 'POST' and 'tower_model_file' in request.FILES:
+        model_name = request.POST.get('model_name', 'Unnamed Model')
+        model_file = request.FILES['tower_model_file']
+        
+        # Validate file type
+        if model_file.name.endswith(('.glb', '.gltf')):
+            new_model = TowerModel.objects.create(
+                name=model_name,
+                model_file=model_file
+            )
+            # Optionally select the newly uploaded model
+            request.session['selected_model_id'] = new_model.id
+    
+    # Get selected model if any
+    selected_model = None
+    if selected_model_id:
+        try:
+            selected_model = TowerModel.objects.get(id=selected_model_id)
+        except TowerModel.DoesNotExist:
+            pass                                       # **********8
     # Get selected values from session
     selected_values = request.session.get('selected_values', {})
+    active_combinations = selected_values.get('active_combinations', [])
     structure_id = selected_values.get('structure_id')
     button_type = selected_values.get('button_type', '')
-    selected_load_cases = selected_values.get('load_cases', [])
     
-    # If coming directly from buttons without specific filters
-    if not structure_id and 'go_button' in request.POST:
-        structure_id = request.POST.get('structure_id')
-        button_type = request.POST.get('go_button')
-        load_case_values = request.POST.get('load_case_values', '')
-        
-        # Convert comma-separated string to list
-        if load_case_values:
-            selected_load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-        else:
-            selected_load_cases = []
-            
-        if structure_id:
-            selected_values = {
-                'structure_id': structure_id,
-                'button_type': button_type,
-                'load_cases': selected_load_cases
-            }
-            request.session['selected_values'] = selected_values
     
+    # Keep only the canvas container logic
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             
             # Try to get the latest file from different models
             latest_file = None
-            file_model = None
+            file_models = [
+                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+            ]
             
-            # Check different file models in order of priority
-            if tUploadedFile6.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile6'
-            elif hUploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile1'
-            elif tUploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile1'
-            elif tUploadedFile2.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile2'
-            elif tUploadedFile3.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile3'
-            elif tUploadedFile4.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile4'
-            elif tUploadedFile5.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile5'
-            elif hUploadedFile2.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile2'
-            elif hUploadedFile3.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile3'
-            elif hUploadedFile4.objects.filter(structure=structure).exists():
-                latest_file = hUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'hUploadedFile4'
-                
-            elif tUploadedFile7.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile7'
-                
-            elif tUploadedFile8.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile8'
-                
-            elif tUploadedFile9.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile9'
-                
-            elif tUploadedFile10.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile10'
-                
-            elif tUploadedFile11.objects.filter(structure=structure).exists():
-                latest_file = tUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'tUploadedFile11'
-                
-            elif UploadedFile1.objects.filter(structure=structure).exists():
-                latest_file = UploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'UploadedFile1'
-                
-            elif UploadedFile22.objects.filter(structure=structure).exists():
-                latest_file = UploadedFile22.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'UploadedFile22'
-                
-            elif mUploadedFile5.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile5'
-                
-            elif mUploadedFile6.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile6'
-        
-            elif mUploadedFile7.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile7'
-                
-            elif mUploadedFile8.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile8'
-                
-            elif mUploadedFile9.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile9'
-                
-            elif mUploadedFile10.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile10'
-            
-            elif mUploadedFile11.objects.filter(structure=structure).exists():
-                latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
-                file_model = 'mUploadedFile11'
-                
-                
-    
+            for model in file_models:
+                if model.objects.filter(structure=structure).exists():
+                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                    break
             
             if not latest_file:
                 raise Exception("No uploaded file found for this structure")
                 
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            # Filter by selected load cases if any are selected
+            # Get selected load cases from session to filter data
+            selected_load_cases = selected_values.get('load_cases', [])
             if selected_load_cases and 'Load Case Description' in df.columns:
-                print(f"Filtering by load cases: {selected_load_cases}")
                 df = df[df['Load Case Description'].isin(selected_load_cases)]
-                print(f"Filtered dataframe shape: {df.shape}")
 
             # Prepare complete data for table display
             load_data = []
@@ -184,8 +155,59 @@ this is view
         set_numbers = []
         phase_numbers = []
         load_data = []
+    
+    # NEW: Initialize session storage for selections
+    if 'selected_values' not in request.session:
+        request.session['selected_values'] = {}
+    
+    # Initialize empty arrays if they don't exist
+    if 'selected_joints' not in request.session['selected_values']:
+        request.session['selected_values']['selected_joints'] = []
+    
+    if 'active_combinations' not in request.session['selected_values']:
+        request.session['selected_values']['active_combinations'] = []
+    
+    # Get current selections from session
+    selected_joints = request.session['selected_values'].get('selected_joints', [])
+    # IMPORTANT: The active_combinations now includes the 'Ahead'/'Back' status
+    active_combinations = request.session['selected_values'].get('active_combinations', [])
+    
+    # Build filter criteria
+    filter_criteria = {}
+    
+    # Store joint labels if any are selected
+    if selected_joints:
+        filter_criteria['joint_labels'] = selected_joints
+    
+    # Store set-phase combinations if any are active
+    set_phase_pairs = []
+    if active_combinations:
+        for combo in active_combinations:
+            if isinstance(combo, str):
+                # New, correct format: "1-2-Ahead"
+                # We need the first two parts ("1" and "2")
+                set_phase_pairs.append(combo.split('-')[:2])
+            elif isinstance(combo, dict):
+                # Handle potential LEGACY dictionary format (e.g., {'set': 1, 'phase': 2})
+                # If your old format was different, adjust this logic.
+                set_val = str(combo.get('set'))
+                phase_val = str(combo.get('phase'))
+                if set_val and phase_val:
+                    set_phase_pairs.append([set_val, phase_val])
+                # NOTE: If you don't need to support the legacy dict format, you can
+                # just add a 'pass' or continue to skip it.
+            # else: skip other unexpected data types
+
+    if set_phase_pairs:
+        filter_criteria['set_phase_combinations'] = set_phase_pairs
+    
+    # Store filter criteria in session
+    request.session['selected_values']['filter_criteria'] = filter_criteria
+    request.session.modified = True
 
     return render(request, 'app1/hdata1.html', {
+        'available_models': available_models,   # **********8
+        'selected_model': selected_model,        # **********8
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
@@ -193,115 +215,118 @@ this is view
         'load_data_json': json.dumps(load_data),
         'selected_values': selected_values,
         'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
-        'button_type': button_type
+        'button_type': button_type,
+        'structure_id': structure_id,
+        'filter_criteria': filter_criteria,
+        'selected_joints': selected_joints,  # NEW: Pass to template
+        'active_combinations': active_combinations,  # NEW: Pass to template
     })"
 
-this is hdata.html 
-"<div class="container">
-    <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
-    
-    <div class="row">
-        <!-- Left side - Selection Options (reduced width) -->
-        <div class="col-md-4">
-            {% if button_type == 'joint_labels' %}
-            <!-- Show only joint labels section when joint labels button was clicked -->
-            <div class="form-group">
-                <label for="joint-labels">Attachment Joint Labels:</label>
-                <div class="checkbox-list" id="joint-labels">
-                    {% for label in joint_labels %}
-                        <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
-                            <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
-                        </label>
-                    {% endfor %}
-                </div>
-            </div>
-            {% elif button_type == 'set_phase' %}
-            <!-- Show only set/phase sections when set/phase button was clicked -->
-            <div class="form-group">
-                <label for="set-select">Set No.:</label>
-                <select id="set-select" class="form-control" multiple size="4">
-                    {% for num in set_numbers %}
-                        <option value="{{ num }}">{{ num }}</option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
-            </div>
-
-            <div class="form-group">
-                <label for="phase-select">Phase No.:</label>
-                <select id="phase-select" class="form-control" multiple size="4">
-                    {% for num in phase_numbers %}
-                        <option value="{{ num }}">{{ num }}</option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
-            </div>
-
-            <!-- Combination Builder Section -->
-            <div class="form-group">
-                <label>Create Set-Phase Combinations:</label>
-                <div class="combination-builder">
-                    <div class="selected-items mb-2">
-                        <strong>Selected Sets:</strong> 
-                        <span id="selected-sets-display">None</span>
-                    </div>
-                    <div class="selected-items mb-2">
-                        <strong>Selected Phases:</strong> 
-                        <span id="selected-phases-display">None</span>
-                    </div>
-                    <button id="create-all-combinations" class="btn btn-primary btn-sm">
-                        Create All Combinations
-                    </button>
-                    <button id="create-single-combination" class="btn btn-success btn-sm">
-                        Create Single Combination
-                    </button>
-                    <button id="clear-combinations" class="btn btn-secondary btn-sm">
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <!-- Active Combinations Display -->
-            <div class="form-group">
-                <label>Active Combinations:</label>
-                <div id="active-combinations" class="active-combinations-list">
-                    <!-- Combinations will be displayed here -->
-                </div>
-            </div>
-            {% endif %}
-        </div>
+this is hdata1.html 
+" <div class="container">
+        <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
         
-        <!-- Right side - 3D Model Viewer (increased width) -->
-        <div class="col-md-8">
-            <div class="model-viewer-container">
-                <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
-                    <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
-                        Hide Grid
-                    </button>
-                    <!-- Enhanced Control Panel -->
-                    <div style="position: absolute; top: 50px; right: 10px; z-index: 100; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 200px;">
-                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
-                        
-                        {% comment %} <!-- Drop Mode Selection -->
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
-                            <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
-                                <option value="precise">Precise Placement</option>
-                                <option value="free">Free Placement</option>
-                            </select>
+        <div class="row">
+            <!-- Left side - Selection Options (reduced width) -->
+            <div class="col-md-4">
+                {% if button_type == 'joint_labels' %}
+                <!-- Show only joint labels section when joint labels button was clicked -->
+                <div class="form-group">
+                    <label for="joint-labels">Attachment Joint Labels:</label>
+                    <div class="checkbox-list" id="joint-labels">
+                        {% for label in joint_labels %}
+                            <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                                <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% elif button_type == 'set_phase' %}
+                <!-- Show only set/phase sections when set/phase button was clicked -->
+                <div class="form-group">
+                    <label for="set-select">Set No.:</label>
+                    <select id="set-select" class="form-control" multiple size="4">
+                        {% for num in set_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="phase-select">Phase No.:</label>
+                    <select id="phase-select" class="form-control" multiple size="4">
+                        {% for num in phase_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
+                </div>
+                <!-- Combination Builder Section -->
+                <div class="form-group">
+                    <label>Create Set-Phase Combinations:</label>
+                    <div class="combination-builder">
+                        <div class="selected-items mb-2">
+                            <strong>Selected Sets:</strong> 
+                            <span id="selected-sets-display">None</span>
                         </div>
+                        <div class="selected-items mb-2">
+                            <strong>Selected Phases:</strong> 
+                            <span id="selected-phases-display">None</span>
+                        </div>
+                        <button id="create-all-combinations" class="btn btn-primary btn-sm">
+                            Create All Combinations
+                        </button>
+                        <button id="create-single-combination" class="btn btn-success btn-sm">
+                            Create Single Combination
+                        </button>
+                        <button id="clear-combinations" class="btn btn-secondary btn-sm">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
 
-                        <!-- Grid Snapping -->
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
-                            <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
-                                <option value="0.1">Fine (0.1)</option>
-                                <option value="0.25" selected>Medium (0.25)</option>
-                                <option value="0.5">Coarse (0.5)</option>
-                                <option value="0">Off</option>
-                            </select>
-                        </div> {% endcomment %}
+                <!-- Active Combinations Display -->
+                <div class="form-group">
+                    <label>Active Combinations:</label>
+                    <div id="active-combinations" class="active-combinations-list">
+                        <!-- Combinations will be displayed here -->
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right side - 3D Model Viewer (increased width) -->
+            <div class="col-md-8">
+                <div class="model-viewer-container">
+                    <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                        <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
+                            Hide Grid
+                        </button>
+                        <!-- Enhanced Control Panel -->
+                        <div class="movement-controls-panel">
+                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
 
+                        {% comment %} <!-- Drop Mode Selection -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
+                                <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="precise">Precise Placement</option>
+                                    <option value="free">Free Placement</option>
+                                </select>
+                            </div>
+
+                            <!-- Grid Snapping -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
+                                <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="0.1">Fine (0.1)</option>
+                                    <option value="0.25" selected>Medium (0.25)</option>
+                                    <option value="0.5">Coarse (0.5)</option>
+                                    <option value="0">Off</option>
+                                </select>
+                            </div> {% endcomment %}
+                        
                         <!-- Movement Controls -->
                         <div style="margin-bottom: 10px;">
                             <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
@@ -342,49 +367,145 @@ this is hdata.html
                         </div>
                     </div>
                 </div>
-                <canvas id="model-canvas"></canvas>
-                <div id="joint-markers-container"></div>
-                <div id="set-markers-container"></div>
-                <div id="phase-markers-container"></div>
-                <div id="load-displays-container"></div>
+                    <canvas id="model-canvas"></canvas>
+                    <div id="joint-markers-container"></div>
+                    <div id="set-markers-container"></div>
+                    <div id="phase-markers-container"></div>
+                    <div id="load-displays-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <a href="{% url 'load_cases' %}" class="btn btn-outline-primary">
+                ⚡ Go to Load Cases Selection
+            </a>
+        </div>
+
+        <!-- NEW: Compact Model Selection & Upload Section -->
+        <div class="model-controls-container">
+            <!-- Model Selection Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Select 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-group-compact">
+                            <label for="model-select">Model:</label>
+                            <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
+                                <option value="">-- Default Model --</option>
+                                {% for model in available_models %}
+                                    <option value="{{ model.id }}" 
+                                        {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
+                                        {{ model.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="model-status">
+                            {% if selected_model %}
+                                Currently viewing: <strong>{{ selected_model.name }}</strong>
+                            {% else %}
+                                Using default tower model
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Model Upload Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Upload New 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" enctype="multipart/form-data" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group-compact">
+                                <label for="model_name">Model Name:</label>
+                                <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
+                            </div>
+                            <div class="form-group-compact">
+                                <label for="tower_model_file">3D Model File:</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
+                                    <div class="file-input-display">
+                                        <span>Choose file...</span>
+                                        <span class="file-input-icon">📁</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group-compact">
+                                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Load Display Table - now placed below and full width -->
+        <div id="load-display">
+            <h5>Load Values</h5>
+            <div class="btn-container">
+                <button id="calculate-btn" class="calculation-btn" disabled>
+                    <span>Calculate Selected Records</span>
+                </button>
+                <span id="selected-count" class="selected-count">0 selected</span>
+            </div>
+
+            <div class="table-container">
+                <table class="table table-bordered" id="load-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for column in all_columns %}
+                                <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
-    
-    <!-- Load Display Table - now placed below and full width -->
-    <div id="load-display">
-        <h5>Load Values</h5>
-        <div class="btn-container">
-            <button id="calculate-btn" class="calculation-btn" disabled>
-                <span>Calculate Selected Records</span>
-            </button>
-            <span id="selected-count" class="selected-count">0 selected</span>
-        </div>
 
-
-        <div class="table-container">
-            <table class="table table-bordered" id="load-table">
-                <thead>
-                    <tr>
-                        <th>Select</th>
-                        {% for column in all_columns %}
-                            <th>{{ column }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+    <div class="modal fade" id="aheadBackModal" tabindex="-1" role="dialog" aria-labelledby="aheadBackModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aheadBackModalLabel">Verify Combination Direction</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Please confirm the direction for the following newly created Set-Phase combinations:</p>
+                <ul id="new-combinations-list" class="list-group mb-3">
+                    </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
+                <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
+            </div>
         </div>
     </div>
 </div>
-
-
 
 <!-- Include Three.js library -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
 
 
 <script>
@@ -407,7 +528,8 @@ this is hdata.html
     let combinationCounter = 0; // Counter to make each combination unique
     const activeCombinations = new Map();
     let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
-    
+    let combinationsToConfirm = []; 
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     let gridHelpers = []; // Array to store all grid helpers
     let isGridVisible = true;
     let transformControls;
@@ -466,30 +588,77 @@ this is hdata.html
 
         // Load GLB model
         const loader = new THREE.GLTFLoader();
-        loader.load(
-            "{% static 'app1/images/powerTransmissionTower.glb' %}",
-            function (gltf) {
-                model = gltf.scene;
-                scene.add(model);
+        function loadTowerModel(modelUrl) {
+    // Remove existing model if any
+    if (model) {
+        scene.remove(model);
+        model = null;
+    }
+    
+    loader.load(
+        modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
 
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                model.position.sub(center);
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
 
-                create3DGridCage(box);
-                model.rotation.y = Math.PI / 4;
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
 
-                // NEW: Initialize enhanced event listeners
-                initEnhancedEventListeners();
-                
-                animate();
-            },
-            undefined,
-            function (error) {
-                console.error('Error loading model:', error);
-            }
-        );
+            // Initialize enhanced event listeners
+            initEnhancedEventListeners();
+            
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading model:', error);
+            // Fallback to default model
+            loadDefaultModel();
+        }
+    );
+}
+
+{% if selected_model %}
+        const selectedModelUrl = "{{ selected_model.get_file_url }}";
+        console.log('Selected Model URL:', selectedModelUrl); // ADD THIS LINE
+        loadTowerModel(selectedModelUrl);
+    {% else %}
+        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+        console.log('Default Model URL:', defaultModelUrl); // ADD THIS LINE
+        loadDefaultModel(defaultModelUrl);
+    {% endif %}
+
+// Function to load default model
+function loadDefaultModel() {
+    loader.load(
+       modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
+
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
+
+            initEnhancedEventListeners();
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading default model:', error);
+        }
+    );
+}
+
 
         window.addEventListener('resize', onWindowResize);
         renderer.domElement.addEventListener('click', onCanvasClick);
@@ -1515,6 +1684,10 @@ function updateTable() {
     // SECTION 2: Show created set:phase combinations from activeCombinations
     {% if button_type == 'set_phase' %}
         if (activeCombinations.size > 0) {
+            console.log('=== PROCESSING COMBINATIONS ===');
+            console.log('Total active combinations:', activeCombinations.size);
+            console.log('Active combinations:', Array.from(activeCombinations.values()));
+            
             const separatorRow = tbody.insertRow();
             const separatorCell = separatorRow.insertCell();
             separatorCell.colSpan = columns.length + 1;
@@ -1531,92 +1704,183 @@ function updateTable() {
             headerCell.style.fontWeight = 'bold';
             headerCell.style.fontSize = '16px';
             
-            // NEW: Group combinations by Load Case
-            const combinationsByLoadCase = {};
+            // Convert activeCombinations to array to ensure we process ALL
+            const combinationsArray = Array.from(activeCombinations.values());
+            let displayedCombinationCount = 0;
             
-            // First, collect all combination records grouped by Load Case
-            activeCombinations.forEach(combination => {
+            console.log('Processing combinations array:', combinationsArray);
+            
+            // Process EACH combination individually
+            combinationsArray.forEach((combination, index) => {
                 const setNum = combination.set;
                 const phaseNum = combination.phase;
-                const combinationLabel = combination.displayText;
+                const combinationId = combination.id;
+                const combinationDisplay = combination.displayText;
                 
-                const matchingRecords = loadData.filter(item => 
-                    String(item['Set No.']) === String(setNum) && 
-                    String(item['Phase No.']) === String(phaseNum)
-                );
+                console.log(`Processing combination ${index + 1}: ${combinationDisplay} (ID: ${combinationId})`);
                 
-                matchingRecords.forEach(record => {
-                    const loadCase = record['Load Case Description'] || 'Uncategorized';
-                    if (!combinationsByLoadCase[loadCase]) {
-                        combinationsByLoadCase[loadCase] = [];
+                // Find ALL matching records for this specific set/phase combination
+                const matchingRecords = loadData.filter(item => {
+                    const itemSet = item['Set No.'] !== undefined ? String(item['Set No.']) : '';
+                    const itemPhase = item['Phase No.'] !== undefined ? String(item['Phase No.']) : '';
+                    
+                    const matches = itemSet === String(setNum) && itemPhase === String(phaseNum);
+                    
+                    if (matches) {
+                        console.log(`✓ Found match for ${combinationDisplay}:`, {
+                            set: itemSet,
+                            phase: itemPhase,
+                            loadCase: item['Load Case Description']
+                        });
                     }
-                    combinationsByLoadCase[loadCase].push({
-                        record: record,
-                        combinationLabel: combinationLabel
-                    });
+                    
+                    return matches;
                 });
+                
+                console.log(`Records found for ${combinationDisplay}: ${matchingRecords.length}`);
+                
+                if (matchingRecords.length > 0) {
+                    displayedCombinationCount++;
+                    
+                    // Group records by Load Case for this specific combination
+                    const recordsByLoadCase = {};
+                    
+                    matchingRecords.forEach(record => {
+                        const loadCase = record['Load Case Description'] || 'Uncategorized';
+                        if (!recordsByLoadCase[loadCase]) {
+                            recordsByLoadCase[loadCase] = [];
+                        }
+                        recordsByLoadCase[loadCase].push(record);
+                    });
+                    
+                    // Create combination header
+                    const combHeaderRow = tbody.insertRow();
+                    const combHeaderCell = combHeaderRow.insertCell();
+                    combHeaderCell.colSpan = columns.length + 1;
+                    combHeaderCell.style.backgroundColor = '#e3f2fd';
+                    combHeaderCell.style.borderLeft = '4px solid #1976d2';
+                    combHeaderCell.style.padding = '10px';
+                    combHeaderCell.style.fontWeight = 'bold';
+                    combHeaderCell.style.fontSize = '14px';
+                    
+                    const combCheckbox = document.createElement('input');
+                    combCheckbox.type = 'checkbox';
+                    combCheckbox.className = 'combination-checkbox';
+                    combCheckbox.dataset.combinationId = combinationId;
+                    combCheckbox.checked = true;
+                    combCheckbox.addEventListener('change', function(e) {
+                        toggleCombinationSelection(combinationId, e.target.checked);
+                    });
+                    
+                    const combLabel = document.createElement('span');
+                    combLabel.style.marginLeft = '8px';
+                    combLabel.textContent = `Combination ${displayedCombinationCount}: Set ${setNum} - Phase ${phaseNum}`;
+                    
+                    combHeaderCell.appendChild(combCheckbox);
+                    combHeaderCell.appendChild(combLabel);
+                    
+                    // Display records for each load case in this combination
+                    Object.keys(recordsByLoadCase).forEach(loadCase => {
+                        const loadCaseRecords = recordsByLoadCase[loadCase];
+                        
+                        // Load Case sub-header
+                        const loadCaseHeaderRow = tbody.insertRow();
+                        const loadCaseHeaderCell = loadCaseHeaderRow.insertCell();
+                        loadCaseHeaderCell.colSpan = columns.length + 1;
+                        loadCaseHeaderCell.style.backgroundColor = '#f5f5f5';
+                        loadCaseHeaderCell.style.padding = '8px 12px';
+                        loadCaseHeaderCell.style.fontWeight = 'bold';
+                        loadCaseHeaderCell.style.fontSize = '13px';
+                        
+                        const loadCaseCheckbox = document.createElement('input');
+                        loadCaseCheckbox.type = 'checkbox';
+                        loadCaseCheckbox.className = 'loadcase-checkbox';
+                        loadCaseCheckbox.dataset.combinationId = combinationId;
+                        loadCaseCheckbox.dataset.loadCase = loadCase;
+                        loadCaseCheckbox.checked = true;
+                        loadCaseCheckbox.addEventListener('change', function(e) {
+                            toggleLoadCaseSelection(combinationId, loadCase, e.target.checked);
+                        });
+                        
+                        const loadCaseLabel = document.createElement('span');
+                        loadCaseLabel.style.marginLeft = '8px';
+                        loadCaseLabel.textContent = `Load Case: ${loadCase}`;
+                        
+                        loadCaseHeaderCell.appendChild(loadCaseCheckbox);
+                        loadCaseHeaderCell.appendChild(loadCaseLabel);
+                        
+                        // Display individual records
+                        loadCaseRecords.forEach(record => {
+                            const row = tbody.insertRow();
+                            const dataIndex = allTableData.length;
+                            allTableData.push(record);
+                            
+                            const checkboxCell = row.insertCell();
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'record-checkbox';
+                            checkbox.dataset.index = dataIndex;
+                            checkbox.dataset.combinationId = combinationId;
+                            checkbox.dataset.loadCase = loadCase;
+                            checkbox.checked = true;
+                            checkbox.addEventListener('change', handleRecordSelection);
+                            checkboxCell.appendChild(checkbox);
+                            
+                            columns.forEach(column => {
+                                const cell = row.insertCell();
+                                // Highlight combination info
+                                if (column === 'Set No.' || column === 'Phase No.') {
+                                    cell.style.fontWeight = 'bold';
+                                    cell.style.backgroundColor = '#f0f8ff';
+                                }
+                                cell.textContent = record[column] !== undefined ? record[column] : '';
+                            });
+                            
+                            // Auto-select this record
+                            selectedRecords.add(record);
+                        });
+                    });
+                    
+                    // Add small spacer between combinations
+                    if (index < combinationsArray.length - 1) {
+                        const spacerRow = tbody.insertRow();
+                        const spacerCell = spacerRow.insertCell();
+                        spacerCell.colSpan = columns.length + 1;
+                        spacerCell.style.padding = '10px';
+                        spacerCell.style.backgroundColor = '#f8f9fa';
+                    }
+                } else {
+                    console.log(`❌ No records found for ${combinationDisplay}`);
+                    
+                    // Show combination with no data message
+                    const noDataRow = tbody.insertRow();
+                    const noDataCell = noDataRow.insertCell();
+                    noDataCell.colSpan = columns.length + 1;
+                    noDataCell.style.backgroundColor = '#fff3cd';
+                    noDataCell.style.padding = '10px';
+                    noDataCell.style.color = '#856404';
+                    noDataCell.style.fontStyle = 'italic';
+                    noDataCell.textContent = `Combination: Set ${setNum} - Phase ${phaseNum} - No matching records found in data`;
+                }
             });
             
-            // Now display each Load Case group
-            Object.keys(combinationsByLoadCase).forEach(loadCase => {
-                const groupRecords = combinationsByLoadCase[loadCase];
-                
-                // Add Load Case group header
-                const groupHeaderRow = tbody.insertRow();
-                groupHeaderRow.className = 'load-case-group-header';
-                const groupHeaderCell = groupHeaderRow.insertCell();
-                groupHeaderCell.colSpan = columns.length + 1;
-                groupHeaderCell.style.backgroundColor = '#e9ecef';
-                groupHeaderCell.style.borderLeft = '4px solid #28a745';
-                groupHeaderCell.style.padding = '12px';
-                groupHeaderCell.style.fontWeight = 'bold';
-                
-                // Group checkbox for this Load Case
-                const groupCheckbox = document.createElement('input');
-                groupCheckbox.type = 'checkbox';
-                groupCheckbox.className = 'combination-group-checkbox';
-                groupCheckbox.dataset.loadCase = loadCase;
-                groupCheckbox.checked = true;
-                groupCheckbox.addEventListener('change', function(e) {
-                    toggleCombinationGroupSelection(loadCase, e.target.checked);
-                });
-                
-                const groupLabel = document.createElement('span');
-                groupLabel.style.marginLeft = '8px';
-                groupLabel.textContent = `Load Case: ${loadCase}`;
-                
-                groupHeaderCell.appendChild(groupCheckbox);
-                groupHeaderCell.appendChild(groupLabel);
-                
-                // Display records for this Load Case group
-                groupRecords.forEach(({record, combinationLabel}) => {
-                    const row = tbody.insertRow();
-                    const dataIndex = allTableData.length;
-                    allTableData.push(record);
-                    
-                    const checkboxCell = row.insertCell();
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'record-checkbox';
-                    checkbox.dataset.index = dataIndex;
-                    checkbox.dataset.loadCase = loadCase;
-                    checkbox.dataset.combinationType = 'created';
-                    checkbox.checked = true;
-                    checkbox.addEventListener('change', handleRecordSelection);
-                    checkboxCell.appendChild(checkbox);
-                    
-                    columns.forEach(column => {
-                        const cell = row.insertCell();
-                        cell.textContent = record[column] !== undefined ? record[column] : '';
-                    });
-                    
-                    // Auto-select this record
-                    selectedRecords.add(record);
-                });
-            });
+            console.log(`=== DISPLAYED ${displayedCombinationCount} COMBINATIONS ===`);
+            
+            // If no combinations had data at all
+            if (displayedCombinationCount === 0) {
+                const noDataRow = tbody.insertRow();
+                const noDataCell = noDataRow.insertCell();
+                noDataCell.colSpan = columns.length + 1;
+                noDataCell.textContent = 'No matching records found in the data for any created combinations.';
+                noDataCell.style.textAlign = 'center';
+                noDataCell.style.color = '#666';
+                noDataCell.style.fontStyle = 'italic';
+                noDataCell.style.padding = '20px';
+            }
+        } else {
+            console.log('No active combinations found');
         }
-        {% endif %}
-
+    {% endif %}
     
     // SECTION 3: Show attachment joint label records in combinations (for both modes)
     const selectedJointLabels = Array.from(selectedJoints);
@@ -1683,6 +1947,8 @@ function updateTable() {
     // Update selected count
     updateSelectedCount();
 }
+
+
     
 function toggleCombinationGroupSelection(loadCase, isChecked) {
     // Find all combination records in this load case group
@@ -1764,17 +2030,23 @@ function createAllCombinations() {
         return;
     }
     
+    console.log('Creating ALL combinations from:', {
+        sets: Array.from(selectedSets),
+        phases: Array.from(selectedPhases)
+    });
+    
     selectedSets.forEach(set => {
         selectedPhases.forEach(phase => {
             createCombination(set, phase);
         });
     });
     
+    console.log('Total combinations after creation:', activeCombinations.size);
     updateActiveCombinationsDisplay();
     updateTable();
 }
 
-// Create a single combination (useful for repeated phase values)
+// Create a single combination
 function createSingleCombination() {
     if (selectedSets.size === 0 || selectedPhases.size === 0) {
         showSelectionRequiredMessage();
@@ -1785,6 +2057,8 @@ function createSingleCombination() {
     const set = Array.from(selectedSets)[0];
     const phase = Array.from(selectedPhases)[0];
     
+    console.log('Creating single combination:', { set, phase });
+    
     createCombination(set, phase);
     updateActiveCombinationsDisplay();
     updateTable();
@@ -1792,7 +2066,7 @@ function createSingleCombination() {
 
 // Create individual combination
 function createCombination(set, phase) {
-    const combinationId = `comb_${combinationCounter++}`;
+    const combinationId = `comb_${combinationCounter++}_${Date.now()}`;
     const combination = {
         id: combinationId,
         set: set,
@@ -1803,36 +2077,209 @@ function createCombination(set, phase) {
     
     activeCombinations.set(combinationId, combination);
     
+    console.log(`Created combination: ${combination.displayText} (ID: ${combinationId})`);
+    
     // Add to 3D scene if needed
     addSetPhaseMarker(set, phase);
     
     showCombinationCreatedMessage(combination.displayText);
+    
+    syncSelectionsWithSession(); // NEW: Sync with session
     return combinationId;
+}
+
+// Function to generate combinations (Keep this logic, but decouple storage)
+function generateCombinations(mode) {
+    const selectedSets = Array.from(document.getElementById('set-select').selectedOptions).map(opt => opt.value);
+    const selectedPhases = Array.from(document.getElementById('phase-select').selectedOptions).map(opt => opt.value);
+    
+    let generatedCombinations = [];
+
+    if (mode === 'all') {
+        if (selectedSets.length === 0 || selectedPhases.length === 0) {
+            alert('Please select at least one Set and one Phase for "Create All Combinations".');
+            return [];
+        }
+        for (const set of selectedSets) {
+            for (const phase of selectedPhases) {
+                generatedCombinations.push(`${set}-${phase}`);
+            }
+        }
+    } else if (mode === 'single') {
+        if (selectedSets.length !== 1 || selectedPhases.length !== 1) {
+            alert('Please select exactly one Set and one Phase for "Create Single Combination".');
+            return [];
+        }
+        generatedCombinations.push(`${selectedSets[0]}-${selectedPhases[0]}`);
+    }
+
+    
+    return generatedCombinations;
 }
 
 // Update the active combinations display
 function updateActiveCombinationsDisplay() {
-    const container = document.getElementById('active-combinations');
-    if (!container) return;
-    
-    if (activeCombinations.size === 0) {
-        container.innerHTML = '<div class="text-muted">No active combinations</div>';
+    const displayElement = document.getElementById('active-combinations');
+    displayElement.innerHTML = ''; // Clear existing list
+
+    // Load from the session data passed by Django (which now includes status)
+    const activeCombinationsList = JSON.parse('{{ active_combinations|safe|escapejs }}');
+
+    if (activeCombinationsList.length === 0) {
+        displayElement.innerHTML = '<p class="text-muted">No combinations active.</p>';
         return;
     }
-    
-    let html = '';
-    activeCombinations.forEach((comb, id) => {
-        html += `
-            <div class="combination-item" data-combination-id="${id}">
-                <span class="combination-text">${comb.displayText}</span>
-                <button class="btn btn-sm btn-outline-danger remove-combination" 
-                        onclick="removeCombination('${id}')">×</button>
-            </div>
-        `;
+
+    activeCombinationsList.forEach(combo => {
+        // combo will be like "1-2-Ahead"
+        const [set, phase, status] = combo.split('-'); 
+        
+        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        const item = document.createElement('span');
+        item.className = 'badge badge-primary mr-1 mb-1';
+        item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
+        item.dataset.set = set;
+        item.dataset.phase = phase;
+        item.dataset.status = status;
+        // Optionally add a remove button
+        // item.innerHTML += '<button class="close ml-1" onclick="removeCombination(\'' + combo + '\')">&times;</button>';
+        displayElement.appendChild(item);
     });
-    
-    container.innerHTML = html;
 }
+
+async function storeCombinations(status) {
+    if (combinationsToConfirm.length === 0) return;
+
+    try {
+        const response = await fetch('{% url "store_set_phase_combinations" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken 
+            },
+            body: JSON.stringify({
+                combinations: combinationsToConfirm,
+                status: status
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log(result.message);
+            
+            // Use the data returned from the server to update the display
+            updateActiveCombinationsDisplayFromResponse(result.new_combinations);
+            updateTable();
+            
+            // Optionally show success message
+            showSuccessMessage(`Combinations stored as ${status}`);
+        } else {
+            alert('Error storing combinations: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Network or other error:', error);
+        alert('An unexpected error occurred. Check console.');
+    } finally {
+        combinationsToConfirm = [];
+    }
+}
+
+function updateActiveCombinationsDisplayFromResponse(newCombinations) {
+    const displayElement = document.getElementById('active-combinations');
+    displayElement.innerHTML = '';
+
+    if (!newCombinations || newCombinations.length === 0) {
+        displayElement.innerHTML = '<p class="text-muted">No combinations active.</p>';
+        return;
+    }
+
+    newCombinations.forEach(combo => {
+        // combo will be like "1-2-Ahead" (format from your Django view)
+        const [set, phase, status] = combo.split('-'); 
+        
+        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        const item = document.createElement('span');
+        item.className = 'badge badge-primary mr-1 mb-1';
+        item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
+        item.dataset.set = set;
+        item.dataset.phase = phase;
+        item.dataset.status = status;
+        displayElement.appendChild(item);
+    });
+}
+
+function showSuccessMessage(message) {
+    // You can use a toast library or simple alert
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        document.body.removeChild(toast);
+    }, 3000);
+}
+
+// Event Listeners for Create Buttons
+document.getElementById('create-all-combinations').addEventListener('click', function() {
+    const newCombinations = generateCombinations('all');
+    if (newCombinations.length > 0) {
+        combinationsToConfirm = newCombinations;
+        showAheadBackModal();
+    }
+});
+
+document.getElementById('create-single-combination').addEventListener('click', function() {
+    const newCombinations = generateCombinations('single');
+    if (newCombinations.length > 0) {
+        combinationsToConfirm = newCombinations;
+        showAheadBackModal();
+    }
+});
+
+
+function showAheadBackModal() {
+    const ul = document.getElementById('new-combinations-list');
+    ul.innerHTML = ''; // Clear previous list
+    
+    if (combinationsToConfirm.length === 0) {
+        return; // Should not happen if called correctly
+    }
+
+    combinationsToConfirm.forEach(combo => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-info';
+        const [set, phase] = combo.split('-');
+        li.textContent = `Set: ${set}, Phase: ${phase}`;
+        ul.appendChild(li);
+    });
+
+    // Show the Bootstrap modal
+    $('#aheadBackModal').modal('show');
+}
+
+// Event listeners for Modal Buttons
+document.getElementById('btn-ahead').addEventListener('click', function() {
+    storeCombinations('Ahead');
+});
+
+document.getElementById('btn-back').addEventListener('click', function() {
+    storeCombinations('Back');
+});
+
+// Call the display function on page load
+document.addEventListener('DOMContentLoaded', updateActiveCombinationsDisplay);
 
 // Remove a specific combination
 function removeCombination(combinationId) {
@@ -1847,8 +2294,10 @@ function removeCombination(combinationId) {
         
         updateActiveCombinationsDisplay();
         updateTable();
+        syncSelectionsWithSession(); // NEW: Sync with session
     }
 }
+
 
 // Clear all combinations
 function clearAllCombinations() {
@@ -1861,7 +2310,9 @@ function clearAllCombinations() {
     
     updateActiveCombinationsDisplay();
     updateTable();
+    syncSelectionsWithSession(); // NEW: Sync with session
 }
+
 
 // Helper function to remove set-phase marker by combination
 function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
@@ -1872,6 +2323,49 @@ function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
             removeSetPhaseMarker(uniqueId);
         }
     });
+}
+
+function syncSelectionsWithSession() {
+    const selectedJointsArray = Array.from(selectedJoints);
+    const activeCombinationsArray = Array.from(activeCombinations.values());
+    
+    const formData = new FormData();
+    selectedJointsArray.forEach(joint => formData.append('selected_joints[]', joint));
+    formData.append('active_combinations', JSON.stringify(activeCombinationsArray));
+    
+    fetch('/update-selection-session/', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Selections synced with session:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error syncing selections:', error);
+    });
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
     // Set up event listeners
@@ -1960,25 +2454,27 @@ function removeSetPhaseMarkerByCombination(set, phase, combinationId) {
 
         // Joint selection (keep existing)
         const jointContainer = document.getElementById('joint-labels');
-        if (jointContainer) {
-            jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const jointValue = this.value;
+            if (jointContainer) {
+                jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const jointValue = this.value;
 
-                    if (this.checked) {
-                        selectedJoints.add(jointValue);
-                        // Add marker if it doesn't exist
-                        if (!jointMarkers[jointValue]) {
-                            addJointMarker(jointValue);
+                        if (this.checked) {
+                            selectedJoints.add(jointValue);
+                            // Add marker if it doesn't exist
+                            if (!jointMarkers[jointValue]) {
+                                addJointMarker(jointValue);
+                            }
+                        } else {
+                            selectedJoints.delete(jointValue);
+                            removeJointMarker(jointValue);
                         }
-                    } else {
-                        selectedJoints.delete(jointValue);
-                        removeJointMarker(jointValue);
-                    }
-                    updateTable();
+                        updateTable();
+                        syncSelectionsWithSession(); // NEW: Sync with session
+                    });
                 });
-            });
-        }
+            }
+
 
 
     document.querySelectorAll('.drag-item').forEach(item => {

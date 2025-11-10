@@ -1,5 +1,7 @@
 from django.urls import path
 from app1 import views 
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
    
@@ -115,8 +117,11 @@ urlpatterns = [
    path('hupload4/',views.hupload4,name='hupload4'),
    path('hupload4/update/', views.hupload4_update, name='hupload4_update'),
    path('h_deadend_view4/', views.h_deadend_view4, name='h_deadend_view4'),
-
+   path('store-combinations/', views.store_set_phase_combinations, name='store_set_phase_combinations'),
    path('hdata1/',views.hdata1,name='hdata1'),
+   path('load-cases/', views.load_cases_page, name='load_cases'),
+   path('update-selection-session/', views.update_selection_session, name='update_selection_session'),  # NEW
+
    path('calculation/', views.calculation_view, name='calculation'),
    path('load-condition/', views.load_condition_view, name='load_condition'),
    path('calculate-final-loads/', views.calculate_final_loads, name='calculate_final_loads'),
@@ -209,4 +214,6 @@ urlpatterns = [
    path('mupload12/update/', views.mupload12_update, name='mupload12_update'),
    path('mupload13/update/', views.mupload13_update, name='mupload13_update'),
 
-]
+] 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
