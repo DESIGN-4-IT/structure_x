@@ -534,34 +534,34 @@ h3, h4, h5 {
                 <hr>
 
                 <div class="filter-section mb-3">
-                <form method="post" id="filter-previous-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="filter_by_previous" value="true">
-                    <button type="submit" class="btn btn-info" id="filter-previous-btn">
-                        🔍 Filter by Set+Phase Combinations
-                    </button>
-                    <small class="text-muted ms-2">
-                        {% if filter_criteria %}
-                            Active filters: 
-                            {% if filter_criteria.joint_labels %}
-                                Joint Labels ({{ filter_criteria.joint_labels|length }})
+                    <form method="post" id="filter-previous-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="filter_by_previous" value="true">
+                        <button type="submit" class="btn btn-info" id="filter-previous-btn">
+                            🔍 Filter by Previous Selection
+                        </button>
+                        <small class="text-muted ms-2">
+                            {% if filter_criteria %}
+                                Active filters: 
+                                {% if filter_criteria.joint_labels %}
+                                    Joint Labels ({{ filter_criteria.joint_labels|length }})
+                                {% endif %}
+                                {% if filter_criteria.set_phase_combinations %}
+                                    Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
+                                    <div class="debug-info small text-info mt-1">
+                                        Combinations ({{ filter_criteria.set_phase_combinations|length }} total): 
+                                        {% for combo in filter_criteria.set_phase_combinations %}
+                                            Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                No previous selection found
                             {% endif %}
-                            {% if filter_criteria.set_phase_combinations %}
-                                Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
-                                <!-- Debug info -->
-                                <div class="debug-info small text-info mt-1">
-                                    Combinations: 
-                                    {% for combo in filter_criteria.set_phase_combinations %}
-                                        Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        {% else %}
-                            No previous selection found
-                        {% endif %}
-                    </small>
-                </form>
-            </div>
+                        </small>
+                    </form>
+                </div>
+
 
                 <!-- Load Values Display Section -->
                 <div id="load-values-section">
@@ -591,9 +591,41 @@ h3, h4, h5 {
                 </div>
             </div>
         </div>
+
+        
     </div>
 
-    
+    <!-- Edit Group Modal -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editGroupModalLabel">Edit Group: <span id="edit-group-name"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Available Load Cases:</label>
+                    <div id="available-load-cases-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Available load cases will be populated here -->
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Selected Load Cases for this Group:</label>
+                    <div id="group-selected-cases" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Selected cases will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-group-changes">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     {% endblock %}
 
 {% block extra_js %}
@@ -980,6 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="group-name-display">${groupName}</span>
                                 <div class="ms-2">
                                     <button class="btn btn-sm btn-outline-primary edit-group" data-group="${groupName}">Rename</button>
+                                    <button class="btn btn-sm btn-outline-warning edit-group-members" data-group="${groupName}">Edit</button>
                                     <button class="btn btn-sm btn-outline-danger delete-group" data-group="${groupName}">Delete</button>
                                 </div>
                                 <div class="form-check ms-2">
@@ -1091,7 +1124,207 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateMasterSelectAllCustomGroups();
             });
         });
-        
+
+        document.querySelectorAll('.edit-group-members').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const groupName = this.dataset.group;
+                openEditGroupModal(groupName);
+            });
+        });
+
+        function openEditGroupModal(groupName) {
+            // Set the group name in modal title
+            document.getElementById('edit-group-name').textContent = groupName;
+            
+            // Show loading state
+            document.getElementById('available-load-cases-list').innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
+            document.getElementById('group-selected-cases').innerHTML = '<div class="text-center py-2">Loading...</div>';
+            
+            // Fetch available load cases and current group members
+            fetch(`/load-cases/?get_all_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading load cases: ' + data.error);
+                    return;
+                }
+                
+                // Get current group members from the displayed checkboxes
+                const currentGroupElement = document.getElementById(`custom-group-${groupName.replace(/\s+/g, '-')}`);
+                const currentCases = [];
+                if (currentGroupElement) {
+                    const checkboxes = currentGroupElement.querySelectorAll('.custom-group-case-checkbox');
+                    checkboxes.forEach(cb => {
+                        currentCases.push(cb.value);
+                    });
+                }
+                
+                populateEditGroupModal(data.values || [], currentCases, groupName);
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('editGroupModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Error loading load cases: ' + error);
+            });
+        }
+
+        // Function to populate the edit group modal
+        function populateEditGroupModal(allLoadCases, currentGroupCases, groupName) {
+            const availableList = document.getElementById('available-load-cases-list');
+            const selectedList = document.getElementById('group-selected-cases');
+            
+            // Clear previous content
+            availableList.innerHTML = '';
+            selectedList.innerHTML = '';
+            
+            if (!allLoadCases || allLoadCases.length === 0) {
+                availableList.innerHTML = '<p class="text-muted">No load cases available</p>';
+                return;
+            }
+            
+            // Sort load cases alphabetically for better UX
+            allLoadCases.sort();
+            
+            // Create available load cases list
+            allLoadCases.forEach(caseName => {
+                const isInGroup = currentGroupCases.includes(caseName);
+                const caseElement = document.createElement('div');
+                caseElement.className = 'form-check';
+                caseElement.innerHTML = `
+                    <input class="form-check-input available-case-checkbox" type="checkbox" 
+                        value="${caseName}" id="available-${caseName.replace(/\s+/g, '-')}"
+                        ${isInGroup ? 'checked' : ''}>
+                    <label class="form-check-label" for="available-${caseName.replace(/\s+/g, '-')}">
+                        ${caseName}
+                    </label>
+                `;
+                availableList.appendChild(caseElement);
+            });
+            
+            // Populate selected cases display
+            updateSelectedCasesDisplay(currentGroupCases);
+            
+            // Add event listeners to checkboxes
+            document.querySelectorAll('.available-case-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedCasesDisplayFromCheckboxes();
+                });
+            });
+            
+            // Set up save button
+            document.getElementById('save-group-changes').onclick = function() {
+                saveGroupChanges(groupName);
+            };
+        }
+
+        // Function to update selected cases display from checkboxes
+        function updateSelectedCasesDisplayFromCheckboxes() {
+            const selectedCases = [];
+            document.querySelectorAll('.available-case-checkbox:checked').forEach(checkbox => {
+                selectedCases.push(checkbox.value);
+            });
+            updateSelectedCasesDisplay(selectedCases);
+        }
+
+        // Function to update selected cases display
+        function updateSelectedCasesDisplay(selectedCases) {
+            const selectedList = document.getElementById('group-selected-cases');
+            
+            if (selectedCases.length === 0) {
+                selectedList.innerHTML = '<p class="text-muted">No load cases selected</p>';
+                return;
+            }
+            
+            selectedList.innerHTML = '';
+            
+            // Sort selected cases alphabetically
+            selectedCases.sort().forEach(caseName => {
+                const caseElement = document.createElement('div');
+                caseElement.className = 'selected-case-item d-flex justify-content-between align-items-center p-2 mb-1 bg-white rounded border';
+                caseElement.innerHTML = `
+                    <span class="flex-grow-1">${caseName}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-case-btn" data-case="${caseName}">
+                        ×
+                    </button>
+                `;
+                selectedList.appendChild(caseElement);
+            });
+            
+            // Add remove functionality
+            document.querySelectorAll('.remove-case-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const caseName = this.dataset.case;
+                    const checkbox = document.querySelector(`#available-${caseName.replace(/\s+/g, '-')}`);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        updateSelectedCasesDisplayFromCheckboxes();
+                    }
+                });
+            });
+        }
+
+        // Function to save group changes
+        function saveGroupChanges(groupName) {
+            const selectedCases = [];
+            document.querySelectorAll('.available-case-checkbox:checked').forEach(checkbox => {
+                selectedCases.push(checkbox.value);
+            });
+            
+            if (selectedCases.length === 0) {
+                alert('Please select at least one load case for the group');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('edit_custom_group', 'true');
+            formData.append('structure_id', structureId);
+            formData.append('group_name', groupName);
+            selectedCases.forEach(caseName => {
+                formData.append('selected_cases[]', caseName);
+            });
+            
+            // Show loading state
+            const saveBtn = document.getElementById('save-group-changes');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Saving...';
+            saveBtn.disabled = true;
+            
+            fetch('/load-cases/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Group "${groupName}" updated successfully!`, 'success');
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editGroupModal'));
+                    if (modal) modal.hide();
+                    // Reload custom groups to reflect changes
+                    loadCustomGroups();
+                } else {
+                    alert('Error updating group: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error updating group: ' + error);
+            })
+            .finally(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
+                
         // NEW: Helper function to update master "Select All Custom Groups" checkbox
         function updateMasterSelectAllCustomGroups() {
             const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
@@ -1265,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Function to update the load values table with filtered data
-    function updateLoadValuesTable(selectedCases) {
+    function updateLoadValuesTable(selectedCases, selectionSource = 'imported') {
     if (!structureId) {
         return;
     }
@@ -1273,10 +1506,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show loading state
     loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
     
-    // Build URL with selected load cases
+    // Build URL with selected load cases and selection source
     const url = new URL('/load-cases/', window.location.origin);
     url.searchParams.append('get_filtered_load_data', 'true');
     url.searchParams.append('structure_id', structureId);
+    url.searchParams.append('selection_source', selectionSource); // NEW: Add selection source
     selectedCases.forEach(caseName => {
         url.searchParams.append('selected_load_cases', caseName);
     });
@@ -1298,45 +1532,15 @@ document.addEventListener('DOMContentLoaded', function() {
         allTableData = []; // Reset all table data
         selectedRecords.clear(); // Clear previous selections
         
-        if (data.load_data && data.load_data.length > 0) {
-            // Update table header if columns changed
-            updateTableHeader(data.all_columns);
-            
-            // Populate table rows
-            data.load_data.forEach((rowData, index) => {
-                const row = document.createElement('tr');
-                
-                // Add select checkbox
-                const selectCell = document.createElement('td');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'row-select';
-                checkbox.dataset.index = index;
-                selectCell.appendChild(checkbox);
-                row.appendChild(selectCell);
-                
-                // Add data cells
-                data.all_columns.forEach(column => {
-                    const cell = document.createElement('td');
-                    cell.textContent = rowData[column] || '';
-                    row.appendChild(cell);
-                });
-                
-                loadTableBody.appendChild(row);
-                
-                // Store the row data in allTableData
-                allTableData.push(rowData);
-            });
-            
-            // Update record count
-            selectedCount.textContent = `${data.load_data.length} records`;
-            calculateBtn.disabled = true; // Start with disabled calculate button
-            
-            // Add row selection functionality
-            setupRowSelection();
-            updateSelectedCount();
-            
-        } else {
+        // NEW: Handle grouped data response
+        if (data.is_grouped && data.grouped_data) {
+            updateTableWithGroupedData(data.grouped_data, data.all_columns);
+        } 
+        // Handle flat data response (existing behavior)
+        else if (data.load_data && data.load_data.length > 0) {
+            updateTableWithFlatData(data.load_data, data.all_columns);
+        } 
+        else {
             loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No data found for selected load cases</td></tr>';
             selectedCount.textContent = '0 records';
             calculateBtn.disabled = true;
@@ -1346,6 +1550,195 @@ document.addEventListener('DOMContentLoaded', function() {
         loadTableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger py-4">Error loading data: ${error}</td></tr>`;
     });
 }
+
+// NEW: Function to update table with grouped data
+function updateTableWithGroupedData(groupedData, columns) {
+    let totalRecords = 0;
+    let rowIndex = 0;
+    
+    // Clear existing table data
+    loadTableBody.innerHTML = '';
+    allTableData = [];
+    selectedRecords.clear();
+    
+    // Update table header
+    updateTableHeader(columns);
+    
+    // If no grouped data, show empty message
+    if (Object.keys(groupedData).length === 0) {
+        loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No matching records found</td></tr>';
+        selectedCount.textContent = '0 records';
+        calculateBtn.disabled = true;
+        return;
+    }
+    
+    // Iterate through each group
+    for (const [groupName, records] of Object.entries(groupedData)) {
+        if (records.length === 0) continue;
+        
+        totalRecords += records.length;
+        
+        // Add group header row
+        const headerRow = document.createElement('tr');
+        headerRow.className = 'group-header-row table-primary';
+        headerRow.style.fontWeight = 'bold';
+        
+        const headerCell = document.createElement('td');
+        headerCell.colSpan = columns.length + 1; // +1 for select column
+        headerCell.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between">
+                <span>📁 ${groupName} (${records.length} records)</span>
+                <div class="form-check">
+                    <input class="form-check-input select-group-checkbox" type="checkbox" 
+                           data-group="${groupName.replace(/\s+/g, '-')}">
+                    <label class="form-check-label small">Select All in Group</label>
+                </div>
+            </div>
+        `;
+        headerRow.appendChild(headerCell);
+        loadTableBody.appendChild(headerRow);
+        
+        // Add records for this group
+        records.forEach(record => {
+            const row = document.createElement('tr');
+            row.className = 'group-data-row';
+            row.dataset.group = groupName.replace(/\s+/g, '-');
+            
+            // Add select checkbox
+            const selectCell = document.createElement('td');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'row-select';
+            checkbox.dataset.index = rowIndex;
+            checkbox.dataset.group = groupName.replace(/\s+/g, '-');
+            selectCell.appendChild(checkbox);
+            row.appendChild(selectCell);
+            
+            // Add data cells
+            columns.forEach(column => {
+                const cell = document.createElement('td');
+                const value = record[column] || '';
+                cell.textContent = value;
+                
+                // Highlight important columns
+                if (column === 'Set No.' || column === 'Phase No.') {
+                    cell.style.fontWeight = 'bold';
+                    cell.style.backgroundColor = '#e8f5e8';
+                    cell.style.borderLeft = '3px solid #28a745';
+                }
+                
+                // Highlight Load Case Description
+                if (column === 'Load Case Description') {
+                    cell.style.fontWeight = 'bold';
+                    cell.style.backgroundColor = '#e3f2fd';
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            loadTableBody.appendChild(row);
+            
+            // Store the row data in allTableData
+            allTableData.push(record);
+            rowIndex++;
+        });
+        
+        // Add a small spacer between groups
+        const spacerRow = document.createElement('tr');
+        const spacerCell = document.createElement('td');
+        spacerCell.colSpan = columns.length + 1;
+        spacerCell.style.height = '5px';
+        spacerCell.style.backgroundColor = '#f8f9fa';
+        spacerRow.appendChild(spacerCell);
+        loadTableBody.appendChild(spacerRow);
+    }
+    
+    // Update record count and setup selection
+    selectedCount.textContent = `${totalRecords} records`;
+    calculateBtn.disabled = true;
+    
+    // Add selection functionality
+    setupRowSelection();
+    setupGroupSelection();
+    updateSelectedCount();
+}
+
+function updateTableWithFlatData(loadData, columns) {
+    // Clear existing table data
+    loadTableBody.innerHTML = '';
+    allTableData = []; // Reset all table data
+    selectedRecords.clear(); // Clear previous selections
+    
+    // Update table header if columns changed
+    updateTableHeader(columns);
+    
+    // Populate table rows
+    loadData.forEach((rowData, index) => {
+        const row = document.createElement('tr');
+        
+        // Add select checkbox
+        const selectCell = document.createElement('td');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'row-select';
+        checkbox.dataset.index = index;
+        selectCell.appendChild(checkbox);
+        row.appendChild(selectCell);
+        
+        // Add data cells
+        columns.forEach(column => {
+            const cell = document.createElement('td');
+            cell.textContent = rowData[column] || '';
+            row.appendChild(cell);
+        });
+        
+        loadTableBody.appendChild(row);
+        
+        // Store the row data in allTableData
+        allTableData.push(rowData);
+    });
+    
+    // Update record count
+    selectedCount.textContent = `${loadData.length} records`;
+    calculateBtn.disabled = true;
+    
+    // Add row selection functionality
+    setupRowSelection();
+    updateSelectedCount();
+}
+
+// NEW: Function to setup group selection
+function setupGroupSelection() {
+    document.querySelectorAll('.select-group-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const groupName = this.dataset.group;
+            const groupHeader = this.closest('.group-header-row');
+            let nextRow = groupHeader.nextElementSibling;
+            
+            // Find and check/uncheck all rows in this group
+            while (nextRow && (nextRow.classList.contains('group-data-row') || nextRow.classList.contains('group-spacer-row'))) {
+                if (nextRow.classList.contains('group-data-row') && nextRow.dataset.group === groupName) {
+                    const rowCheckbox = nextRow.querySelector('.row-select');
+                    if (rowCheckbox) {
+                        rowCheckbox.checked = this.checked;
+                        const index = parseInt(rowCheckbox.dataset.index);
+                        const record = allTableData[index];
+                        
+                        if (this.checked) {
+                            selectedRecords.add(record);
+                        } else {
+                            selectedRecords.delete(record);
+                        }
+                    }
+                }
+                nextRow = nextRow.nextElementSibling;
+            }
+            
+            updateSelectedCount();
+        });
+    });
+}
+
 
 // Add select all functionality (optional but recommended)
 function addSelectAllFunctionality() {
@@ -1398,26 +1791,45 @@ function addSelectAllFunctionality() {
 }
     
     // Function to setup row selection
-    function setupRowSelection() {
+function setupRowSelection() {
     const rowSelects = document.querySelectorAll('.row-select');
-    selectedRecords.clear();
     
     rowSelects.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const index = parseInt(this.dataset.index);
             const record = allTableData[index];
+            const groupName = this.dataset.group;
             
             if (this.checked) {
                 selectedRecords.add(record);
             } else {
                 selectedRecords.delete(record);
             }
+            
+            // Update group checkbox state
+            updateGroupCheckboxState(groupName);
             updateSelectedCount();
         });
     });
-    }
+}
     
-    function updateSelectedCount() {
+function updateGroupCheckboxState(groupName) {
+    const groupCheckbox = document.querySelector(`.select-group-checkbox[data-group="${groupName}"]`);
+    if (!groupCheckbox) return;
+    
+    const groupRows = document.querySelectorAll(`.group-data-row[data-group="${groupName}"]`);
+    const groupCheckboxes = Array.from(groupRows).map(row => row.querySelector('.row-select'));
+    
+    if (groupCheckboxes.length === 0) return;
+    
+    const allChecked = groupCheckboxes.every(cb => cb.checked);
+    const someChecked = groupCheckboxes.some(cb => cb.checked);
+    
+    groupCheckbox.checked = allChecked;
+    groupCheckbox.indeterminate = someChecked && !allChecked;
+}
+
+function updateSelectedCount() {
     const selectedCount = document.getElementById('selected-count');
     const calculateBtn = document.getElementById('calculate-btn');
     
@@ -1425,79 +1837,166 @@ function addSelectAllFunctionality() {
     calculateBtn.disabled = selectedRecords.size === 0;
 }
 
-// Add event listener for calculate button
 document.getElementById('calculate-btn').addEventListener('click', function() {
     if (selectedRecords.size > 0) {
-        // Prepare data for calculation - convert Set to Array
         const calculationData = Array.from(selectedRecords);
         
-        // Create a form to submit the data (same as hdata1)
-        const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = '/calculation/';  // Or your calculation endpoint
-        form.target = '_blank';
+        // Determine selection source based on active tab
+        let selectionSource = 'imported';
+        let customGroupsData = {};
         
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'calculation_data';
-        input.value = JSON.stringify(calculationData);
-        form.appendChild(input);
+        if (document.getElementById('group-load-cases-link').classList.contains('active')) {
+            selectionSource = 'group';
+        } else if (document.getElementById('custom-groups-link').classList.contains('active')) {
+            selectionSource = 'custom';
+            // NEW: Get custom groups data from the current displayed groups
+            customGroupsData = getCurrentCustomGroupsData();
+        }
+        
+        console.log('=== CALCULATION DEBUG ===');
+        console.log('Selection Source:', selectionSource);
+        console.log('Custom Groups Data:', customGroupsData);
+        console.log('Records to calculate:', calculationData.length);
+        console.log('======================');
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'calculation' %}";
+        form.target = '_blank';
+        form.style.display = 'none';
+        
+        // Add CSRF token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+        csrfToken.value = '{{ csrf_token }}';
+        form.appendChild(csrfToken);
+        
+        // Add calculation data
+        const dataInput = document.createElement('input');
+        dataInput.type = 'hidden';
+        dataInput.name = 'calculation_data';
+        dataInput.value = JSON.stringify(calculationData);
+        form.appendChild(dataInput);
+        
+        // Add selection source
+        const sourceInput = document.createElement('input');
+        sourceInput.type = 'hidden';
+        sourceInput.name = 'selection_source';
+        sourceInput.value = selectionSource;
+        form.appendChild(sourceInput);
+        
+        // NEW: Add custom groups data
+        const groupsInput = document.createElement('input');
+        groupsInput.type = 'hidden';
+        groupsInput.name = 'custom_groups_data';
+        groupsInput.value = JSON.stringify(customGroupsData);
+        form.appendChild(groupsInput);
         
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
     }
 });
+
+// NEW: Enhanced function to get current custom groups data from the displayed table
+function getCurrentCustomGroupsData() {
+    const customGroupsData = {};
+    
+    // Check if we're in custom groups view and data is grouped
+    const groupHeaders = document.querySelectorAll('.group-header-row');
+    
+    if (groupHeaders.length > 0) {
+        // We have grouped data, extract group information
+        groupHeaders.forEach(header => {
+            const headerText = header.textContent.trim();
+            // Extract group name from header text (e.g., "📁 hurri1 (18 records)" -> "hurri1")
+            const groupMatch = headerText.match(/📁\s*([^\s(]+)/);
+            if (groupMatch && groupMatch[1]) {
+                const groupName = groupMatch[1];
+                const groupRows = [];
+                
+                // Find all rows belonging to this group
+                let nextRow = header.nextElementSibling;
+                while (nextRow && (nextRow.classList.contains('group-data-row') || nextRow.classList.contains('group-spacer-row'))) {
+                    if (nextRow.classList.contains('group-data-row')) {
+                        // Extract load case description from this row
+                        const cells = nextRow.querySelectorAll('td');
+                        // Assuming Load Case Description is in a specific column - adjust index as needed
+                        let loadCaseDesc = '';
+                        
+                        // Try to find the Load Case Description cell
+                        cells.forEach((cell, index) => {
+                            if (cell.textContent.includes('Hurricane') || cell.textContent.includes('NESC')) {
+                                loadCaseDesc = cell.textContent.trim();
+                            }
+                        });
+                        
+                        // Alternative: look for specific patterns
+                        if (!loadCaseDesc) {
+                            for (let i = 0; i < cells.length; i++) {
+                                const text = cells[i].textContent.trim();
+                                if (text && (text.includes('Hurricane') || text.includes('NESC'))) {
+                                    loadCaseDesc = text;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (loadCaseDesc) {
+                            groupRows.push(loadCaseDesc);
+                        }
+                    }
+                    nextRow = nextRow.nextElementSibling;
+                }
+                
+                // Remove duplicates and store
+                if (groupRows.length > 0) {
+                    const uniqueLoadCases = [...new Set(groupRows)];
+                    customGroupsData[groupName] = uniqueLoadCases;
+                }
+            }
+        });
+    } else {
+        // Fallback: get custom groups from the custom groups selection UI
+        const customGroupElements = document.querySelectorAll('.load-case-group[id^="custom-group-"]');
+        
+        customGroupElements.forEach(groupElement => {
+            const groupNameElement = groupElement.querySelector('.group-name-display');
+            if (groupNameElement) {
+                const groupName = groupNameElement.textContent.trim();
+                const checkboxes = groupElement.querySelectorAll('.custom-group-case-checkbox:checked');
+                const loadCases = Array.from(checkboxes).map(cb => cb.value);
+                
+                if (loadCases.length > 0) {
+                    customGroupsData[groupName] = loadCases;
+                }
+            }
+        });
+    }
+    
+    console.log('Extracted Custom Groups Data:', customGroupsData);
+    return customGroupsData;
+}
+
     // Handle form submission with AJAX to prevent page refresh
     loadCasesForm.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent default form submission
-        
-        const formData = new FormData(this);
-        
-        // Add selected load cases to form data
-        selectedLoadCases.forEach(caseName => {
-            formData.append('selected_load_cases', caseName);
-        });
-        
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update the table with filtered data
-                updateLoadValuesTable(Array.from(selectedLoadCases));
-                
-                // Show success message (optional - you can remove this if you don't want popup)
-                // showNotification('Load cases applied successfully!', 'success');
-            } else {
-                showNotification('Error applying load cases', 'error');
-            }
-        })
-        .catch(error => {
-            showNotification('Error applying load cases: ' + error, 'error');
-        });
-    });
-    
-    // Function to show notifications
-document.getElementById('filter-previous-form')?.addEventListener('submit', function(e) {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default form submission
     
     const formData = new FormData(this);
-    const filterBtn = document.getElementById('filter-previous-btn');
-    const originalText = filterBtn.innerHTML;
     
-    // Show loading state
-    filterBtn.innerHTML = '⏳ Applying Filter...';
-    filterBtn.disabled = true;
+    // Determine selection source based on active tab
+    let selectionSource = 'imported';
+    if (document.getElementById('group-load-cases-link').classList.contains('active')) {
+        selectionSource = 'group';
+    } else if (document.getElementById('custom-groups-link').classList.contains('active')) {
+        selectionSource = 'custom';
+    }
     
-    console.log('Current selected load cases:', Array.from(selectedLoadCases));
-    console.log('Applying filter with criteria:', {{ filter_criteria|default:"{}"|safe }});
+    // Add selected load cases to form data
+    selectedLoadCases.forEach(caseName => {
+        formData.append('selected_load_cases', caseName);
+    });
     
     fetch(this.action, {
         method: 'POST',
@@ -1509,35 +2008,86 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     })
     .then(response => response.json())
     .then(data => {
+        if (data.success) {
+            // Update the table with filtered data using correct selection source
+            updateLoadValuesTable(Array.from(selectedLoadCases), selectionSource);
+        } else {
+            showNotification('Error applying load cases', 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Error applying load cases: ' + error, 'error');
+    });
+});
+    
+    // Function to show notifications
+document.getElementById('filter-previous-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const filterBtn = document.getElementById('filter-previous-btn');
+    const originalText = filterBtn.innerHTML;
+    
+    // NEW: Determine current selection source
+    let selectionSource = 'imported';
+    if (document.getElementById('group-load-cases-link').classList.contains('active')) {
+        selectionSource = 'group';
+    } else if (document.getElementById('custom-groups-link').classList.contains('active')) {
+        selectionSource = 'custom';
+    }
+    
+    // Add selection source to form data
+    formData.append('selection_source', selectionSource);
+    
+    // Show loading state
+    filterBtn.innerHTML = '⏳ Applying Filter...';
+    filterBtn.disabled = true;
+    
+    console.log('=== FILTER DEBUG INFO ===');
+    console.log('Current selected load cases:', Array.from(selectedLoadCases));
+    console.log('Selection source:', selectionSource);
+    console.log('Filter criteria from template:', {{ filter_criteria|default:"{}"|safe }});
+    console.log('Structure ID:', structureId);
+    console.log('========================');
+    
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('=== FILTER RESPONSE ===');
         console.log('Filter response:', data);
+        console.log('Record count:', data.record_count);
+        console.log('Group count:', data.grouped_data ? Object.keys(data.grouped_data).length : 0);
+        console.log('Is grouped:', data.is_grouped);
+        console.log('========================');
         
         if (data.success) {
-            // DO NOT update selectedLoadCases - keep user's current selection
-            // Only update the table with filtered data
-            
-            // Update the table with the actual filtered data
-            if (data.filtered_data && data.filtered_data.length > 0) {
-                updateTableWithFilteredData(data.filtered_data);
+            // Update the table with the filtered grouped data
+            if (data.is_grouped && data.grouped_data) {
+                updateTableWithGroupedData(data.grouped_data, data.all_columns);
                 
-                // Show appropriate message based on filter type
                 let filterType = '';
-                if (data.filter_criteria.joint_labels) {
+                if (data.filter_criteria && data.filter_criteria.joint_labels) {
                     filterType = `Joint Labels (${data.filter_criteria.joint_labels.length})`;
                 }
-                if (data.filter_criteria.set_phase_combinations) {
+                if (data.filter_criteria && data.filter_criteria.set_phase_combinations) {
                     filterType = `Set+Phase Combinations (${data.filter_criteria.set_phase_combinations.length})`;
                 }
                 
-                showNotification(`✅ Filter applied! Found ${data.record_count} records matching ${filterType}`, 'success');
+                const groupCount = Object.keys(data.grouped_data).length;
+                showNotification(`✅ Filter applied! Found ${data.record_count} records in ${groupCount} groups matching ${filterType}`, 'success');
             } else {
                 loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-warning py-4">No matching records found for the current selection</td></tr>';
                 selectedCount.textContent = '0 records';
                 calculateBtn.disabled = true;
                 showNotification('⚠️ No matching records found for the current selection', 'warning');
             }
-            
-            // DO NOT update checkboxes - keep user's current selection
-            
         } else {
             showNotification('❌ Error applying filter', 'error');
         }

@@ -1858,19 +1858,22 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="aheadBackModalLabel">Verify Combination Direction</h5>
+                <h5 class="modal-title" id="aheadBackModalLabel">Select Combination Direction</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Please confirm the direction for the following newly created Set-Phase combinations:</p>
+                <p>Please select the direction for the following newly created Set-Phase combinations:</p>
                 <ul id="new-combinations-list" class="list-group mb-3">
-                    </ul>
+                    <!-- Combinations will be listed here -->
+                </ul>
             </div>
             <div class="modal-footer">
+                <!-- MODIFIED: Added Both button and updated styling -->
                 <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
                 <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
+                <button type="button" class="btn btn-info" id="btn-both" data-dismiss="modal">Both</button>
             </div>
         </div>
     </div>
@@ -1922,6 +1925,52 @@
     let movementStep = 0.25;
     let isDragOverCanvas = false;
     
+    document.addEventListener('DOMContentLoaded', function() {
+    // Ensure the canvas container is visible and properly sized
+    const canvasContainer = document.querySelector('.model-viewer-container');
+    const canvas = document.getElementById('model-canvas');
+    
+    if (canvasContainer && canvas) {
+        // Force the container to be visible and properly sized
+        canvasContainer.style.display = 'block';
+        canvas.style.display = 'block';
+        
+        // Initialize the model viewer regardless of button type
+        initModelViewer();
+        updateTable();
+        
+        // Initialize the appropriate selection based on button type
+        {% if button_type == 'set_phase' %}
+            initSetPhaseSelection();
+        {% elif button_type == 'joint_labels' %}
+            // Ensure joint labels functionality is initialized
+            initJointLabelsSelection();
+        {% endif %}
+    }
+});
+
+// Add this function if it doesn't exist
+function initJointLabelsSelection() {
+    const jointContainer = document.getElementById('joint-labels');
+    if (jointContainer) {
+        jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const jointValue = this.value;
+                if (this.checked) {
+                    selectedJoints.add(jointValue);
+                    if (!jointMarkers[jointValue]) {
+                        addJointMarker(jointValue);
+                    }
+                } else {
+                    selectedJoints.delete(jointValue);
+                    removeJointMarker(jointValue);
+                }
+                updateTable();
+                syncSelectionsWithSession();
+            });
+        });
+    }
+}
     // Initialize the 3D model viewer
         // Initialize the 3D model viewer
     function initModelViewer() {
@@ -3009,12 +3058,21 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
         // Prepare data for calculation - convert Set to Array
         const calculationData = Array.from(selectedRecords);
         
-        // Create a form to submit the data
+        // Create a form to submit the data via POST (FIX for 414 error)
         const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = '/calculation/';
+        form.method = 'POST';
+        form.action = "{% url 'calculation' %}";  // Make sure this matches your URL name
         form.target = '_blank';
+        form.style.display = 'none';
         
+        // Add CSRF token for Django POST requests
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+        csrfToken.value = '{{ csrf_token }}';
+        form.appendChild(csrfToken);
+        
+        // Add calculation data
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'calculation_data';
@@ -3026,6 +3084,7 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
         document.body.removeChild(form);
     }
 });
+
     
     
 // Update table with selected labels
@@ -3498,7 +3557,7 @@ function generateCombinations(mode) {
 // Update the active combinations display
 function updateActiveCombinationsDisplay() {
     const displayElement = document.getElementById('active-combinations');
-    displayElement.innerHTML = ''; // Clear existing list
+    displayElement.innerHTML = '';
 
     // Load from the session data passed by Django (which now includes status)
     const activeCombinationsList = JSON.parse('{{ active_combinations|safe|escapejs }}');
@@ -3509,18 +3568,30 @@ function updateActiveCombinationsDisplay() {
     }
 
     activeCombinationsList.forEach(combo => {
-        // combo will be like "1-2-Ahead"
-        const [set, phase, status] = combo.split('-'); 
+        // combo will be like "1-2-Ahead", "1-2-Back", or "1-2-Both"
+        const parts = combo.split('-');
+        const set = parts[0];
+        const phase = parts[1];
+        const status = parts[2];
         
-        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        // Determine badge class based on status
+        let badgeClass;
+        if (status === 'Ahead') {
+            badgeClass = 'badge-success';
+        } else if (status === 'Back') {
+            badgeClass = 'badge-warning';
+        } else if (status === 'Both') {
+            badgeClass = 'badge-info';
+        } else {
+            badgeClass = 'badge-secondary';
+        }
+        
         const item = document.createElement('span');
         item.className = 'badge badge-primary mr-1 mb-1';
         item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
         item.dataset.set = set;
         item.dataset.phase = phase;
         item.dataset.status = status;
-        // Optionally add a remove button
-        // item.innerHTML += '<button class="close ml-1" onclick="removeCombination(\'' + combo + '\')">&times;</button>';
         displayElement.appendChild(item);
     });
 }
@@ -3563,6 +3634,7 @@ async function storeCombinations(status) {
     }
 }
 
+// Update the function that displays combinations to handle "Both" status
 function updateActiveCombinationsDisplayFromResponse(newCombinations) {
     const displayElement = document.getElementById('active-combinations');
     displayElement.innerHTML = '';
@@ -3573,10 +3645,24 @@ function updateActiveCombinationsDisplayFromResponse(newCombinations) {
     }
 
     newCombinations.forEach(combo => {
-        // combo will be like "1-2-Ahead" (format from your Django view)
-        const [set, phase, status] = combo.split('-'); 
+        // combo will be like "1-2-Ahead", "1-2-Back", or "1-2-Both"
+        const parts = combo.split('-');
+        const set = parts[0];
+        const phase = parts[1];
+        const status = parts[2]; // This could be Ahead, Back, or Both
         
-        const badgeClass = status === 'Ahead' ? 'badge-success' : 'badge-warning';
+        // Determine badge class based on status
+        let badgeClass;
+        if (status === 'Ahead') {
+            badgeClass = 'badge-success';
+        } else if (status === 'Back') {
+            badgeClass = 'badge-warning';
+        } else if (status === 'Both') {
+            badgeClass = 'badge-info';
+        } else {
+            badgeClass = 'badge-secondary';
+        }
+        
         const item = document.createElement('span');
         item.className = 'badge badge-primary mr-1 mb-1';
         item.innerHTML = `Set ${set}, Phase ${phase} <span class="badge ${badgeClass}">${status}</span>`;
@@ -3654,6 +3740,10 @@ document.getElementById('btn-ahead').addEventListener('click', function() {
 
 document.getElementById('btn-back').addEventListener('click', function() {
     storeCombinations('Back');
+});
+
+document.getElementById('btn-both').addEventListener('click', function() {
+    storeCombinations('Both');
 });
 
 // Call the display function on page load

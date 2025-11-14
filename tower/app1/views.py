@@ -378,48 +378,54 @@ from django.views.decorators.csrf import csrf_exempt
 
 
 @require_http_methods(["POST"])
-@csrf_exempt # Consider removing this and passing the CSRF token in AJAX
+@csrf_exempt
 def store_set_phase_combinations(request):
-    """
-    Handles the AJAX request to store the created Set-Phase combinations
-    along with their 'Ahead' or 'Back' status in the session.
-    """
     try:
         # Load the JSON data sent from the frontend
         data = json.loads(request.body)
         
         # The data should contain the list of combinations and the status
         combinations_to_add = data.get('combinations', [])
-        status = data.get('status') # 'Ahead' or 'Back'
+        status = data.get('status')  # 'Ahead', 'Back', or 'Both'
         
-        if not combinations_to_add or status not in ['Ahead', 'Back']:
+        print(f"DEBUG store_set_phase_combinations: Received {len(combinations_to_add)} combinations: {combinations_to_add}")
+        print(f"DEBUG: Status: {status}")
+        
+        # MODIFIED: Accept 'Both' as valid status
+        if not combinations_to_add or status not in ['Ahead', 'Back', 'Both']:
             return JsonResponse({'status': 'error', 'message': 'Invalid data provided.'}, status=400)
 
         # Get the current active combinations from the session
-        # Initialize if it doesn't exist
         selected_values = request.session.get('selected_values', {})
         active_combinations = selected_values.get('active_combinations', [])
-
+        
+        print(f"DEBUG: Existing active_combinations before extend: {len(active_combinations)} items")
+        
         # Process the new combinations: Add the status
         new_active_combinations = []
         for combo in combinations_to_add:
-      
-            combo_with_status = f"{combo}-{status}" 
-            new_active_combinations.append(combo_with_status)
-
+            combo_with_status = f"{combo}-{status}"
+            if combo_with_status not in active_combinations:  # Prevent duplicates
+                new_active_combinations.append(combo_with_status)
+            else:
+                print(f"DEBUG: Skipped duplicate combination: {combo_with_status}")
+        
         active_combinations.extend(new_active_combinations)
-
-        # Update the session with the new list
+        
+        print(f"DEBUG: Added {len(new_active_combinations)} new combinations. Total active_combinations: {len(active_combinations)}")
+        print(f"DEBUG: Final active_combinations: {active_combinations}")
+        
+        # Update the session
         request.session['selected_values']['active_combinations'] = active_combinations
         request.session.modified = True
-
+        
         return JsonResponse({
             'status': 'success', 
-            'message': f'Successfully stored {len(combinations_to_add)} combinations as {status}.',
+            'message': f'Successfully stored {len(new_active_combinations)} new combinations as {status}.',
             'new_combinations': new_active_combinations
         })
-
     except json.JSONDecodeError:
+        print("DEBUG: JSON decode error")
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON format.'}, status=400)
     except Exception as e:
         print(f"Error storing combinations: {e}")
@@ -592,11 +598,11 @@ def hdata1(request):
         'filter_criteria': filter_criteria,
         'selected_joints': selected_joints,  # NEW: Pass to template
         'active_combinations': active_combinations,  # NEW: Pass to template
+        
     })
     
 # Add this function to your views.py
 def update_selection_session(request):
-    """Update session with current selections"""
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         if request.method == 'POST':
             selected_joints = request.POST.getlist('selected_joints[]')
@@ -607,41 +613,46 @@ def update_selection_session(request):
             except json.JSONDecodeError:
                 active_combinations = []
             
-            # Ensure Set and Phase values are consistently stored as strings,
-            # potentially converting numbers to their integer string representation if they are whole.
+            print(f"DEBUG update_selection_session: Received {len(active_combinations)} raw combinations: {active_combinations}")  # NEW: Log raw input
+            
+            # Normalize combinations for consistent filtering
             normalized_combinations = []
             for combo in active_combinations:
                 normalized_combo = {}
                 for key, value in combo.items():
                     if isinstance(value, (int, float)):
-                        # If it's a whole number, store as integer string '2' instead of '2.0'
                         if value == int(value):
                             normalized_combo[key] = str(int(value))
                         else:
                             normalized_combo[key] = str(value)
                     else:
-                        normalized_combo[key] = str(value).strip() # Ensure no leading/trailing spaces
+                        normalized_combo[key] = str(value).strip()
                 normalized_combinations.append(normalized_combo)
-
+            
+            print(f"DEBUG: Normalized to {len(normalized_combinations)} combinations: {normalized_combinations}")  # NEW: Log normalized output
+            
             if 'selected_values' not in request.session:
                 request.session['selected_values'] = {}
             
             request.session['selected_values']['selected_joints'] = selected_joints
-            request.session['selected_values']['active_combinations'] = normalized_combinations # Use normalized combinations
+            request.session['selected_values']['active_combinations'] = normalized_combinations  # Note: This overwrites with dicts
             
+            # Build filter criteria
             filter_criteria = {}
             if selected_joints:
                 filter_criteria['joint_labels'] = selected_joints
             if normalized_combinations:
-                filter_criteria['set_phase_combinations'] = normalized_combinations # Use normalized combinations
+                filter_criteria['set_phase_combinations'] = normalized_combinations
             
             request.session['selected_values']['filter_criteria'] = filter_criteria
             request.session.modified = True
             
+            print(f"DEBUG: Updated session with {len(normalized_combinations)} combinations. Filter criteria: {filter_criteria}")  # NEW: Log final session update
+            
             return JsonResponse({
                 'success': True,
                 'selected_joints': selected_joints,
-                'active_combinations': normalized_combinations, # Return normalized combinations
+                'active_combinations': normalized_combinations,
                 'filter_criteria': filter_criteria
             })
     
@@ -649,13 +660,11 @@ def update_selection_session(request):
 
 
 def apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases=None):
-    """Apply filter based on previous page selection (Set+Phase or Joint Label)"""
-    if not structure_id or not filter_criteria:
-        return []
-    
+    """Apply filter criteria and return data with grouping support"""
     try:
         structure = ListOfStructure.objects.get(id=structure_id)
         
+        # Try to get the latest file
         latest_file = None
         file_models = [
             tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
@@ -672,100 +681,240 @@ def apply_previous_selection_filter(structure_id, filter_criteria, selected_load
                 break
         
         if not latest_file:
-            print("DEBUG: No latest file found.") # Added debug
+            print("DEBUG: No file found for structure")
             return []
-            
+        
         df = pd.read_excel(latest_file.file.path, engine='openpyxl')
         
-        print(f"DEBUG: Original dataframe shape: {df.shape}")
+        # Apply filter criteria
+        filtered_df = df.copy()
+        
+        print(f"DEBUG: Original DataFrame shape: {df.shape}")
         print(f"DEBUG: Filter criteria: {filter_criteria}")
         print(f"DEBUG: Selected load cases: {selected_load_cases}")
         
-        if selected_load_cases and 'Load Case Description' in df.columns:
-            df = df[df['Load Case Description'].isin(selected_load_cases)]
-            print(f"DEBUG: After load case filter: {df.shape}")
+        # NEW: Debug what values actually exist in the DataFrame
+        if 'Set No.' in df.columns and 'Phase No.' in df.columns:
+            unique_sets = df['Set No.'].dropna().unique()
+            unique_phases = df['Phase No.'].dropna().unique()
+            print(f"DEBUG: Unique Set values in data: {sorted([str(x) for x in unique_sets])}")
+            print(f"DEBUG: Unique Phase values in data: {sorted([str(x) for x in unique_phases])}")
         
-        if 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
-            joint_labels = [str(label).strip() for label in filter_criteria['joint_labels']] # Ensure stripping
-            print(f"DEBUG: Filtering by joint labels: {joint_labels}")
-            if 'Attach. Joint Labels' in df.columns:
-                df['Attach. Joint Labels'] = df['Attach. Joint Labels'].astype(str).str.strip() # Strip whitespace
-                df = df[df['Attach. Joint Labels'].isin(joint_labels)]
-                print(f"DEBUG: After joint filter: {df.shape}")
+        if 'Load Case Description' in df.columns:
+            unique_load_cases = df['Load Case Description'].dropna().unique()
+            print(f"DEBUG: Unique Load Cases in data: {sorted([str(x) for x in unique_load_cases])}")
         
-        if 'set_phase_combinations' in filter_criteria and filter_criteria['set_phase_combinations']:
-            combinations = filter_criteria['set_phase_combinations']
-            print(f"DEBUG: Filtering by combinations: {combinations}")
-            
-            # Prepare dataframe columns for robust comparison
-            df_set_col_exists = 'Set No.' in df.columns
-            df_phase_col_exists = 'Phase No.' in df.columns
-
-            if df_set_col_exists:
-                df['Set No._norm'] = df['Set No.'].apply(lambda x: str(int(x)) if pd.notna(x) and x == int(x) else str(x) if pd.notna(x) else '').str.strip()
-            if df_phase_col_exists:
-                df['Phase No._norm'] = df['Phase No.'].apply(lambda x: str(int(x)) if pd.notna(x) and x == int(x) else str(x) if pd.notna(x) else '').str.strip()
-            
-            combination_mask = pd.Series([False] * len(df))
-            
-            for combination in combinations:
-                # Retrieve the normalized values from the session
-                set_val = combination.get('set', '')
-                phase_val = combination.get('phase', '')
-                
-                print(f"DEBUG: Looking for Set: '{set_val}', Phase: '{phase_val}'")
-                
-                # Apply filters using the new normalized columns
-                set_filter = (df['Set No._norm'] == set_val) if df_set_col_exists else pd.Series([False] * len(df))
-                phase_filter = (df['Phase No._norm'] == phase_val) if df_phase_col_exists else pd.Series([False] * len(df))
-                
-                combo_filter = set_filter & phase_filter
-                
-                matching_count = combo_filter.sum()
-                print(f"DEBUG: Records matching Set '{set_val}' AND Phase '{phase_val}': {matching_count}")
-                
-                if matching_count > 0:
-                    print(f"DEBUG: Sample matching records:")
-                    matching_records = df[combo_filter].head(3)
-                    for _, record in matching_records.iterrows():
-                        print(f"  - Set: {record.get('Set No.', 'N/A')}, Phase: {record.get('Phase No.', 'N/A')}, Load Case: {record.get('Load Case Description', 'N/A')}")
-                
-                combination_mask = combination_mask | combo_filter
-            
-            if combination_mask.any():
-                df = df[combination_mask]
-                print(f"DEBUG: After combination filter: {df.shape}")
-            else:
-                print(f"DEBUG: No records matched any combination in the remaining data.")
-                return [] # No records matched after all filters
+        # If no filter criteria and no selected load cases, return all data
+        if not filter_criteria and not selected_load_cases:
+            print("DEBUG: No filters applied, returning all data")
+            # Convert to list of dictionaries
+            result_data = []
+            for _, row in filtered_df.iterrows():
+                row_data = {}
+                for col in filtered_df.columns:
+                    if pd.notna(row[col]):
+                        if pd.api.types.is_numeric_dtype(filtered_df[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(filtered_df[col]) else 0
+                result_data.append(row_data)
+            return result_data
         
-        # Original logic for returning filtered data records
-        filtered_data = []
-        for _, row in df.iterrows():
-            row_data = {}
-            for col in df.columns:
-                # Exclude temporary normalized columns from final output
-                if col.endswith('_norm'):
-                    continue 
-
-                # Handle NaN values and data types for output
-                val = row[col]
-                if pd.isna(val):
-                    row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
-                elif pd.api.types.is_numeric_dtype(df[col]):
-                    row_data[col] = float(val)
+        # Filter by joint labels if present
+        if filter_criteria and 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
+            if 'Joint Label' in df.columns:
+                # Convert joint labels to strings for comparison
+                joint_labels = [str(label) for label in filter_criteria['joint_labels']]
+                print(f"DEBUG: Filtering by joint labels: {joint_labels}")
+                filtered_df = filtered_df[filtered_df['Joint Label'].astype(str).isin(joint_labels)]
+                print(f"DEBUG: After joint filter: {filtered_df.shape}")
+        
+        # Filter by set+phase combinations if present - FIXED VERSION
+        if filter_criteria and 'set_phase_combinations' in filter_criteria and filter_criteria['set_phase_combinations']:
+            if 'Set No.' in df.columns and 'Phase No.' in df.columns:
+                print(f"DEBUG: Filtering by {len(filter_criteria['set_phase_combinations'])} set+phase combinations")
+                
+                # Create a list to store filtered dataframes
+                filtered_dfs = []
+                
+                for i, combo in enumerate(filter_criteria['set_phase_combinations']):
+                    # Convert filter values to handle both integer and float representations
+                    set_value = str(combo.get('set', ''))
+                    phase_value = str(combo.get('phase', ''))
+                    
+                    # NEW: Handle float values in Excel data (e.g., '9' should match '9.0')
+                    # Try to convert to float and then compare both string representations
+                    try:
+                        set_float = float(set_value)
+                        phase_float = float(phase_value)
+                        
+                        # Create multiple comparison options
+                        set_match = (
+                            (filtered_df['Set No.'].astype(str) == set_value) |  # Exact string match
+                            (filtered_df['Set No.'].astype(str) == str(set_float)) |  # Float string match
+                            (filtered_df['Set No.'].astype(float) == set_float)  # Numeric match
+                        )
+                        
+                        phase_match = (
+                            (filtered_df['Phase No.'].astype(str) == phase_value) |  # Exact string match
+                            (filtered_df['Phase No.'].astype(str) == str(phase_float)) |  # Float string match
+                            (filtered_df['Phase No.'].astype(float) == phase_float)  # Numeric match
+                        )
+                        
+                    except (ValueError, TypeError):
+                        # If conversion fails, use string comparison only
+                        set_match = (filtered_df['Set No.'].astype(str) == set_value)
+                        phase_match = (filtered_df['Phase No.'].astype(str) == phase_value)
+                    
+                    print(f"DEBUG: Combination {i}: Looking for Set='{set_value}' (also trying as float), Phase='{phase_value}' (also trying as float)")
+                    
+                    # Filter for this specific combination
+                    combo_filtered = filtered_df[set_match & phase_match]
+                    
+                    print(f"DEBUG: Found {len(combo_filtered)} records for this combination")
+                    
+                    if not combo_filtered.empty:
+                        filtered_dfs.append(combo_filtered)
+                        # Show sample of what was found
+                        sample = combo_filtered[['Set No.', 'Phase No.', 'Load Case Description']].head(3)
+                        print(f"DEBUG: Sample of found records:\n{sample.to_string()}")
+                
+                # Combine all filtered dataframes
+                if filtered_dfs:
+                    filtered_df = pd.concat(filtered_dfs, ignore_index=True)
+                    print(f"DEBUG: After set+phase filter: {filtered_df.shape}")
+                    
+                    # Show final sample
+                    if 'Set No.' in filtered_df.columns and 'Phase No.' in filtered_df.columns and 'Load Case Description' in filtered_df.columns:
+                        sample_data = filtered_df[['Set No.', 'Phase No.', 'Load Case Description']].head(5)
+                        print(f"DEBUG: Final sample of filtered data:\n{sample_data.to_string()}")
                 else:
-                    row_data[col] = str(val)
-            filtered_data.append(row_data)
+                    filtered_df = filtered_df.iloc[0:0]  # Empty dataframe
+                    print(f"DEBUG: No matches found for any set+phase combinations")
         
-        print(f"DEBUG: Final filtered records count: {len(filtered_data)}")
-        return filtered_data
+        # Filter by selected load cases if provided
+        if selected_load_cases and 'Load Case Description' in filtered_df.columns:
+            print(f"DEBUG: Filtering by {len(selected_load_cases)} selected load cases: {selected_load_cases}")
             
+            # Check which load cases actually exist in the current filtered data
+            existing_load_cases = filtered_df['Load Case Description'].unique()
+            print(f"DEBUG: Load cases in current filtered data: {sorted([str(x) for x in existing_load_cases])}")
+            
+            filtered_df = filtered_df[filtered_df['Load Case Description'].isin(selected_load_cases)]
+            print(f"DEBUG: After load cases filter: {filtered_df.shape}")
+        
+        # Convert to list of dictionaries
+        result_data = []
+        for _, row in filtered_df.iterrows():
+            row_data = {}
+            for col in filtered_df.columns:
+                if pd.notna(row[col]):
+                    if pd.api.types.is_numeric_dtype(filtered_df[col]):
+                        row_data[col] = float(row[col])
+                    else:
+                        row_data[col] = str(row[col])
+                else:
+                    row_data[col] = '' if pd.api.types.is_string_dtype(filtered_df[col]) else 0
+            result_data.append(row_data)
+        
+        print(f"DEBUG: Final result data: {len(result_data)} records")
+        return result_data
+        
     except Exception as e:
-        print(f"Error applying filter: {str(e)}")
+        print(f"Error in apply_previous_selection_filter: {str(e)}")
         import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         return []
+    
+    
+def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases, selection_source):
+    """Get filtered data with grouping structure"""
+    try:
+        structure = ListOfStructure.objects.get(id=structure_id)
+        
+        print(f"DEBUG get_filtered_grouped_data: structure_id={structure_id}")
+        print(f"DEBUG get_filtered_grouped_data: filter_criteria={filter_criteria}")
+        print(f"DEBUG get_filtered_grouped_data: selected_load_cases={selected_load_cases}")
+        print(f"DEBUG get_filtered_grouped_data: selection_source={selection_source}")
+        
+        # Get the filtered data
+        filtered_data = apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases)
+        
+        print(f"DEBUG get_filtered_grouped_data: filtered_data count = {len(filtered_data)}")
+        
+        if not filtered_data:
+            return {'grouped_data': {}, 'all_columns': [], 'record_count': 0, 'is_grouped': True}
+        
+        # Convert back to DataFrame for grouping
+        import pandas as pd
+        df = pd.DataFrame(filtered_data)
+        
+        # Get all columns
+        all_columns = list(df.columns) if not df.empty else []
+        
+        grouped_data = {}
+        
+        if selection_source == 'group':
+            # Group by prefix for group load cases
+            for record in filtered_data:
+                if 'Load Case Description' in record:
+                    case_name = record['Load Case Description']
+                    if ' ' in case_name:
+                        group_name = case_name.split(' ')[0]
+                    else:
+                        group_name = case_name
+                    
+                    if group_name not in grouped_data:
+                        grouped_data[group_name] = []
+                    grouped_data[group_name].append(record)
+        
+        elif selection_source == 'custom':
+            # Group by custom group names
+            custom_groups = LoadCaseGroup.objects.filter(
+                structure=structure, 
+                is_custom=True
+            ).prefetch_related('load_cases')
+            
+            for group in custom_groups:
+                group_cases = [case.name for case in group.load_cases.all()]
+                grouped_data[group.name] = []
+                
+                # Find records that belong to this custom group
+                for record in filtered_data:
+                    if 'Load Case Description' in record and record['Load Case Description'] in group_cases:
+                        grouped_data[group.name].append(record)
+                
+                # Remove empty groups
+                if not grouped_data[group.name]:
+                    del grouped_data[group.name]
+        
+        else:  # imported - use flat structure but still group by load case for consistency
+            for record in filtered_data:
+                if 'Load Case Description' in record:
+                    case_name = record['Load Case Description']
+                    if case_name not in grouped_data:
+                        grouped_data[case_name] = []
+                    grouped_data[case_name].append(record)
+        
+        # Calculate total record count
+        total_records = sum(len(records) for records in grouped_data.values())
+        
+        print(f"DEBUG get_filtered_grouped_data: Final grouped data - {total_records} records in {len(grouped_data)} groups")
+        
+        return {
+            'grouped_data': grouped_data,
+            'all_columns': all_columns,
+            'record_count': total_records,
+            'is_grouped': True
+        }
+        
+    except Exception as e:
+        print(f"Error in get_filtered_grouped_data: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return {'grouped_data': {}, 'all_columns': [], 'record_count': 0, 'is_grouped': True}
     
 def load_cases_page(request):
     """New dedicated page for Load Cases Selection and Load Values"""
@@ -776,6 +925,13 @@ def load_cases_page(request):
     
     # NEW: Get filter criteria from previous page
     filter_criteria = selected_values.get('filter_criteria', {})
+    
+    print(f"DEBUG load_cases_page: Session selected_values = {selected_values}")
+    print(f"DEBUG: Filter criteria from session: {filter_criteria}")
+    if 'set_phase_combinations' in filter_criteria:
+        print(f"DEBUG: Number of combinations in filter_criteria: {len(filter_criteria['set_phase_combinations'])}")
+        for i, combo in enumerate(filter_criteria['set_phase_combinations']):
+            print(f"DEBUG: Combination {i}: Set={combo.get('set')}, Phase={combo.get('phase')}")
     
     # Handle load cases selection via AJAX only
     if request.method == 'POST' and 'load_cases_selection' in request.POST:
@@ -793,26 +949,41 @@ def load_cases_page(request):
     # NEW: Handle filter by previous selection
     if request.method == 'POST' and 'filter_by_previous' in request.POST:
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            print(f"DEBUG: Filtering by previous selection - Criteria: {filter_criteria}")
-            print(f"DEBUG: Current selected load cases: {selected_load_cases}")
+            print(f"DEBUG: Filtering by previous selection")
+            print(f"DEBUG: Session selected_values: {request.session.get('selected_values', {})}")
             
-            # Apply filter criteria to get filtered data - ONLY use currently selected load cases
-            filtered_data = apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases)
+            # Get filter criteria directly from session
+            session_values = request.session.get('selected_values', {})
+            filter_criteria = session_values.get('filter_criteria', {})
+            selected_load_cases = session_values.get('load_cases', [])
             
-            # DO NOT update the selected_load_cases in session - keep user's current selection
-            # Only return the filtered data for display
+            print(f"DEBUG: Filter criteria from session: {filter_criteria}")
+            print(f"DEBUG: Selected load cases from session: {selected_load_cases}")
             
-            print(f"DEBUG: Filtered data count: {len(filtered_data)}")
+            # NEW: Determine selection source from the request
+            selection_source = request.POST.get('selection_source', 'imported')
+            print(f"DEBUG: Selection source for filtering: {selection_source}")
+            
+            # Apply filter criteria with grouping
+            filtered_result = get_filtered_grouped_data(
+                structure_id, 
+                filter_criteria, 
+                selected_load_cases,
+                selection_source
+            )
+            
+            print(f"DEBUG: Filtered grouped data - {filtered_result['record_count']} records in {len(filtered_result['grouped_data'])} groups")
             
             return JsonResponse({
                 'success': True, 
-                'filtered_data': filtered_data,  # Return the actual data
-                'filter_criteria': filter_criteria,
-                'record_count': len(filtered_data),
-                'current_selected_cases': selected_load_cases  # Return current selection for reference
+                'grouped_data': filtered_result['grouped_data'],
+                'all_columns': filtered_result['all_columns'],
+                'record_count': filtered_result['record_count'],
+                'is_grouped': True,
+                'current_selected_cases': selected_load_cases,
+                'selection_source': selection_source,
+                'filter_criteria': filter_criteria  # Return filter criteria for frontend display
             })
-
-
     
     # AJAX handlers (moved from hdata1)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -900,20 +1071,19 @@ def load_cases_page(request):
     })
     
 def get_filtered_load_data(request):
-    """Get filtered load data based on selected load cases"""
+    """Get filtered load data based on selected load cases with grouping support"""
     if request.headers.get('x-requested-with') != 'XMLHttpRequest':
         return JsonResponse({'error': 'Invalid request'}, status=400)
     
     structure_id = request.GET.get('structure_id')
     selected_load_cases = request.GET.getlist('selected_load_cases') or []
+    selection_source = request.GET.get('selection_source', 'imported')  # NEW: Get selection source
     
     if not structure_id:
         return JsonResponse({'error': 'Structure ID is required'}, status=400)
     
     try:
         structure = ListOfStructure.objects.get(id=structure_id)
-        load_data = []
-        all_columns = []
         
         # Try to get the latest file from different models
         latest_file = None
@@ -938,6 +1108,14 @@ def get_filtered_load_data(request):
             if selected_load_cases and 'Load Case Description' in df.columns:
                 df = df[df['Load Case Description'].isin(selected_load_cases)]
 
+            # NEW: Handle grouped response for group/custom selection sources
+            if selection_source in ['group', 'custom'] and selected_load_cases:
+                return get_grouped_response(df, selected_load_cases, selection_source, structure)
+            
+            # Existing flat list response for imported source
+            load_data = []
+            all_columns = []
+            
             # Prepare complete data for table display
             for _, row in df.iterrows():
                 row_data = {}
@@ -956,7 +1134,8 @@ def get_filtered_load_data(request):
             return JsonResponse({
                 'load_data': load_data,
                 'all_columns': all_columns,
-                'record_count': len(load_data)
+                'record_count': len(load_data),
+                'is_grouped': False  # NEW: Indicate this is flat data
             })
         else:
             return JsonResponse({'error': 'No file found for this structure'}, status=404)
@@ -965,6 +1144,89 @@ def get_filtered_load_data(request):
         return JsonResponse({'error': 'Structure not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+# NEW: Function to create grouped response
+def get_grouped_response(df, selected_load_cases, selection_source, structure):
+    """Create grouped response for group/custom selection sources"""
+    grouped_data = {}
+    all_columns = list(df.columns)
+    
+    if selection_source == 'group':
+        # Group by prefix for group load cases
+        for case_name in selected_load_cases:
+            if ' ' in case_name:
+                group_name = case_name.split(' ')[0]
+            else:
+                group_name = case_name
+                
+            if group_name not in grouped_data:
+                grouped_data[group_name] = []
+            
+            # Find matching rows for this load case
+            case_rows = df[df['Load Case Description'] == case_name]
+            for _, row in case_rows.iterrows():
+                row_data = {}
+                for col in df.columns:
+                    if pd.notna(row[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                grouped_data[group_name].append(row_data)
+    
+    elif selection_source == 'custom':
+        # Group by custom group names
+        custom_groups = LoadCaseGroup.objects.filter(
+            structure=structure, 
+            is_custom=True
+        ).prefetch_related('load_cases')
+        
+        for group in custom_groups:
+            group_cases = [case.name for case in group.load_cases.all()]
+            # Check if any cases from this group are selected
+            selected_group_cases = set(group_cases) & set(selected_load_cases)
+            
+            if selected_group_cases:
+                grouped_data[group.name] = []
+                for case_name in selected_group_cases:
+                    # Find matching rows for this load case
+                    case_rows = df[df['Load Case Description'] == case_name]
+                    for _, row in case_rows.iterrows():
+                        row_data = {}
+                        for col in df.columns:
+                            if pd.notna(row[col]):
+                                if pd.api.types.is_numeric_dtype(df[col]):
+                                    row_data[col] = float(row[col])
+                                else:
+                                    row_data[col] = str(row[col])
+                            else:
+                                row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                        grouped_data[group.name].append(row_data)
+    
+    # Calculate total record count
+    total_records = sum(len(records) for records in grouped_data.values())
+    
+    return JsonResponse({
+        'grouped_data': grouped_data,
+        'all_columns': all_columns,
+        'record_count': total_records,
+        'is_grouped': True  # NEW: Indicate this is grouped data
+    })
+    
+def get_all_load_cases(structure):
+    """Get all available load cases from the database"""
+    try:
+        # Get all unique load case names from LoadCase model for this structure
+        all_load_cases = LoadCase.objects.filter(
+            structure=structure
+        ).values_list('name', flat=True).distinct()
+        
+        return JsonResponse({'values': list(all_load_cases)})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
 
 def handle_load_cases_ajax(request):
     """Handle all AJAX requests for load cases (moved from hdata1)"""
@@ -1033,6 +1295,39 @@ def handle_load_cases_ajax(request):
                 return JsonResponse({'success': True})
             return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
         
+        elif request.method == 'POST' and 'edit_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases[]')
+            
+            if group_name and selected_cases is not None:
+                try:
+                    # Get the custom group
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    )
+                    
+                    # Clear existing load cases
+                    group.load_cases.all().delete()
+                    
+                    # Add new load cases
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=group,
+                            structure=structure
+                        )
+                    
+                    return JsonResponse({'success': True})
+                    
+                except LoadCaseGroup.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': f'Group "{group_name}" not found'})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+            
+            return JsonResponse({'success': False, 'error': 'Group name and cases are required'})
+        
         # Handle GET requests for load case data
         elif request.method == 'GET':
             # Get filtered load data for table
@@ -1050,6 +1345,10 @@ def handle_load_cases_ajax(request):
             # Get custom groups
             elif request.GET.get('get_custom_groups_for_selection'):
                 return get_custom_groups(structure)
+            
+            elif request.GET.get('get_all_load_cases'):
+                return get_all_load_cases(structure)
+
     
     except ListOfStructure.DoesNotExist:
         return JsonResponse({'error': 'Structure not found'}, status=404)
@@ -1133,13 +1432,19 @@ import json
 from django.shortcuts import render
 
 def calculation_view(request):
-    if request.method == 'GET':
-        # Get calculation data from request parameters
-        calculation_data_json = request.GET.get('calculation_data')
+    # Initialize context with default values to avoid UnboundLocalError
+    context = {'error': None}
+    
+    if request.method == 'POST':  # Handle POST requests
+        # Get calculation data and selection source from POST parameters
+        calculation_data_json = request.POST.get('calculation_data')
+        selection_source = request.POST.get('selection_source', 'imported')
+        custom_groups_json = request.POST.get('custom_groups_data', '{}')  # NEW: Get custom groups data
         
         if calculation_data_json:
             try:
                 calculation_data = json.loads(calculation_data_json)
+                custom_groups_data = json.loads(custom_groups_json)  # NEW: Parse custom groups
                 
                 # Add resultant calculation and unique ID to each record
                 for index, record in enumerate(calculation_data):
@@ -1159,21 +1464,54 @@ def calculation_view(request):
                     record['Structure_Loads_Long'] = long
                     # Store Set No. in data attribute
                     record['Set_No'] = record.get('Set No.', 'Unknown')
+                    # Store Load Case Description for grouping
+                    record['Load_Case_Description'] = record.get('Load Case Description', 'Unknown')
                 
-                # Group data by Set No. (for display purposes)
-                grouped_data = {}
-                for record in calculation_data:
-                    set_no = record.get('Set No.', 'Unknown')
-                    if set_no not in grouped_data:
-                        grouped_data[set_no] = []
-                    grouped_data[set_no].append(record)
+                # NEW: Group data based on selection source with custom groups support
+                grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
                 
-                # Calculate max values for each set and flag max resultant rows
-                set_max_values = {}
+                # NEW: Create set-wise grouping within each group
+                set_wise_data = {}
+                set_max_resultants = {}
+                
+                for group_name, records in grouped_data.items():
+                    set_wise_data[group_name] = {}
+                    set_max_resultants[group_name] = {}
+                    
+                    # Group records by Set No. within this group
+                    for record in records:
+                        set_no = record.get('Set_No', 'Unknown')
+                        if set_no not in set_wise_data[group_name]:
+                            set_wise_data[group_name][set_no] = []
+                        set_wise_data[group_name][set_no].append(record)
+                    
+                    # Calculate max resultant for each set within this group
+                    for set_no, set_records in set_wise_data[group_name].items():
+                        resultant_values = [record['Resultant'] for record in set_records]
+                        max_resultant = max(resultant_values)
+                        max_index = resultant_values.index(max_resultant)
+                        
+                        set_max_resultants[group_name][set_no] = {
+                            'vert': set_records[max_index]['Structure_Loads_Vert'],
+                            'trans': set_records[max_index]['Structure_Loads_Trans'],
+                            'long': set_records[max_index]['Structure_Loads_Long'],
+                            'resultant': max_resultant,
+                            'record_id': set_records[max_index]['record_id']
+                        }
+                        
+                        # Add max resultant flag to set records
+                        for i, record in enumerate(set_records):
+                            if resultant_values[i] == max_resultant:
+                                record['set_max_resultant_flag'] = 'yes'
+                            else:
+                                record['set_max_resultant_flag'] = 'no'
+                
+                # Calculate max values for each group and flag max resultant rows
+                group_max_values = {}
                 max_resultant_values = {}  # Store the actual values that created the max resultant
                 max_resultant_indexes = {}  # Store indexes for JavaScript approach
                 
-                for set_no, records in grouped_data.items():
+                for group_name, records in grouped_data.items():
                     vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
                     trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
                     long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
@@ -1184,7 +1522,7 @@ def calculation_view(request):
                     max_index = resultant_values.index(max_resultant)
                     
                     # Store the actual values that created the max resultant
-                    max_resultant_values[set_no] = {
+                    max_resultant_values[group_name] = {
                         'vert': vert_values[max_index],
                         'trans': trans_values[max_index],
                         'long': long_values[max_index],
@@ -1193,7 +1531,7 @@ def calculation_view(request):
                     }
                     
                     # Store index for JavaScript approach
-                    max_resultant_indexes[set_no] = max_index
+                    max_resultant_indexes[group_name] = max_index
                     
                     # Add a simple flag to each record (as a string to avoid underscore issues)
                     for i, record in enumerate(records):
@@ -1202,7 +1540,7 @@ def calculation_view(request):
                         else:
                             record['max_resultant_flag'] = 'no'
                     
-                    set_max_values[set_no] = {
+                    group_max_values[group_name] = {
                         'max_vert': max(vert_values),
                         'max_trans': max(trans_values),
                         'max_long': max(long_values),
@@ -1210,7 +1548,7 @@ def calculation_view(request):
                         'count': len(records)
                     }
                 
-                # Calculate combined values across all sets using the actual values that created max resultants
+                # Calculate combined values across all groups using the actual values that created max resultants
                 combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
                 combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
                 combined_long = sum([values['long'] for values in max_resultant_values.values()])
@@ -1221,25 +1559,234 @@ def calculation_view(request):
                 # Prepare context for template
                 context = {
                     'grouped_data': grouped_data,
-                    'set_max_values': set_max_values,
-                    'max_resultant_values': max_resultant_values,  # Add this for displaying actual values
+                    'group_max_values': group_max_values,
+                    'max_resultant_values': max_resultant_values,
+                    'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
+                    'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
                     'combined_vert': combined_vert,
                     'combined_trans': combined_trans,
                     'combined_long': combined_long,
                     'combined_sqrt': combined_sqrt,
                     'calculation_data': calculation_data,
-                    'max_resultant_indexes': max_resultant_indexes,  # Add this for JavaScript
-                    'calculation_data_json': json.dumps(calculation_data)  # Add this line
+                    'max_resultant_indexes': max_resultant_indexes,
+                    'calculation_data_json': json.dumps(calculation_data),
+                    'selection_source': selection_source,
+                    'custom_groups_data': custom_groups_data,  # NEW: Pass to template for reference
+                    'error': None
                 }
                 
-                return render(request, 'app1/calculation.html', context)
+            except json.JSONDecodeError:
+                context['error'] = 'Invalid calculation data format'
+            except Exception as e:
+                context['error'] = f'Error processing data: {str(e)}'
+        else:
+            context['error'] = 'No calculation data provided'
+    
+    # Handle GET requests
+    elif request.method == 'GET':
+        calculation_data_json = request.GET.get('calculation_data')
+        selection_source = request.GET.get('selection_source', 'imported')
+        custom_groups_json = request.GET.get('custom_groups_data', '{}')  # NEW: Get custom groups data
+        
+        if calculation_data_json:
+            try:
+                calculation_data = json.loads(calculation_data_json)
+                custom_groups_data = json.loads(custom_groups_json)  # NEW: Parse custom groups
+                
+                # Add resultant calculation and unique ID to each record
+                for index, record in enumerate(calculation_data):
+                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+                    
+                    resultant = math.sqrt(vert**2 + trans**2 + long**2)
+                    record['Resultant'] = round(resultant, 2)
+                    record['record_id'] = f"record_{index}"
+                    record['Structure_Loads_Vert'] = vert
+                    record['Structure_Loads_Trans'] = trans
+                    record['Structure_Loads_Long'] = long
+                    record['Set_No'] = record.get('Set No.', 'Unknown')
+                    record['Load_Case_Description'] = record.get('Load Case Description', 'Unknown')
+                
+                # NEW: Group data based on selection source with custom groups support
+                grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
+                
+                # NEW: Create set-wise grouping within each group for GET requests
+                set_wise_data = {}
+                set_max_resultants = {}
+                
+                for group_name, records in grouped_data.items():
+                    set_wise_data[group_name] = {}
+                    set_max_resultants[group_name] = {}
+                    
+                    # Group records by Set No. within this group
+                    for record in records:
+                        set_no = record.get('Set_No', 'Unknown')
+                        if set_no not in set_wise_data[group_name]:
+                            set_wise_data[group_name][set_no] = []
+                        set_wise_data[group_name][set_no].append(record)
+                    
+                    # Calculate max resultant for each set within this group
+                    for set_no, set_records in set_wise_data[group_name].items():
+                        resultant_values = [record['Resultant'] for record in set_records]
+                        max_resultant = max(resultant_values)
+                        max_index = resultant_values.index(max_resultant)
+                        
+                        set_max_resultants[group_name][set_no] = {
+                            'vert': set_records[max_index]['Structure_Loads_Vert'],
+                            'trans': set_records[max_index]['Structure_Loads_Trans'],
+                            'long': set_records[max_index]['Structure_Loads_Long'],
+                            'resultant': max_resultant,
+                            'record_id': set_records[max_index]['record_id']
+                        }
+                        
+                        # Add max resultant flag to set records
+                        for i, record in enumerate(set_records):
+                            if resultant_values[i] == max_resultant:
+                                record['set_max_resultant_flag'] = 'yes'
+                            else:
+                                record['set_max_resultant_flag'] = 'no'
+                
+                # Calculate max values
+                group_max_values = {}
+                max_resultant_values = {}
+                max_resultant_indexes = {}
+                
+                for group_name, records in grouped_data.items():
+                    vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
+                    trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
+                    long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
+                    resultant_values = [record['Resultant'] for record in records]
+                    
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    max_resultant_values[group_name] = {
+                        'vert': vert_values[max_index],
+                        'trans': trans_values[max_index],
+                        'long': long_values[max_index],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id']
+                    }
+                    
+                    max_resultant_indexes[group_name] = max_index
+                    
+                    for i, record in enumerate(records):
+                        if resultant_values[i] == max_resultant:
+                            record['max_resultant_flag'] = 'yes'
+                        else:
+                            record['max_resultant_flag'] = 'no'
+                    
+                    group_max_values[group_name] = {
+                        'max_vert': max(vert_values),
+                        'max_trans': max(trans_values),
+                        'max_long': max(long_values),
+                        'max_resultant': max_resultant,
+                        'count': len(records)
+                    }
+                
+                # Calculate combined values
+                combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
+                combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
+                combined_long = sum([values['long'] for values in max_resultant_values.values()])
+                combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
+                
+                context = {
+                    'grouped_data': grouped_data,
+                    'group_max_values': group_max_values,
+                    'max_resultant_values': max_resultant_values,
+                    'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
+                    'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
+                    'combined_vert': combined_vert,
+                    'combined_trans': combined_trans,
+                    'combined_long': combined_long,
+                    'combined_sqrt': combined_sqrt,
+                    'calculation_data': calculation_data,
+                    'max_resultant_indexes': max_resultant_indexes,
+                    'calculation_data_json': json.dumps(calculation_data),
+                    'selection_source': selection_source,
+                    'custom_groups_data': custom_groups_data,  # NEW: Pass to template
+                    'error': None
+                }
                 
             except json.JSONDecodeError:
-                error = 'Invalid calculation data format'
+                context['error'] = 'Invalid calculation data format'
+            except Exception as e:
+                context['error'] = f'Error processing data: {str(e)}'
         else:
-            error = 'No calculation data provided'
+            context['error'] = 'No calculation data provided'
+    else:
+        context['error'] = 'Invalid request method'
     
-    return render(request, 'app1/calculation.html', {'error': error or 'An error occurred during calculation'})
+    return render(request, 'app1/calculation.html', context)
+
+
+
+def group_calculation_data(calculation_data, selection_source, custom_groups_data=None):
+    """Group calculation data based on selection source with custom groups support"""
+    grouped_data = {}
+    
+    if selection_source == 'imported':
+        # Group by Load Case Description (individual load cases)
+        for record in calculation_data:
+            case_name = record.get('Load Case Description', 'Unknown')
+            if case_name not in grouped_data:
+                grouped_data[case_name] = []
+            grouped_data[case_name].append(record)
+    
+    elif selection_source == 'group':
+        # Group by prefix for group load cases (first word before space)
+        for record in calculation_data:
+            case_name = record.get('Load Case Description', 'Unknown')
+            if ' ' in case_name:
+                group_name = case_name.split(' ')[0]
+            else:
+                group_name = case_name
+            
+            if group_name not in grouped_data:
+                grouped_data[group_name] = []
+            grouped_data[group_name].append(record)
+    
+    elif selection_source == 'custom' and custom_groups_data:
+        # Group by custom groups using the provided mapping
+        # custom_groups_data should be a dict like: {'hurri1': ['Hurricane NL+', 'Hurricane NL-'], ...}
+        for group_name, load_cases in custom_groups_data.items():
+            grouped_data[group_name] = []
+            for record in calculation_data:
+                case_name = record.get('Load Case Description', '')
+                if case_name in load_cases:
+                    grouped_data[group_name].append(record)
+            # Remove empty groups
+            if not grouped_data[group_name]:
+                del grouped_data[group_name]
+    
+    else:  # Default fallback - group by Set No.
+        for record in calculation_data:
+            set_no = record.get('Set No.', 'Unknown')
+            if set_no not in grouped_data:
+                grouped_data[set_no] = []
+            grouped_data[set_no].append(record)
+    
+    return grouped_data
+
+# NEW: Optional helper function to extract custom groups from data
+def extract_custom_groups_from_data(calculation_data):
+    """
+    Try to extract custom group information from the calculation data.
+    This is a simplified implementation - in practice, you might want to pass
+    this information explicitly from the Load Cases page.
+    """
+    custom_groups = {}
+    
+    # Look for patterns that might indicate custom groups
+    # This is a heuristic approach - adjust based on your data structure
+    for record in calculation_data:
+        case_name = record.get('Load Case Description', '')
+        # If the case name contains specific patterns, you could group them
+        # For now, return empty to fall back to Set No. grouping
+        pass
+    
+    return custom_groups if custom_groups else None
 
 # views.py
 import math
@@ -1252,14 +1799,21 @@ from .models import LoadCondition, AttachmentLoad
 def load_condition_view(request):
     calculation_data = []
     
+    # Try to get calculation data from multiple sources
     if request.method == 'POST':
-        # Get calculation data from POST request
+        # Get calculation data from POST request (initial load)
         calculation_data_json = request.POST.get('calculation_data')
         if calculation_data_json:
             try:
                 calculation_data = json.loads(calculation_data_json)
+                # Store in session for future requests
+                request.session['calculation_data'] = calculation_data
             except json.JSONDecodeError:
-                pass
+                # Try to get from session if POST fails
+                calculation_data = request.session.get('calculation_data', [])
+    else:
+        # For GET requests (like redirects from create/edit/delete), get from session
+        calculation_data = request.session.get('calculation_data', [])
     
     # Get all load conditions
     load_conditions = LoadCondition.objects.all().order_by('id')
@@ -1274,25 +1828,28 @@ def load_condition_view(request):
                 'loads': loads
             }
     
-    # Add record_id and clean keys to calculation data for template access
-    for index, record in enumerate(calculation_data):
-        record['record_id'] = f"record_{index}"
-        # Add clean keys for template access
-        record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
-        record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
-        record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
-        record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
-        # Store Set No. in data attribute
-        record['Set_No'] = record.get('Set No.', 'Unknown')
-    
-    # Group calculation data by Set No. for debug display
-    grouped_calculation_data = {}
+    # Process calculation data only if it exists
     if calculation_data:
+        # Add record_id and clean keys to calculation data for template access
+        for index, record in enumerate(calculation_data):
+            record['record_id'] = f"record_{index}"
+            # Add clean keys for template access
+            record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+            record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+            record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+            record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
+            # Store Set No. in data attribute
+            record['Set_No'] = record.get('Set No.', 'Unknown')
+        
+        # Group calculation data by Set No. for debug display
+        grouped_calculation_data = {}
         for record in calculation_data:
             set_no = record.get('Set No.', 'Unknown')
             if set_no not in grouped_calculation_data:
                 grouped_calculation_data[set_no] = []
             grouped_calculation_data[set_no].append(record)
+    else:
+        grouped_calculation_data = {}
     
     # Calculate factored loads for each load condition (initially for all records)
     factored_loads_by_condition = {}
@@ -1359,11 +1916,78 @@ def load_condition_view(request):
         'calculation_data_json': json.dumps(calculation_data),  # For JavaScript
         'factored_loads_by_condition': factored_loads_by_condition,
         'has_factored_loads': bool(factored_loads_by_condition),
-        'grouped_calculation_data': grouped_calculation_data  # Add this for debug display
+        'grouped_calculation_data': grouped_calculation_data
     }
     
     return render(request, 'app1/load_condition.html', context)
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.http import JsonResponse
+from .models import LoadCondition
+from .forms import LoadConditionForm
+
+def create_load_condition(request):
+    if request.method == 'POST':
+        form = LoadConditionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Load condition created successfully!')
+            # Preserve the calculation data in session
+            if 'calculation_data' in request.session:
+                # Keep the session data intact
+                pass
+            return redirect('load_condition')
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'errors': form.errors})
+    else:
+        form = LoadConditionForm()
+    
+    return render(request, 'app1/load_condition_form.html', {'form': form})
+
+def edit_load_condition(request, pk):
+    load_condition = get_object_or_404(LoadCondition, pk=pk)
+    
+    if request.method == 'POST':
+        form = LoadConditionForm(request.POST, instance=load_condition)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Load condition updated successfully!')
+            # Preserve the calculation data in session
+            if 'calculation_data' in request.session:
+                # Keep the session data intact
+                pass
+            return redirect('load_condition')
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'errors': form.errors})
+    else:
+        form = LoadConditionForm(instance=load_condition)
+    
+    return render(request, 'app1/load_condition_form.html', {
+        'form': form,
+        'load_condition': load_condition,
+        'editing': True
+    })
+
+def delete_load_condition(request, pk):
+    load_condition = get_object_or_404(LoadCondition, pk=pk)
+    
+    if request.method == 'POST':
+        load_condition.delete()
+        messages.success(request, 'Load condition deleted successfully!')
+        # Preserve the calculation data in session
+        if 'calculation_data' in request.session:
+            # Keep the session data intact
+            pass
+        return redirect('load_condition')
+    
+    # For GET requests, show confirmation
+    return render(request, 'app1/confirm_delete.html', {
+        'load_condition': load_condition
+    })
+    
 
 @csrf_exempt
 def calculate_final_loads(request):
@@ -9462,3 +10086,5 @@ def mupload13_update(request):   # Change here
     return render(request, 'app1/mupload13_update.html', {         # Change here 
         'form': form
     })
+    
+    

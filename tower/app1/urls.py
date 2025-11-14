@@ -125,6 +125,9 @@ urlpatterns = [
    path('calculation/', views.calculation_view, name='calculation'),
    path('load-condition/', views.load_condition_view, name='load_condition'),
    path('calculate-final-loads/', views.calculate_final_loads, name='calculate_final_loads'),
+   path('load-condition/create/', views.create_load_condition, name='create_load_condition'),
+   path('load-condition/<int:pk>/edit/', views.edit_load_condition, name='edit_load_condition'),
+   path('load-condition/<int:pk>/delete/', views.delete_load_condition, name='delete_load_condition'),
 
 
 

@@ -402,6 +402,40 @@
                 border: 1px solid #ddd;
             }
         }
+
+        /* Style for set-wise sections */
+.set-wise-section {
+    margin-top: 20px;
+    border-left: 3px solid #6c757d;
+    padding-left: 15px;
+}
+
+.set-subgroup {
+    margin-bottom: 15px;
+}
+
+.set-subgroup h6 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.set-records-table {
+    font-size: 0.9em;
+}
+
+.set-max-resultant-row {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107;
+}
+
+.group-max-table {
+    background-color: #f8f9fa;
+}
+
+.set-divider {
+    margin: 10px 0;
+    border-color: #dee2e6;
+}
     </style>
 </head>
 <body>
@@ -427,48 +461,123 @@
                         <i class="fas fa-square"></i> Select None
                     </button>
                     <button type="button" id="selectMaxResultantBtn" class="btn btn-outline-info">
-                        <i class="fas fa-star"></i> Select Max Resultant (Default)
+                        <i class="fas fa-star"></i> Select Group Max Resultant
+                    </button>
+                    <!-- NEW: Button for set-wise max resultant selection -->
+                    <button type="button" id="selectSetMaxResultantBtn" class="btn btn-outline-warning">
+                        <i class="fas fa-layer-group"></i> Select Set Max Resultant
                     </button>
                     <span class="selection-count">Selected: <span id="selectedCount">0</span> records</span>
                 </div>
             </div>
 
-            <div class="card">
-                <h3><i class="fas fa-list-ol"></i> Selected Records Grouped by Set Number</h3>
+          <div class="card">
+    <h3><i class="fas fa-list-ol"></i> Selected Records 
+        {% if selection_source == 'imported' %}Grouped by Load Case{% endif %}
+        {% if selection_source == 'group' %}Grouped by Load Case Groups{% endif %}
+        {% if selection_source == 'custom' %}Grouped by Custom Groups{% endif %}
+        {% if not selection_source %}Grouped by Set Number{% endif %}
+    </h3>
+    
+    {% for group_name, records in grouped_data.items %}
+        <div class="set-container">
+            <div class="set-header">
+                <h4>
+                    <i class="fas fa-cubes"></i> 
+                    {% if selection_source == 'imported' %}Load Case: {{ group_name }}{% endif %}
+                    {% if selection_source == 'group' %}Group: {{ group_name }}{% endif %}
+                    {% if selection_source == 'custom' %}Custom Group: {{ group_name }}{% endif %}
+                    {% if not selection_source %}Set No. {{ group_name }}{% endif %}
+                    <span class="badge badge-primary">{{ records|length }} records</span>
+                </h4>
+            </div>
+
+            <!-- Group-wise table showing ALL records -->
+            <div class="group-wise-section">
+                <h5><i class="fas fa-chart-line"></i> Group Records (All Records)</h5>
+                <div class="table-container">
+                    <table class="group-records-table">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                {% for key in records.0.keys %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                        <th>{{ key }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %}" 
+                                data-record-id="{{ record.record_id }}">
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" 
+                                        data-record-id="{{ record.record_id }}"
+                                        data-set-no="{{ record.Set_No }}"
+                                        data-vert="{{ record.Structure_Loads_Vert }}"
+                                        data-trans="{{ record.Structure_Loads_Trans }}"
+                                        data-long="{{ record.Structure_Loads_Long }}"
+                                        data-resultant="{{ record.Resultant }}"
+                                        {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
+                                </td>
+                                {% for key, value in record.items %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                        {% if key == 'Resultant' %}
+                                            <td class="resultant-cell">{{ value }}</td>
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Set-wise tables for this group -->
+            <div class="set-wise-section">
+                <h5><i class="fas fa-layer-group"></i> Set-wise Records</h5>
                 
-                {% for set_no, records in grouped_data.items %}
-                    <div class="set-container">
-                        <div class="set-header">
-                            <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
-                        </div>
-                        
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Select</th>  <!-- Add checkbox column -->
-                                        {% for key in records.0.keys %}
-                                            {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' %}  <!-- Exclude internal fields BUT INCLUDE Resultant -->
-                                                <th>{{ key }}</th>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for record in records %}
-                                        <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %}" data-record-id="{{ record.record_id }}">
+                {% for set_no, set_records in set_wise_data.items %}
+                    {% if set_no == group_name %}
+                        {% for inner_set_no, inner_set_records in set_records.items %}
+                        <div class="set-subgroup">
+                            <h6>
+                                <i class="fas fa-cube"></i> Set {{ inner_set_no }}
+                                <span class="badge badge-secondary">{{ inner_set_records|length }} records</span>
+                            </h6>
+                            
+                            <div class="table-container">
+                                <table class="set-records-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Select</th>
+                                            {% for key in inner_set_records.0.keys %}
+                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                                    <th>{{ key }}</th>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in inner_set_records %}
+                                        <tr class="{% if record.set_max_resultant_flag == 'yes' %}set-max-resultant-row{% endif %}" 
+                                            data-record-id="{{ record.record_id }}">
                                             <td>
-                                                <input type="checkbox" class="record-checkbox" 
+                                                <input type="checkbox" class="record-checkbox set-record-checkbox" 
                                                     data-record-id="{{ record.record_id }}"
                                                     data-set-no="{{ record.Set_No }}"
                                                     data-vert="{{ record.Structure_Loads_Vert }}"
                                                     data-trans="{{ record.Structure_Loads_Trans }}"
                                                     data-long="{{ record.Structure_Loads_Long }}"
                                                     data-resultant="{{ record.Resultant }}"
-                                                    {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
+                                                    {% if record.set_max_resultant_flag == 'yes' %}checked{% endif %}>
                                             </td>
                                             {% for key, value in record.items %}
-                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' %}  <!-- Exclude internal fields BUT INCLUDE Resultant -->
+                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
                                                     {% if key == 'Resultant' %}
                                                         <td class="resultant-cell">{{ value }}</td>
                                                     {% else %}
@@ -477,14 +586,22 @@
                                                 {% endif %}
                                             {% endfor %}
                                         </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                    {% if not forloop.last %}<hr>{% endif %}
+                        {% if not forloop.last %}<hr class="set-divider">{% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% empty %}
+                    <p>No set-wise data available.</p>
                 {% endfor %}
             </div>
+        </div>
+        {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+</div>
             
             <!-- Custom Selection Results Card -->
             <div class="card">
@@ -750,9 +867,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Apply buffer and rounding only to sum values if enabled
         if (applyBuffer) {
             // Apply buffers to sum values
-            processedSumValues.vert = originalSumValues.vert + vertBuffer;
-            processedSumValues.trans = originalSumValues.trans + transBuffer;
-            processedSumValues.long = originalSumValues.long + longBuffer;
+            processedSumValues.vert = applyBufferWithSign(originalSumValues.vert, vertBuffer);
+            processedSumValues.trans = applyBufferWithSign(originalSumValues.trans, transBuffer);
+            processedSumValues.long = applyBufferWithSign(originalSumValues.long, longBuffer);
             
             // Apply rounding to sum values using correct rounding function
             if (vertRounding > 0) {
@@ -864,6 +981,7 @@ function initializeSelection() {
     const selectAllBtn = document.getElementById('selectAllBtn');
     const selectNoneBtn = document.getElementById('selectNoneBtn');
     const selectMaxResultantBtn = document.getElementById('selectMaxResultantBtn');
+    const selectSetMaxResultantBtn = document.getElementById('selectSetMaxResultantBtn'); // NEW
     const selectedCountSpan = document.getElementById('selectedCount');
     
     // Update selection count and display
@@ -900,6 +1018,23 @@ function initializeSelection() {
         });
         updateSelection();
     });
+
+    selectSetMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check set max resultant rows
+        const setMaxResultantRows = document.querySelectorAll('.set-max-resultant-row');
+        setMaxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+    });
+
     
     // Select max resultant records (default)
     selectMaxResultantBtn.addEventListener('click', function() {
@@ -1084,10 +1219,10 @@ function initializeBufferLogic() {
         
         // Apply buffer and rounding only if enabled
         if (applyBuffer) {
-            // Apply buffers to sum values
-            processedValues.totalVert = originalValues.totalVert + vertBuffer;
-            processedValues.totalTrans = originalValues.totalTrans + transBuffer;
-            processedValues.totalLong = originalValues.totalLong + longBuffer;
+            // CORRECTED: Apply buffers with sign consideration
+            processedValues.totalVert = applyBufferWithSign(originalValues.totalVert, vertBuffer);
+            processedValues.totalTrans = applyBufferWithSign(originalValues.totalTrans, transBuffer);
+            processedValues.totalLong = applyBufferWithSign(originalValues.totalLong, longBuffer);
             
             // Apply rounding to sum values using correct rounding function
             if (vertRounding > 0) {
@@ -1118,6 +1253,22 @@ function initializeBufferLogic() {
             transRounding,
             longRounding
         });
+    }
+    
+    // NEW: Function to apply buffer based on sign
+    function applyBufferWithSign(originalValue, buffer) {
+        if (originalValue >= 0) {
+            // For positive values: add buffer
+            return originalValue + buffer;
+        } else {
+            // For negative values: subtract buffer
+            return originalValue - buffer;
+        }
+    }
+    
+    // NEW: Function to get buffer operation symbol for display
+    function getBufferSymbol(originalValue) {
+        return originalValue >= 0 ? '+' : '-';
     }
     
     function displayBufferedResults(processedValues, originalValues, settings) {
@@ -1161,18 +1312,16 @@ function initializeBufferLogic() {
                 <td><strong>${processedValues.finalResultant.toFixed(2)}</strong></td>
             `;
             tableBody.appendChild(processedSumRow);
-        }
-        
-        // Add settings info
-        if (settings.applyBuffer) {
+            
+            // Add settings info with correct symbols
             const settingsRow = document.createElement('tr');
             settingsRow.classList.add('settings-info');
             settingsRow.innerHTML = `
                 <td colspan="5" style="text-align: left; font-style: italic;">
                     Applied settings: 
-                    Vert: +${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
-                    Trans: +${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
-                    Long: +${settings.longBuffer} lbs, Round to ${settings.longRounding}
+                    Vert: ${getBufferSymbol(originalValues.totalVert)}${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                    Trans: ${getBufferSymbol(originalValues.totalTrans)}${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                    Long: ${getBufferSymbol(originalValues.totalLong)}${settings.longBuffer} lbs, Round to ${settings.longRounding}
                 </td>
             `;
             tableBody.appendChild(settingsRow);

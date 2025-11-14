@@ -1897,3 +1897,54 @@ class MUDeadendUpdateForm13(forms.Form):       # Change here
             if ext not in ['.xls', '.xlsx']:
                 raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
         return uploaded_file
+    
+    
+    
+from django import forms
+from .models import LoadCondition
+
+class LoadConditionForm(forms.ModelForm):
+    class Meta:
+        model = LoadCondition
+        fields = '__all__'
+        widgets = {
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter description'
+            }),
+            'temperature': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.1',
+                'placeholder': '°F'
+            }),
+            'ice_radial': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.1',
+                'placeholder': 'Radial (in)'
+            }),
+            'wind_pressure': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.1',
+                'placeholder': 'Pressure (psf)'
+            }),
+            'angle_factor': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Angle Factor'
+            }),
+            'transverse_factor': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Transverse Factor'
+            }),
+            'vertical_factor': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Vertical Factor'
+            }),
+            'longitudinal_factor': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Longitudinal Factor'
+            }),
+        }
