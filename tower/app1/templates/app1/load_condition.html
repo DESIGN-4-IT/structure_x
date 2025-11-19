@@ -420,67 +420,369 @@
     background: var(--danger);
     color: white;
 }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+
+.stat-card.highlighted {
+    background: #e7f3ff;
+    border-color: #007bff;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #495057;
+}
+
+.loads-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+.base-loads, .factored-loads {
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.base-loads {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.factored-loads {
+    background: #e7f3ff;
+    border: 2px solid #007bff;
+}
+
+.resultant-cell {
+    font-weight: bold;
+    color: #dc3545;
+}
+
+@media (max-width: 768px) {
+    .loads-comparison {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h2><i class="fas fa-table"></i> Load Conditions</h2>
-            <p>Configure and apply load conditions to your calculations</p>
-        </header>
+<div class="container">
+    <header>
+        <h2><i class="fas fa-table"></i> Load Conditions</h2>
+        <p>Configure and apply load conditions to your calculations</p>
+    </header>
 
-        {% if calculation_data %}
-        <!-- Selection Controls -->
-        <div class="card">
-            <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
-            <div class="selection-controls">
-                <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
-                    <i class="fas fa-check-square"></i> Select All
-                </button>
-                <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
-                    <i class="fas fa-square"></i> Select None
-                </button>
-                <span class="selection-count">Selected: <span id="selectedCount">{{ calculation_data|length }}</span> records</span>
-            </div>
+    {% if calculation_data %}
+    <!-- Selection Controls -->
+    <div class="card">
+        <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
+        <div class="selection-controls">
+            <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
+                <i class="fas fa-check-square"></i> Select All
+            </button>
+            <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
+                <i class="fas fa-square"></i> Select None
+            </button>
+            <span class="selection-count">Selected: <span id="selectedCount">{{ calculation_data|length }}</span> records</span>
         </div>
+    </div>
 
-        <div class="card">
-            <h3><i class="fas fa-list-ol"></i> Calculation Data Records</h3>
+     <div class="card">
+        <h3><i class="fas fa-list-ol"></i> Calculation Data Records</h3>
+        
+        {% for set_no, records in grouped_calculation_data.items %}
+        <div class="set-container">
+            <div class="set-header">
+                <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
+            </div>
             
-            {% for set_no, records in grouped_calculation_data.items %}
-            <div class="set-container">
-                <div class="set-header">
-                    <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
-                </div>
-                
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Select</th>
-                                {% for key in records.0.keys %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for key in records.0.keys %}
+                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                    <th>{{ key }}</th>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                            <tr data-record-id="{{ record.record_id }}">
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" 
+                                        data-record-id="{{ record.record_id }}"
+                                        data-set-no="{{ record.Set_No }}"
+                                        data-vert="{{ record.Structure_Loads_Vert }}"
+                                        data-trans="{{ record.Structure_Loads_Trans }}"
+                                        data-long="{{ record.Structure_Loads_Long }}"
+                                        data-resultant="{{ record.Resultant }}"
+                                        checked>
+                                </td>
+                                {% for key, value in record.items %}
                                     {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                        <th>{{ key }}</th>
+                                        {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
+                                            <td class="resultant-cell">{{ value }}</td>
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in records %}
-                                <tr data-record-id="{{ record.record_id }}">
-                                    <td>
-                                        <input type="checkbox" class="record-checkbox" 
-                                            data-record-id="{{ record.record_id }}"
-                                            data-set-no="{{ record.Set_No }}"
-                                            data-vert="{{ record.Structure_Loads_Vert }}"
-                                            data-trans="{{ record.Structure_Loads_Trans }}"
-                                            data-long="{{ record.Structure_Loads_Long }}"
-                                            data-resultant="{{ record.Resultant }}"
-                                            checked>
-                                    </td>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
+    </div>
+
+     <div class="card">
+        <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
+        
+        <!-- Add Parameter Button -->
+        <div class="action-buttons" style="justify-content: flex-start; margin-bottom: 20px;">
+            <a href="{% url 'create_load_condition' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Add New Parameter
+            </a>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>°F</th>
+                        <th>Radial (in)</th>
+                        <th>Pressure (psf)</th>
+                        <th>ANGLE</th>
+                        <th>TRANSVERSE</th>
+                        <th>VERTICAL</th>
+                        <th>LONGITUDINAL</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for condition in load_conditions %}
+                    <tr>
+                        <td>{{ condition.description }}</td>
+                        <td>{{ condition.temperature }}</td>
+                        <td>{{ condition.ice_radial }}</td>
+                        <td>{{ condition.wind_pressure }}</td>
+                        <td>{{ condition.angle_factor }}</td>
+                        <td>{{ condition.transverse_factor }}</td>
+                        <td>{{ condition.vertical_factor }}</td>
+                        <td>{{ condition.longitudinal_factor }}</td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <a href="{% url 'edit_load_condition' condition.pk %}" 
+                                class="btn btn-sm btn-outline-primary" 
+                                style="padding: 5px 10px; font-size: 0.8rem;">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="deleteLoadCondition({{ condition.pk }})" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        style="padding: 5px 10px; font-size: 0.8rem;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: #6c757d;">
+                            <i class="fas fa-info-circle"></i> No load conditions configured yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Processed Sums Display -->
+    {% if using_processed_sums %}
+    <div class="card alert alert-info">
+        <h3><i class="fas fa-info-circle"></i> Using Processed Sums as Base Loads</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Base Vert</div>
+                <div class="stat-value">{{ processed_sums.totalVert|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Trans</div>
+                <div class="stat-value">{{ processed_sums.totalTrans|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Long</div>
+                <div class="stat-value">{{ processed_sums.totalLong|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Resultant</div>
+                <div class="stat-value">{{ processed_sums.finalResultant|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Factored Loads Display - SINGLE SECTION -->
+    {% if has_factored_loads %}
+        {% for condition_name, condition_data in factored_loads_by_condition.items %}
+        <div class="card factored-loads-section">
+            <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+            
+            <!-- Show base and factored loads comparison -->
+            <div class="loads-comparison">
+                {% if condition_data.calculation_type == 'processed_sums' %}
+                <div class="base-loads">
+                    <h5>Base Loads (Processed Sums)</h5>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Vert</div>
+                            <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Trans</div>
+                            <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Long</div>
+                            <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Resultant</div>
+                            <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="factored-loads">
+                    <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
+                    <div class="stats-grid">
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Vert</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.vert|floatformat:2 }}
+                                {% else %}
+                                    <!-- For individual records, show calculated total -->
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Trans</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.trans|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Long</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.long|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Resultant</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.resultant|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Records Table (for individual records calculation) -->
+            {% if condition_data.grouped_data %}
+            <div class="individual-records-section">
+                <h5>
+                    <i class="fas fa-table"></i> Individual Factored Records 
+                    <small style="color: #6c757d; font-weight: normal;">
+                        (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})
+                    </small>
+                </h5>
+                {% for set_no, records in condition_data.grouped_data.items %}
+                <div class="set-container">
+                    <div class="set-header">
+                        <h6>
+                            <i class="fas fa-cubes"></i> Set No. {{ set_no }} 
+                            <span class="badge badge-secondary">{{ records|length }} records</span>
+                            <small style="color: #6c757d; font-weight: normal; margin-left: 10px;">
+                                Factors: ×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }}
+                            </small>
+                        </h6>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% for key in records.0.keys %}
+                                        {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                            <th>{{ key }}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
                                     {% for key, value in record.items %}
                                         {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                            {% if key == 'Resultant (lbs)' %}
+                                            {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
                                                 <td class="resultant-cell">{{ value }}</td>
                                             {% else %}
                                                 <td>{{ value }}</td>
@@ -488,142 +790,66 @@
                                         {% endif %}
                                     {% endfor %}
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% if not forloop.last %}<hr>{% endif %}
-            {% endfor %}
-        </div>
 
-        <!-- Custom Selection Results -->
-        <div class="card">
-            <h3><i class="fas fa-layer-group"></i> Selected Records Summary</h3>
-            
-            <div class="stats-grid" id="customSelectionStats">
-                <!-- Will be populated by JavaScript -->
-            </div>
-            
-            <div class="table-container">
-                <table id="customSelectionTable">
-                    <thead>
-                        <tr>
-                            <th>Set No.</th>
-                            <th>Record ID</th>
-                            <th>Vert (lbs)</th>
-                            <th>Trans (lbs)</th>
-                            <th>Long (lbs)</th>
-                            <th>Resultant (lbs)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customSelectionBody">
-                        <!-- Will be populated by JavaScript -->
-                    </tbody>
-                    <tfoot id="customSelectionFooter">
-                        <!-- Will be populated by JavaScript -->
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-        
-        <div class="card">
-            <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
-            
-            <!-- Add Parameter Button -->
-            <div class="action-buttons" style="justify-content: flex-start; margin-bottom: 20px;">
-                <a href="{% url 'create_load_condition' %}" class="btn btn-primary">
-                    <i class="fas fa-plus-circle"></i> Add New Parameter
-                </a>
-            </div>
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th>°F</th>
-                            <th>Radial (in)</th>
-                            <th>Pressure (psf)</th>
-                            <th>ANGLE</th>
-                            <th>TRANSVERSE</th>
-                            <th>VERTICAL</th>
-                            <th>LONGITUDINAL</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for condition in load_conditions %}
-                        <tr>
-                            <td>{{ condition.description }}</td>
-                            <td>{{ condition.temperature }}</td>
-                            <td>{{ condition.ice_radial }}</td>
-                            <td>{{ condition.wind_pressure }}</td>
-                            <td>{{ condition.angle_factor }}</td>
-                            <td>{{ condition.transverse_factor }}</td>
-                            <td>{{ condition.vertical_factor }}</td>
-                            <td>{{ condition.longitudinal_factor }}</td>
-                            <td>
-                                <div style="display: flex; gap: 5px;">
-                                    <a href="{% url 'edit_load_condition' condition.pk %}" 
-                                    class="btn btn-sm btn-outline-primary" 
-                                    style="padding: 5px 10px; font-size: 0.8rem;">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button onclick="deleteLoadCondition({{ condition.pk }})" 
-                                            class="btn btn-sm btn-outline-danger" 
-                                            style="padding: 5px 10px; font-size: 0.8rem;">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="9" style="text-align: center; color: #6c757d;">
-                                <i class="fas fa-info-circle"></i> No load conditions configured yet.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Factored Loads Section (Will be filtered by selection) -->
-        <div id="factoredLoadsContainer">
-            {% if has_factored_loads %}
-            {% for condition_name, condition_data in factored_loads_by_condition.items %}
-            <div class="card factored-loads-section" data-condition="{{ condition_name }}">
-                <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
-                <p>Overload Factors: V×{{ condition_data.factors.vertical }}, 
-                            T×{{ condition_data.factors.transverse }}, 
-                            L×{{ condition_data.factors.longitudinal }}</p>
-                
-                <!-- This will be populated by JavaScript based on selection -->
-                <div class="factored-results-container" id="factoredResults{{ forloop.counter }}">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-            {% endfor %}
             {% endif %}
         </div>
+        {% endfor %}
+    {% endif %}
+
+  
+
+    <!-- Custom Selection Results -->
+    <div class="card">
+        <h3><i class="fas fa-layer-group"></i> Selected Records Summary</h3>
         
-        <div class="action-buttons">
-            <button class="btn btn-secondary" onclick="window.history.back()">
-                <i class="fas fa-arrow-left"></i> Back to Previous
-            </button>
-            <button class="btn btn-primary" onclick="window.print()">
-                <i class="fas fa-print"></i> Print Report
-            </button>
-            <button class="btn btn-info" onclick="window.location.href='/'">
-                <i class="fas fa-home"></i> Back to Home
-            </button>
+        <div class="stats-grid" id="customSelectionStats">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div class="table-container">
+            <table id="customSelectionTable">
+                <thead>
+                    <tr>
+                        <th>Set No.</th>
+                        <th>Record ID</th>
+                        <th>Vert (lbs)</th>
+                        <th>Trans (lbs)</th>
+                        <th>Long (lbs)</th>
+                        <th>Resultant (lbs)</th>
+                    </tr>
+                </thead>
+                <tbody id="customSelectionBody">
+                    <!-- Will be populated by JavaScript -->
+                </tbody>
+                <tfoot id="customSelectionFooter">
+                    <!-- Will be populated by JavaScript -->
+                </tfoot>
+            </table>
         </div>
     </div>
+    {% endif %}
+    
 
 
+    <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Back to Previous
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report
+        </button>
+        <button class="btn btn-info" onclick="window.location.href='/'">
+            <i class="fas fa-home"></i> Back to Home
+        </button>
+    </div>
+</div>
 
 <footer>
     <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
@@ -731,7 +957,12 @@ const factoredLoadsData = {
     {% for condition_name, condition_data in factored_loads_by_condition.items %}
     '{{ condition_name }}': {
         factors: {{ condition_data.factors|safe }},
-        allRecords: {{ condition_data.all_records|safe }}
+        {% if condition_data.all_records %}
+        allRecords: {{ condition_data.all_records|safe }},
+        {% else %}
+        allRecords: [],
+        {% endif %}
+        calculationType: '{{ condition_data.calculation_type }}'
     },
     {% endfor %}
 };

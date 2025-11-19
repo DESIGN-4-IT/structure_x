@@ -386,13 +386,13 @@ def store_set_phase_combinations(request):
         
         # The data should contain the list of combinations and the status
         combinations_to_add = data.get('combinations', [])
-        status = data.get('status')  # 'Ahead', 'Back', or 'Both'
+        status = data.get('status')  # 'Ahead' or 'Back' only now
         
         print(f"DEBUG store_set_phase_combinations: Received {len(combinations_to_add)} combinations: {combinations_to_add}")
         print(f"DEBUG: Status: {status}")
         
-        # MODIFIED: Accept 'Both' as valid status
-        if not combinations_to_add or status not in ['Ahead', 'Back', 'Both']:
+        # MODIFIED: Remove 'Both' from valid status options
+        if not combinations_to_add or status not in ['Ahead', 'Back']:
             return JsonResponse({'status': 'error', 'message': 'Invalid data provided.'}, status=400)
 
         # Get the current active combinations from the session
@@ -1505,6 +1505,43 @@ def calculation_view(request):
                                 record['set_max_resultant_flag'] = 'yes'
                             else:
                                 record['set_max_resultant_flag'] = 'no'
+                                
+                global_set_max_resultants = {}
+                all_records = []
+                
+                # Collect all records from all groups
+                for group_name, records in grouped_data.items():
+                    all_records.extend(records)
+                
+                # Group all records by Set No. globally
+                global_set_records = {}
+                for record in all_records:
+                    set_no = record.get('Set_No', 'Unknown')
+                    if set_no not in global_set_records:
+                        global_set_records[set_no] = []
+                    global_set_records[set_no].append(record)
+                
+                # Find max resultant for each set across all groups
+                for set_no, records in global_set_records.items():
+                    resultant_values = [record['Resultant'] for record in records]
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    global_set_max_resultants[set_no] = {
+                        'vert': records[max_index]['Structure_Loads_Vert'],
+                        'trans': records[max_index]['Structure_Loads_Trans'],
+                        'long': records[max_index]['Structure_Loads_Long'],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id'],
+                        'group_name': None  # We don't track which group it came from for global max
+                    }
+                    
+                    # Add global max resultant flag to ALL records (not just within groups)
+                    for record in records:
+                        if record['Resultant'] == max_resultant:
+                            record['global_set_max_resultant_flag'] = 'yes'
+                        else:
+                            record['global_set_max_resultant_flag'] = 'no'
                 
                 # Calculate max values for each group and flag max resultant rows
                 group_max_values = {}
@@ -1561,6 +1598,7 @@ def calculation_view(request):
                     'grouped_data': grouped_data,
                     'group_max_values': group_max_values,
                     'max_resultant_values': max_resultant_values,
+                    'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
                     'combined_vert': combined_vert,
@@ -1684,6 +1722,43 @@ def calculation_view(request):
                         'max_resultant': max_resultant,
                         'count': len(records)
                     }
+                    
+                global_set_max_resultants = {}
+                all_records = []
+                
+                # Collect all records from all groups
+                for group_name, records in grouped_data.items():
+                    all_records.extend(records)
+                
+                # Group all records by Set No. globally
+                global_set_records = {}
+                for record in all_records:
+                    set_no = record.get('Set_No', 'Unknown')
+                    if set_no not in global_set_records:
+                        global_set_records[set_no] = []
+                    global_set_records[set_no].append(record)
+                
+                # Find max resultant for each set across all groups
+                for set_no, records in global_set_records.items():
+                    resultant_values = [record['Resultant'] for record in records]
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    global_set_max_resultants[set_no] = {
+                        'vert': records[max_index]['Structure_Loads_Vert'],
+                        'trans': records[max_index]['Structure_Loads_Trans'],
+                        'long': records[max_index]['Structure_Loads_Long'],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id'],
+                        'group_name': None
+                    }
+                    
+                    # Add global max resultant flag to ALL records
+                    for record in records:
+                        if record['Resultant'] == max_resultant:
+                            record['global_set_max_resultant_flag'] = 'yes'
+                        else:
+                            record['global_set_max_resultant_flag'] = 'no'
                 
                 # Calculate combined values
                 combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
@@ -1695,6 +1770,7 @@ def calculation_view(request):
                     'grouped_data': grouped_data,
                     'group_max_values': group_max_values,
                     'max_resultant_values': max_resultant_values,
+                    'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
                     'combined_vert': combined_vert,
@@ -1798,22 +1874,31 @@ from .models import LoadCondition, AttachmentLoad
 
 def load_condition_view(request):
     calculation_data = []
+    processed_sums = {}
     
     # Try to get calculation data from multiple sources
     if request.method == 'POST':
         # Get calculation data from POST request (initial load)
         calculation_data_json = request.POST.get('calculation_data')
+        processed_sums_json = request.POST.get('processed_sums')  # NEW: Get processed sums
         if calculation_data_json:
             try:
                 calculation_data = json.loads(calculation_data_json)
                 # Store in session for future requests
                 request.session['calculation_data'] = calculation_data
+                
+                if processed_sums_json:
+                    processed_sums = json.loads(processed_sums_json)
+                    request.session['processed_sums'] = processed_sums
+                    
             except json.JSONDecodeError:
                 # Try to get from session if POST fails
                 calculation_data = request.session.get('calculation_data', [])
+                processed_sums = request.session.get('processed_sums', {})
     else:
         # For GET requests (like redirects from create/edit/delete), get from session
         calculation_data = request.session.get('calculation_data', [])
+        processed_sums = request.session.get('processed_sums', {})
     
     # Get all load conditions
     load_conditions = LoadCondition.objects.all().order_by('id')
@@ -1851,11 +1936,105 @@ def load_condition_view(request):
     else:
         grouped_calculation_data = {}
     
-    # Calculate factored loads for each load condition (initially for all records)
+    # Calculate factored loads for each load condition - CORRECTED LOGIC
     factored_loads_by_condition = {}
+
+    # PRIORITY: Use processed sums if available (NEW LOGIC)
+    if processed_sums:  
+        for condition in load_conditions:
+            # Apply overload factors directly to processed sums
+            from decimal import Decimal
+            
+            # Use processed sums as base loads
+            base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
+            base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
+            base_long = Decimal(str(processed_sums.get('totalLong', 0)))
+            
+            # Apply overload factors
+            factored_vert = base_vert * Decimal(str(condition.vertical_factor))
+            factored_trans = base_trans * Decimal(str(condition.transverse_factor))
+            factored_long = base_long * Decimal(str(condition.longitudinal_factor))
+            
+            # Convert to float
+            factored_vert = float(factored_vert)
+            factored_trans = float(factored_trans)
+            factored_long = float(factored_long)
+            
+            # Recalculate resultant
+            factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
+            
+            # NEW: Calculate individual factored records even when using processed sums
+            factored_records = []
+            if calculation_data:
+                for record in calculation_data:
+                    # Create a copy of the record
+                    factored_record = record.copy()
+                    
+                    # Extract the correct load values from the record
+                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+                    
+                    # Apply overload factors - use Decimal for precise multiplication
+                    from decimal import Decimal
+                    factored_vert_individual = Decimal(str(vert)) * Decimal(str(condition.vertical_factor))
+                    factored_trans_individual = Decimal(str(trans)) * Decimal(str(condition.transverse_factor))
+                    factored_long_individual = Decimal(str(long)) * Decimal(str(condition.longitudinal_factor))
+                    
+                    # Convert back to float for consistency
+                    factored_vert_individual = float(factored_vert_individual)
+                    factored_trans_individual = float(factored_trans_individual)
+                    factored_long_individual = float(factored_long_individual)
+                    
+                    # Update the record with factored values
+                    factored_record['Structure Loads Vert. (lbs)'] = round(factored_vert_individual, 2)
+                    factored_record['Structure Loads Trans. (lbs)'] = round(factored_trans_individual, 2)
+                    factored_record['Structure Loads Long. (lbs)'] = round(factored_long_individual, 2)
+                    
+                    # Recalculate resultant
+                    factored_resultant_individual = math.sqrt(factored_vert_individual**2 + factored_trans_individual**2 + factored_long_individual**2)
+                    factored_record['Resultant (lbs)'] = round(factored_resultant_individual, 2)
+                    
+                    factored_records.append(factored_record)
+                
+                # Group factored records by Set No.
+                grouped_factored_data = {}
+                for record in factored_records:
+                    set_no = record.get('Set No.', 'Unknown')
+                    if set_no not in grouped_factored_data:
+                        grouped_factored_data[set_no] = []
+                    grouped_factored_data[set_no].append(record)
+            else:
+                grouped_factored_data = {}
+                factored_records = []
+            
+            factored_loads_by_condition[condition.description] = {
+                'base_loads': {  # Store original processed sums for reference
+                    'vert': float(base_vert),
+                    'trans': float(base_trans),
+                    'long': float(base_long),
+                    'resultant': processed_sums.get('finalResultant', 0)
+                },
+                'factored_loads': {
+                    'vert': factored_vert,
+                    'trans': factored_trans,
+                    'long': factored_long,
+                    'resultant': factored_resultant
+                },
+                'factors': {
+                    'vertical': condition.vertical_factor,
+                    'transverse': condition.transverse_factor,
+                    'longitudinal': condition.longitudinal_factor
+                },
+                'calculation_type': 'processed_sums',  # Track which logic was used
+                # NEW: Add individual records data for template
+                'grouped_data': grouped_factored_data,
+                'all_records': factored_records
+            }
+
     
-    if calculation_data:
-        # Apply overload factor for each load condition to each record
+    # FALLBACK: Use individual records if no processed sums available (OLD LOGIC)
+    elif calculation_data:
         for condition in load_conditions:
             factored_records = []
             
@@ -1906,7 +2085,8 @@ def load_condition_view(request):
                     'transverse': condition.transverse_factor,
                     'longitudinal': condition.longitudinal_factor
                 },
-                'all_records': factored_records  # Store all records for JavaScript filtering
+                'all_records': factored_records,  # Store all records for JavaScript filtering
+                'calculation_type': 'individual_records'  # Track which logic was used
             }
     
     context = {
@@ -1916,7 +2096,9 @@ def load_condition_view(request):
         'calculation_data_json': json.dumps(calculation_data),  # For JavaScript
         'factored_loads_by_condition': factored_loads_by_condition,
         'has_factored_loads': bool(factored_loads_by_condition),
-        'grouped_calculation_data': grouped_calculation_data
+        'grouped_calculation_data': grouped_calculation_data,
+        'processed_sums': processed_sums,  # NEW: Pass to template
+        'using_processed_sums': bool(processed_sums)  # NEW: Flag for template
     }
     
     return render(request, 'app1/load_condition.html', context)

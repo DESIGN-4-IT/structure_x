@@ -436,6 +436,16 @@
     margin: 10px 0;
     border-color: #dee2e6;
 }
+
+/* Add to your existing CSS */
+.global-max-resultant-row {
+    background-color: #e8f5e8 !important;
+    border-left: 4px solid #28a745;
+}
+
+.global-max-resultant-row:hover {
+    background-color: #d4edda !important;
+}
     </style>
 </head>
 <body>
@@ -453,6 +463,7 @@
             <!-- Selection Controls -->
             <div class="card">
                 <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
+                <!-- In the selection controls section -->
                 <div class="selection-controls">
                     <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
                         <i class="fas fa-check-square"></i> Select All
@@ -463,9 +474,12 @@
                     <button type="button" id="selectMaxResultantBtn" class="btn btn-outline-info">
                         <i class="fas fa-star"></i> Select Group Max Resultant
                     </button>
-                    <!-- NEW: Button for set-wise max resultant selection -->
                     <button type="button" id="selectSetMaxResultantBtn" class="btn btn-outline-warning">
-                        <i class="fas fa-layer-group"></i> Select Set Max Resultant
+                        <i class="fas fa-layer-group"></i> Select Set Max Resultant (Within Groups)
+                    </button>
+                    <!-- NEW BUTTON -->
+                    <button type="button" id="selectGlobalSetMaxResultantBtn" class="btn btn-outline-success">
+                        <i class="fas fa-globe"></i> Select Global Set Max Resultant
                     </button>
                     <span class="selection-count">Selected: <span id="selectedCount">0</span> records</span>
                 </div>
@@ -509,7 +523,8 @@
                         </thead>
                         <tbody>
                             {% for record in records %}
-                            <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %}" 
+                            <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %} 
+                                    {% if record.global_set_max_resultant_flag == 'yes' %}global-max-resultant-row{% endif %}" 
                                 data-record-id="{{ record.record_id }}">
                                 <td>
                                     <input type="checkbox" class="record-checkbox" 
@@ -520,6 +535,9 @@
                                         data-long="{{ record.Structure_Loads_Long }}"
                                         data-resultant="{{ record.Resultant }}"
                                         {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
+                                    {% if record.global_set_max_resultant_flag == 'yes' %}
+                                    <span class="global-max-badge" title="Global Max for Set {{ record.Set_No }}"></span>
+                                    {% endif %}
                                 </td>
                                 {% for key, value in record.items %}
                                     {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
@@ -774,8 +792,8 @@
 
 <script>
 function goToLoadConditions() {
-    // Pass the calculation data to the load condition page
     const calculationData = {{ calculation_data_json|safe }};
+    const processedSums = window.currentCustomSelection; // This contains the buffered sums
     
     // Create a form to submit the data
     const form = document.createElement('form');
@@ -795,6 +813,13 @@ function goToLoadConditions() {
     dataInput.name = 'calculation_data';
     dataInput.value = JSON.stringify(calculationData);
     form.appendChild(dataInput);
+    
+    // NEW: Add processed sums
+    const processedSumsInput = document.createElement('input');
+    processedSumsInput.type = 'hidden';
+    processedSumsInput.name = 'processed_sums';
+    processedSumsInput.value = JSON.stringify(processedSums);
+    form.appendChild(processedSumsInput);
     
     // Submit the form
     document.body.appendChild(form);
@@ -982,6 +1007,7 @@ function initializeSelection() {
     const selectNoneBtn = document.getElementById('selectNoneBtn');
     const selectMaxResultantBtn = document.getElementById('selectMaxResultantBtn');
     const selectSetMaxResultantBtn = document.getElementById('selectSetMaxResultantBtn'); // NEW
+    const selectGlobalSetMaxResultantBtn = document.getElementById('selectGlobalSetMaxResultantBtn');
     const selectedCountSpan = document.getElementById('selectedCount');
     
     // Update selection count and display
@@ -1019,12 +1045,13 @@ function initializeSelection() {
         updateSelection();
     });
 
+    // Select set max resultant (within groups)
     selectSetMaxResultantBtn.addEventListener('click', function() {
         checkboxes.forEach(checkbox => {
             checkbox.checked = false;
         });
         
-        // Check set max resultant rows
+        // Check set max resultant rows (within groups)
         const setMaxResultantRows = document.querySelectorAll('.set-max-resultant-row');
         setMaxResultantRows.forEach(row => {
             const checkbox = row.querySelector('.record-checkbox');
@@ -1035,8 +1062,26 @@ function initializeSelection() {
         updateSelection();
     });
 
+    // NEW: Select GLOBAL set max resultant (across all groups)
+    selectGlobalSetMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check global set max resultant rows
+        const globalSetMaxResultantRows = document.querySelectorAll('tr[data-record-id]');
+        globalSetMaxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            // Check if this row has the global max resultant flag
+            const recordId = row.dataset.recordId;
+            if (checkbox && row.classList.contains('global-max-resultant-row')) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+    });
     
-    // Select max resultant records (default)
+    // Select max resultant records (group-wise)
     selectMaxResultantBtn.addEventListener('click', function() {
         checkboxes.forEach(checkbox => {
             checkbox.checked = false;
@@ -1061,6 +1106,7 @@ function initializeSelection() {
     // Initial update
     updateSelection();
 }
+
 
 function updateCustomSelectionDisplay() {
     const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
@@ -1336,6 +1382,28 @@ function initializeBufferLogic() {
 function goToLoadConditions() {
     const calculationData = {{ calculation_data_json|safe }};
     
+    // Get the processed sums from buffer calculations
+    const processedSums = window.currentCustomSelection || {};
+    
+    // Get buffered results if available
+    let bufferedResults = {};
+    const bufferedTable = document.querySelector('#bufferedLoadsTable');
+    if (bufferedTable && bufferedTable.style.display !== 'none') {
+        const processedSumRow = bufferedTable.querySelector('.highlight');
+        if (processedSumRow) {
+            const cells = processedSumRow.querySelectorAll('td');
+            bufferedResults = {
+                totalVert: parseFloat(cells[1].textContent) || processedSums.totalVert || 0,
+                totalTrans: parseFloat(cells[2].textContent) || processedSums.totalTrans || 0,
+                totalLong: parseFloat(cells[3].textContent) || processedSums.totalLong || 0,
+                finalResultant: parseFloat(cells[4].textContent) || processedSums.finalResultant || 0
+            };
+        }
+    }
+    
+    // Use buffered results if available, otherwise use current custom selection
+    const finalProcessedSums = Object.keys(bufferedResults).length ? bufferedResults : processedSums;
+
     // Create a form to submit the data
     const form = document.createElement('form');
     form.method = 'POST';
@@ -1354,6 +1422,13 @@ function goToLoadConditions() {
     dataInput.name = 'calculation_data';
     dataInput.value = JSON.stringify(calculationData);
     form.appendChild(dataInput);
+    
+    // ADD THIS: Pass processed sums to load condition page
+    const processedSumsInput = document.createElement('input');
+    processedSumsInput.type = 'hidden';
+    processedSumsInput.name = 'processed_sums';
+    processedSumsInput.value = JSON.stringify(finalProcessedSums);
+    form.appendChild(processedSumsInput);
     
     // Submit the form
     document.body.appendChild(form);

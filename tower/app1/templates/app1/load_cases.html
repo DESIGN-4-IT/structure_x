@@ -534,33 +534,33 @@ h3, h4, h5 {
                 <hr>
 
                 <div class="filter-section mb-3">
-                    <form method="post" id="filter-previous-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="filter_by_previous" value="true">
-                        <button type="submit" class="btn btn-info" id="filter-previous-btn">
-                            🔍 Filter by Previous Selection
-                        </button>
-                        <small class="text-muted ms-2">
-                            {% if filter_criteria %}
-                                Active filters: 
-                                {% if filter_criteria.joint_labels %}
-                                    Joint Labels ({{ filter_criteria.joint_labels|length }})
-                                {% endif %}
-                                {% if filter_criteria.set_phase_combinations %}
-                                    Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
-                                    <div class="debug-info small text-info mt-1">
-                                        Combinations ({{ filter_criteria.set_phase_combinations|length }} total): 
-                                        {% for combo in filter_criteria.set_phase_combinations %}
-                                            Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            {% else %}
-                                No previous selection found
+                <form method="post" id="filter-previous-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="filter_by_previous" value="true">
+                    <button type="submit" class="btn btn-info" id="filter-previous-btn">
+                        🔍 Filter by attachment selection
+                    </button>
+                    <small class="text-muted ms-2">
+                        {% if filter_criteria %}
+                            Active filters: 
+                            {% if filter_criteria.joint_labels %}
+                                Joint Labels ({{ filter_criteria.joint_labels|length }})
                             {% endif %}
-                        </small>
-                    </form>
-                </div>
+                            {% if filter_criteria.set_phase_combinations %}
+                                Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
+                                <div class="debug-info small text-info mt-1">
+                                    Combinations ({{ filter_criteria.set_phase_combinations|length }} total): 
+                                    {% for combo in filter_criteria.set_phase_combinations %}
+                                        Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            No previous selection found
+                        {% endif %}
+                    </small>
+                </form>
+            </div>
 
 
                 <!-- Load Values Display Section -->
@@ -2098,7 +2098,7 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     })
     .finally(() => {
         // Reset button state
-        filterBtn.innerHTML = '🔍 Filter by Previous Selection';
+        filterBtn.innerHTML = '🔍 Filter by attachment selection';
         filterBtn.disabled = false;
     });
 });

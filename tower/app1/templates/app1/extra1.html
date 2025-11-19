@@ -1,1908 +1,2323 @@
-Read the complete prompt and code carefully and act as an experienced Transmission Line / backend developer.
+Read the complete code of both pages and act as an experienced developer.
 
-Problem summary
+I want to use the buffer values Vert (lbs), Trans (lbs), and Long (lbs) (these are the Processed Sum results from the previous page calculation) to calculate the Factored Loads on the load condition page.
 
-The Load Case page works correctly when selecting items from Imported Load Cases (this contains the full flat list).
+Right now the load condition page only shows “Calculating…” and no result.
+Check both pages’ code, find why the factored load calculation is not running, and fix the issue.
 
-For Group Load Cases and Custom Groups, load cases are organized into named groups.
+Also, suggest the correct calculation logic where to add/modify i am beginer 
 
-When the user selects load cases from a group, the table must display results group-wise with the related group name.
+this is load condition page complete code 
 
-When the user selects load cases from Imported, the table should behave exactly as it does now (flat list).
-
-Currently, selecting multiple groups does not show all groups correctly — results are merged or missing. It should return a grouping structure: group name → records.
-
-When a custom group is used, use the custom group name (as created by the user) and show that group's load cases.
-
-Required behaviour
-
-If selection source = imported: return selected load cases as a flat list (existing behavior).
-
-If selection source = group or custom: return a grouped response: each group name with its associated records. If multiple groups selected, return all groups separately — do not merge groups.
-
-Pagination or filters must be applied after filtering, so the paginated results reflect the final (filtered/grouped) dataset.
-
-Frontend should render the grouped results with group headers and rows for each group's load cases.
-Note:
-Provide clear hints about where exactly to add or modify the code, since I am a beginner.
 this is views 
-"def load_cases_page(request):
-    """New dedicated page for Load Cases Selection and Load Values"""
-    # Get selected values from session
-    selected_values = request.session.get('selected_values', {})
-    structure_id = selected_values.get('structure_id')
-    selected_load_cases = selected_values.get('load_cases', [])
+"def load_condition_view(request):
+    calculation_data = []
+    processed_sums = {}
     
-    # NEW: Get filter criteria from previous page
-    filter_criteria = selected_values.get('filter_criteria', {})
-    
-    print(f"DEBUG load_cases_page: Session selected_values = {selected_values}")
-    print(f"DEBUG: Filter criteria from session: {filter_criteria}")
-    if 'set_phase_combinations' in filter_criteria:
-        print(f"DEBUG: Number of combinations in filter_criteria: {len(filter_criteria['set_phase_combinations'])}")
-        for i, combo in enumerate(filter_criteria['set_phase_combinations']):
-            print(f"DEBUG: Combination {i}: Set={combo.get('set')}, Phase={combo.get('phase')}")
-    
-    # Handle load cases selection via AJAX only
-    if request.method == 'POST' and 'load_cases_selection' in request.POST:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            selected_load_cases = request.POST.getlist('selected_load_cases')
-            # Store selected load cases in session
-            if 'selected_values' not in request.session:
-                request.session['selected_values'] = {}
-            request.session['selected_values']['load_cases'] = selected_load_cases
-            request.session.modified = True
-            
-            # Return JSON response for AJAX requests
-            return JsonResponse({'success': True, 'selected_cases': selected_load_cases})
-    
-    # NEW: Handle filter by previous selection
-    if request.method == 'POST' and 'filter_by_previous' in request.POST:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            print(f"DEBUG: Filtering by previous selection - Criteria: {filter_criteria}")
-            print(f"DEBUG: Current selected load cases: {selected_load_cases}")
-            
-            # Apply filter criteria to get filtered data - ONLY use currently selected load cases
-            filtered_data = apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases)
-            
-            # DO NOT update the selected_load_cases in session - keep user's current selection
-            # Only return the filtered data for display
-            
-            print(f"DEBUG: Filtered data count: {len(filtered_data)}")
-            
-            return JsonResponse({
-                'success': True, 
-                'filtered_data': filtered_data,  # Return the actual data
-                'filter_criteria': filter_criteria,
-                'record_count': len(filtered_data),
-                'current_selected_cases': selected_load_cases  # Return current selection for reference
-            })
-
-
-    
-    # AJAX handlers (moved from hdata1)
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return handle_load_cases_ajax(request)
-    
-    # Data processing for Load Values display
-    load_data = []
-    available_load_cases = []
-    all_columns = []
-    
-    if structure_id:
-        try:
-            structure = ListOfStructure.objects.get(id=structure_id)
-            
-            # Try to get the latest file from different models
-            latest_file = None
-            file_models = [
-                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
-                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
-                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
-                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
-                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
-                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
-            ]
-            
-            for model in file_models:
-                if model.objects.filter(structure=structure).exists():
-                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
-                    break
-            
-            if latest_file:
-                df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-
-                # Get available load cases for selection
-                if 'Load Case Description' in df.columns:
-                    available_load_cases = df['Load Case Description'].dropna().unique().tolist()
-
-                # NEW: Apply filter criteria if available and no specific load cases selected
-                if not selected_load_cases and filter_criteria:
-                    filtered_load_cases = apply_previous_selection_filter(structure_id, filter_criteria)
-                    if filtered_load_cases and 'Load Case Description' in df.columns:
-                        df = df[df['Load Case Description'].isin(filtered_load_cases)]
-                # Existing: Filter by selected load cases if any are selected
-                elif selected_load_cases and 'Load Case Description' in df.columns:
-                    df = df[df['Load Case Description'].isin(selected_load_cases)]
-
-                # Prepare complete data for table display
-                for _, row in df.iterrows():
-                    row_data = {}
-                    for col in df.columns:
-                        if pd.notna(row[col]):
-                            if pd.api.types.is_numeric_dtype(df[col]):
-                                row_data[col] = float(row[col])
-                            else:
-                                row_data[col] = str(row[col])
-                        else:
-                            row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
-                    load_data.append(row_data)
-
-                all_columns = list(df.columns)
-
-        except Exception as e:
-            print(f"Error processing Excel file: {str(e)}")
-
-    # Handle calculation request
-    if request.method == 'GET' and 'calculation_data' in request.GET:
-        try:
-            calculation_data = json.loads(request.GET.get('calculation_data', '[]'))
-            return render(request, 'app1/calculation_results.html', {
-                'calculation_data': calculation_data,
-                'structure_id': structure_id
-            })
-        except json.JSONDecodeError:
-            pass
-
-    return render(request, 'app1/load_cases.html', {
-        'load_data': load_data,
-        'load_data_json': json.dumps(load_data),
-        'selected_values': selected_values,
-        'all_columns': all_columns,
-        'available_load_cases': available_load_cases,
-        'selected_load_cases': selected_load_cases,
-        'structure_id': structure_id,
-        'filter_criteria': filter_criteria,  # NEW: Pass filter criteria to template
-    })
-    
-def get_filtered_load_data(request):
-    """Get filtered load data based on selected load cases"""
-    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    
-    structure_id = request.GET.get('structure_id')
-    selected_load_cases = request.GET.getlist('selected_load_cases') or []
-    
-    if not structure_id:
-        return JsonResponse({'error': 'Structure ID is required'}, status=400)
-    
-    try:
-        structure = ListOfStructure.objects.get(id=structure_id)
-        load_data = []
-        all_columns = []
-        
-        # Try to get the latest file from different models
-        latest_file = None
-        file_models = [
-            tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
-            tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
-            hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
-            tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
-            UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
-            mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
-        ]
-        
-        for model in file_models:
-            if model.objects.filter(structure=structure).exists():
-                latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
-                break
-        
-        if latest_file:
-            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-
-            # Filter by selected load cases if any are selected
-            if selected_load_cases and 'Load Case Description' in df.columns:
-                df = df[df['Load Case Description'].isin(selected_load_cases)]
-
-            # Prepare complete data for table display
-            for _, row in df.iterrows():
-                row_data = {}
-                for col in df.columns:
-                    if pd.notna(row[col]):
-                        if pd.api.types.is_numeric_dtype(df[col]):
-                            row_data[col] = float(row[col])
-                        else:
-                            row_data[col] = str(row[col])
-                    else:
-                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
-                load_data.append(row_data)
-
-            all_columns = list(df.columns)
-            
-            return JsonResponse({
-                'load_data': load_data,
-                'all_columns': all_columns,
-                'record_count': len(load_data)
-            })
-        else:
-            return JsonResponse({'error': 'No file found for this structure'}, status=404)
-            
-    except ListOfStructure.DoesNotExist:
-        return JsonResponse({'error': 'Structure not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
-def get_all_load_cases(structure):
-    """Get all available load cases from the database"""
-    try:
-        # Get all unique load case names from LoadCase model for this structure
-        all_load_cases = LoadCase.objects.filter(
-            structure=structure
-        ).values_list('name', flat=True).distinct()
-        
-        return JsonResponse({'values': list(all_load_cases)})
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
-
-def handle_load_cases_ajax(request):
-    """Handle all AJAX requests for load cases (moved from hdata1)"""
-    structure_id = request.GET.get('structure_id') or request.POST.get('structure_id')
-    
-    if not structure_id:
-        return JsonResponse({'error': 'Structure ID is required'}, status=400)
-        
-    try:
-        structure = ListOfStructure.objects.get(id=structure_id)
-        
-        # Handle custom group creation
-        if request.method == 'POST' and 'create_custom_group' in request.POST:
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
-            
-            if group_name and selected_cases:
-                custom_group = LoadCaseGroup.objects.create(
-                    name=group_name,
-                    structure=structure,
-                    is_custom=True
-                )
+    # Try to get calculation data from multiple sources
+    if request.method == 'POST':
+        # Get calculation data from POST request (initial load)
+        calculation_data_json = request.POST.get('calculation_data')
+        processed_sums_json = request.POST.get('processed_sums')  # NEW: Get processed sums
+        if calculation_data_json:
+            try:
+                calculation_data = json.loads(calculation_data_json)
+                # Store in session for future requests
+                request.session['calculation_data'] = calculation_data
                 
-                for case_name in selected_cases:
-                    LoadCase.objects.create(
-                        name=case_name,
-                        group=custom_group,
-                        structure=structure
-                    )
-                
-                return JsonResponse({'success': True})
-            return JsonResponse({'success': False, 'error': 'Group name and cases are required'})
-        
-        # Handle custom group deletion
-        elif request.method == 'POST' and 'delete_custom_group' in request.POST:
-            group_name = request.POST.get('group_name')
-            
-            if group_name:
-                LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    name=group_name, 
-                    is_custom=True
-                ).delete()
-                return JsonResponse({'success': True})
-            return JsonResponse({'success': False, 'error': 'Group name is required'})
-        
-        # Handle custom group update
-        elif request.method == 'POST' and 'update_custom_group' in request.POST:
-            old_group_name = request.POST.get('old_group_name')
-            new_group_name = request.POST.get('new_group_name')
-            
-            if old_group_name and new_group_name:
-                groups = LoadCaseGroup.objects.filter(
-                    structure=structure,
-                    name=old_group_name,
-                    is_custom=True
-                )
-                
-                if not groups.exists():
-                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
-                
-                for group in groups:
-                    group.name = new_group_name
-                    group.save()
-                
-                return JsonResponse({'success': True})
-            return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
-        
-        elif request.method == 'POST' and 'edit_custom_group' in request.POST:
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases[]')
-            
-            if group_name and selected_cases is not None:
-                try:
-                    # Get the custom group
-                    group = LoadCaseGroup.objects.get(
-                        structure=structure,
-                        name=group_name,
-                        is_custom=True
-                    )
+                if processed_sums_json:
+                    processed_sums = json.loads(processed_sums_json)
+                    request.session['processed_sums'] = processed_sums
                     
-                    # Clear existing load cases
-                    group.load_cases.all().delete()
-                    
-                    # Add new load cases
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=group,
-                            structure=structure
-                        )
-                    
-                    return JsonResponse({'success': True})
-                    
-                except LoadCaseGroup.DoesNotExist:
-                    return JsonResponse({'success': False, 'error': f'Group "{group_name}" not found'})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-            
-            return JsonResponse({'success': False, 'error': 'Group name and cases are required'})
+            except json.JSONDecodeError:
+                # Try to get from session if POST fails
+                calculation_data = request.session.get('calculation_data', [])
+                processed_sums = request.session.get('processed_sums', {})
+    else:
+        # For GET requests (like redirects from create/edit/delete), get from session
+        calculation_data = request.session.get('calculation_data', [])
+        processed_sums = request.session.get('processed_sums', {})
+    
+    # Get all load conditions
+    load_conditions = LoadCondition.objects.all().order_by('id')
+    
+    # Get all attachment loads grouped by load case
+    attachment_loads = {}
+    for lc in AttachmentLoad.LOAD_CASE_CHOICES:
+        loads = AttachmentLoad.objects.filter(load_case=lc[0]).order_by('attachment')
+        if loads.exists():
+            attachment_loads[lc[0]] = {
+                'name': lc[1],
+                'loads': loads
+            }
+    
+    # Process calculation data only if it exists
+    if calculation_data:
+        # Add record_id and clean keys to calculation data for template access
+        for index, record in enumerate(calculation_data):
+            record['record_id'] = f"record_{index}"
+            # Add clean keys for template access
+            record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+            record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+            record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+            record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
+            # Store Set No. in data attribute
+            record['Set_No'] = record.get('Set No.', 'Unknown')
         
-        # Handle GET requests for load case data
-        elif request.method == 'GET':
-            # Get filtered load data for table
-            if request.GET.get('get_filtered_load_data'):
-                return get_filtered_load_data(request)
+        # Group calculation data by Set No. for debug display
+        grouped_calculation_data = {}
+        for record in calculation_data:
+            set_no = record.get('Set No.', 'Unknown')
+            if set_no not in grouped_calculation_data:
+                grouped_calculation_data[set_no] = []
+            grouped_calculation_data[set_no].append(record)
+    else:
+        grouped_calculation_data = {}
+    
+    # Calculate factored loads for each load condition - CORRECTED LOGIC
+    factored_loads_by_condition = {}
+    
+    # PRIORITY: Use processed sums if available (NEW LOGIC)
+    if processed_sums:  
+        for condition in load_conditions:
+            # Apply overload factors directly to processed sums
+            from decimal import Decimal
             
-            # Get imported load cases
-            elif request.GET.get('get_load_cases'):
-                return get_imported_load_cases(structure)
+            # Use processed sums as base loads
+            base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
+            base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
+            base_long = Decimal(str(processed_sums.get('totalLong', 0)))
             
-            # Get grouped load cases
-            elif request.GET.get('get_grouped_load_cases'):
-                return get_grouped_load_cases(structure)
+            # Apply overload factors
+            factored_vert = base_vert * Decimal(str(condition.vertical_factor))
+            factored_trans = base_trans * Decimal(str(condition.transverse_factor))
+            factored_long = base_long * Decimal(str(condition.longitudinal_factor))
             
-            # Get custom groups
-            elif request.GET.get('get_custom_groups_for_selection'):
-                return get_custom_groups(structure)
+            # Convert to float
+            factored_vert = float(factored_vert)
+            factored_trans = float(factored_trans)
+            factored_long = float(factored_long)
             
-            elif request.GET.get('get_all_load_cases'):
-                return get_all_load_cases(structure)
-
-    
-    except ListOfStructure.DoesNotExist:
-        return JsonResponse({'error': 'Structure not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-def get_imported_load_cases(structure):
-    """Get imported load cases from Excel files"""
-    latest_file = None
-    file_models = [
-        hUploadedFile1, tUploadedFile6, tUploadedFile1, tUploadedFile2,
-        tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
-        hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
-        tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
-        UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
-        mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
-    ]
-    
-    for model in file_models:
-        if model.objects.filter(structure=structure).exists():
-            latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
-            break
-    
-    if latest_file:
-        df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-        if 'Load Case Description' in df.columns:
-            load_cases = df['Load Case Description'].dropna().unique().tolist()
-            return JsonResponse({'values': load_cases})
-    
-    return JsonResponse({'error': 'No load cases found'}, status=404)
-
-def get_grouped_load_cases(structure):
-    """Get grouped load cases from Excel files"""
-    latest_file = None
-    file_models = [hUploadedFile1, tUploadedFile6, tUploadedFile1]
-    
-    for model in file_models:
-        if model.objects.filter(structure=structure).exists():
-            latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
-            break
-    
-    if latest_file:
-        df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-        if 'Load Case Description' in df.columns:
-            load_cases = df['Load Case Description'].dropna().unique().tolist()
+            # Recalculate resultant
+            factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
             
-            # Group load cases by prefix
-            grouped_cases = {}
-            for case in load_cases:
-                if ' ' in case:
-                    prefix = case.split(' ')[0]
-                else:
-                    prefix = case
-                    
-                if prefix not in grouped_cases:
-                    grouped_cases[prefix] = []
-                grouped_cases[prefix].append(case)
+            factored_loads_by_condition[condition.description] = {
+                'base_loads': {  # Store original processed sums for reference
+                    'vert': float(base_vert),
+                    'trans': float(base_trans),
+                    'long': float(base_long),
+                    'resultant': processed_sums.get('finalResultant', 0)
+                },
+                'factored_loads': {
+                    'vert': factored_vert,
+                    'trans': factored_trans,
+                    'long': factored_long,
+                    'resultant': factored_resultant
+                },
+                'factors': {
+                    'vertical': condition.vertical_factor,
+                    'transverse': condition.transverse_factor,
+                    'longitudinal': condition.longitudinal_factor
+                },
+                'calculation_type': 'processed_sums'  # Track which logic was used
+            }
+    
+    # FALLBACK: Use individual records if no processed sums available (OLD LOGIC)
+    elif calculation_data:
+        for condition in load_conditions:
+            factored_records = []
             
-            return JsonResponse({'groups': grouped_cases})
-    
-    return JsonResponse({'error': 'No grouped load cases found'}, status=404)
-
-def get_custom_groups(structure):
-    """Get custom groups from database"""
-    custom_groups = LoadCaseGroup.objects.filter(
-        structure=structure, 
-        is_custom=True
-    ).prefetch_related('load_cases')
-    
-    groups_data = {}
-    for group in custom_groups:
-        groups_data[group.name] = [case.name for case in group.load_cases.all()]
-    
-    return JsonResponse({'custom_groups': groups_data})
-
-"
-
-this is load_cases.html 
-"  <div class="container-fluid py-4">
-        <div class="row">
-            <div class="col-12">
-                <h3>Load Cases Selection & Load Values</h3>
+            # Process each record individually
+            for record in calculation_data:
+                # Create a copy of the record
+                factored_record = record.copy()
                 
-                <!-- Navigation back to canvas container -->
-                <div class="mb-3">
-                    <a href="{% url 'hdata1' %}" class="btn btn-outline-secondary">
-                        ← Back to Canvas Container
-                    </a>
+                # Extract the correct load values from the record
+                vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+                
+                # Apply overload factors - use Decimal for precise multiplication
+                from decimal import Decimal
+                factored_vert = Decimal(str(vert)) * Decimal(str(condition.vertical_factor))
+                factored_trans = Decimal(str(trans)) * Decimal(str(condition.transverse_factor))
+                factored_long = Decimal(str(long)) * Decimal(str(condition.longitudinal_factor))
+                
+                # Convert back to float for consistency
+                factored_vert = float(factored_vert)
+                factored_trans = float(factored_trans)
+                factored_long = float(factored_long)
+                
+                # Update the record with factored values
+                factored_record['Structure Loads Vert. (lbs)'] = round(factored_vert, 2)
+                factored_record['Structure Loads Trans. (lbs)'] = round(factored_trans, 2)
+                factored_record['Structure Loads Long. (lbs)'] = round(factored_long, 2)
+                
+                # Recalculate resultant
+                factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
+                factored_record['Resultant (lbs)'] = round(factored_resultant, 2)
+                
+                factored_records.append(factored_record)
+            
+            # Group factored records by Set No.
+            grouped_factored_data = {}
+            for record in factored_records:
+                set_no = record.get('Set No.', 'Unknown')
+                if set_no not in grouped_factored_data:
+                    grouped_factored_data[set_no] = []
+                grouped_factored_data[set_no].append(record)
+            
+            factored_loads_by_condition[condition.description] = {
+                'grouped_data': grouped_factored_data,
+                'factors': {
+                    'vertical': condition.vertical_factor,
+                    'transverse': condition.transverse_factor,
+                    'longitudinal': condition.longitudinal_factor
+                },
+                'all_records': factored_records,  # Store all records for JavaScript filtering
+                'calculation_type': 'individual_records'  # Track which logic was used
+            }
+    
+    context = {
+        'load_conditions': load_conditions,
+        'attachment_loads': attachment_loads,
+        'calculation_data': calculation_data,
+        'calculation_data_json': json.dumps(calculation_data),  # For JavaScript
+        'factored_loads_by_condition': factored_loads_by_condition,
+        'has_factored_loads': bool(factored_loads_by_condition),
+        'grouped_calculation_data': grouped_calculation_data,
+        'processed_sums': processed_sums,  # NEW: Pass to template
+        'using_processed_sums': bool(processed_sums)  # NEW: Flag for template
+    }
+    
+    return render(request, 'app1/load_condition.html', context)"
+
+this is load_condition.html 
+"<div class="container">
+    <header>
+        <h2><i class="fas fa-table"></i> Load Conditions</h2>
+        <p>Configure and apply load conditions to your calculations</p>
+    </header>
+
+    {% if calculation_data %}
+    <!-- Selection Controls -->
+    <div class="card">
+        <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
+        <div class="selection-controls">
+            <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
+                <i class="fas fa-check-square"></i> Select All
+            </button>
+            <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
+                <i class="fas fa-square"></i> Select None
+            </button>
+            <span class="selection-count">Selected: <span id="selectedCount">{{ calculation_data|length }}</span> records</span>
+        </div>
+    </div>
+
+     <div class="card">
+        <h3><i class="fas fa-list-ol"></i> Calculation Data Records</h3>
+        
+        {% for set_no, records in grouped_calculation_data.items %}
+        <div class="set-container">
+            <div class="set-header">
+                <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for key in records.0.keys %}
+                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                    <th>{{ key }}</th>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                            <tr data-record-id="{{ record.record_id }}">
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" 
+                                        data-record-id="{{ record.record_id }}"
+                                        data-set-no="{{ record.Set_No }}"
+                                        data-vert="{{ record.Structure_Loads_Vert }}"
+                                        data-trans="{{ record.Structure_Loads_Trans }}"
+                                        data-long="{{ record.Structure_Loads_Long }}"
+                                        data-resultant="{{ record.Resultant }}"
+                                        checked>
+                                </td>
+                                {% for key, value in record.items %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                        {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
+                                            <td class="resultant-cell">{{ value }}</td>
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
+    </div>
+
+     <div class="card">
+        <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
+        
+        <!-- Add Parameter Button -->
+        <div class="action-buttons" style="justify-content: flex-start; margin-bottom: 20px;">
+            <a href="{% url 'create_load_condition' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Add New Parameter
+            </a>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>°F</th>
+                        <th>Radial (in)</th>
+                        <th>Pressure (psf)</th>
+                        <th>ANGLE</th>
+                        <th>TRANSVERSE</th>
+                        <th>VERTICAL</th>
+                        <th>LONGITUDINAL</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for condition in load_conditions %}
+                    <tr>
+                        <td>{{ condition.description }}</td>
+                        <td>{{ condition.temperature }}</td>
+                        <td>{{ condition.ice_radial }}</td>
+                        <td>{{ condition.wind_pressure }}</td>
+                        <td>{{ condition.angle_factor }}</td>
+                        <td>{{ condition.transverse_factor }}</td>
+                        <td>{{ condition.vertical_factor }}</td>
+                        <td>{{ condition.longitudinal_factor }}</td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <a href="{% url 'edit_load_condition' condition.pk %}" 
+                                class="btn btn-sm btn-outline-primary" 
+                                style="padding: 5px 10px; font-size: 0.8rem;">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="deleteLoadCondition({{ condition.pk }})" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        style="padding: 5px 10px; font-size: 0.8rem;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: #6c757d;">
+                            <i class="fas fa-info-circle"></i> No load conditions configured yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Processed Sums Display -->
+    {% if using_processed_sums %}
+    <div class="card alert alert-info">
+        <h3><i class="fas fa-info-circle"></i> Using Processed Sums as Base Loads</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Base Vert</div>
+                <div class="stat-value">{{ processed_sums.totalVert|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Trans</div>
+                <div class="stat-value">{{ processed_sums.totalTrans|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Long</div>
+                <div class="stat-value">{{ processed_sums.totalLong|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Resultant</div>
+                <div class="stat-value">{{ processed_sums.finalResultant|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Factored Loads Display - SINGLE SECTION -->
+    {% if has_factored_loads %}
+        {% for condition_name, condition_data in factored_loads_by_condition.items %}
+        <div class="card factored-loads-section">
+            <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+            
+            <!-- Show base and factored loads comparison -->
+            <div class="loads-comparison">
+                {% if condition_data.calculation_type == 'processed_sums' %}
+                <div class="base-loads">
+                    <h5>Base Loads (Processed Sums)</h5>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Vert</div>
+                            <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Trans</div>
+                            <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Long</div>
+                            <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Resultant</div>
+                            <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                    </div>
                 </div>
+                {% endif %}
+                
+                <div class="factored-loads">
+                    <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
+                    <div class="stats-grid">
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Vert</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.vert|floatformat:2 }}
+                                {% else %}
+                                    <!-- For individual records, show calculated total -->
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Trans</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.trans|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Long</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.long|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="stat-card highlighted">
+                            <div class="stat-label">Resultant</div>
+                            <div class="stat-value">
+                                {% if condition_data.calculation_type == 'processed_sums' %}
+                                    {{ condition_data.factored_loads.resultant|floatformat:2 }}
+                                {% else %}
+                                    Calculating...
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">(lbs)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Load Cases Selection Section -->
-                <div class="load-cases-section mb-4">
-                    <h4>Load Cases Selection</h4>
-                    
-                    <div class="load-case-links mb-3">
-                        <a href="#" id="imported-load-cases-link" class="load-case-link active">Imported Load Cases</a>
-                        <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
-                        <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
+            <!-- Individual Records Table (for individual records calculation) -->
+            {% if condition_data.calculation_type == 'individual_records' and condition_data.grouped_data %}
+            <div class="individual-records-section">
+                <h5>Individual Factored Records</h5>
+                {% for set_no, records in condition_data.grouped_data.items %}
+                <div class="set-container">
+                    <div class="set-header">
+                        <h6><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-secondary">{{ records|length }} records</span></h6>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% for key in records.0.keys %}
+                                        {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                            <th>{{ key }}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    {% for key, value in record.items %}
+                                        {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                            {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
+                                                <td class="resultant-cell">{{ value }}</td>
+                                            {% else %}
+                                                <td>{{ value }}</td>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Original Calculation Data Records -->
+    <div class="card">
+        <h3><i class="fas fa-list-ol"></i> Calculation Data Records</h3>
+        
+        {% for set_no, records in grouped_calculation_data.items %}
+        <div class="set-container">
+            <div class="set-header">
+                <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for key in records.0.keys %}
+                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                    <th>{{ key }}</th>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                            <tr data-record-id="{{ record.record_id }}">
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" 
+                                        data-record-id="{{ record.record_id }}"
+                                        data-set-no="{{ record.Set_No }}"
+                                        data-vert="{{ record.Structure_Loads_Vert }}"
+                                        data-trans="{{ record.Structure_Loads_Trans }}"
+                                        data-long="{{ record.Structure_Loads_Long }}"
+                                        data-resultant="{{ record.Resultant }}"
+                                        checked>
+                                </td>
+                                {% for key, value in record.items %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
+                                        {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
+                                            <td class="resultant-cell">{{ value }}</td>
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Custom Selection Results -->
+    <div class="card">
+        <h3><i class="fas fa-layer-group"></i> Selected Records Summary</h3>
+        
+        <div class="stats-grid" id="customSelectionStats">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div class="table-container">
+            <table id="customSelectionTable">
+                <thead>
+                    <tr>
+                        <th>Set No.</th>
+                        <th>Record ID</th>
+                        <th>Vert (lbs)</th>
+                        <th>Trans (lbs)</th>
+                        <th>Long (lbs)</th>
+                        <th>Resultant (lbs)</th>
+                    </tr>
+                </thead>
+                <tbody id="customSelectionBody">
+                    <!-- Will be populated by JavaScript -->
+                </tbody>
+                <tfoot id="customSelectionFooter">
+                    <!-- Will be populated by JavaScript -->
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+
+
+    <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Back to Previous
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report
+        </button>
+        <button class="btn btn-info" onclick="window.location.href='/'">
+            <i class="fas fa-home"></i> Back to Home
+        </button>
+    </div>
+</div>
+
+<footer>
+    <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    applyBufferCheckbox.addEventListener('change', function() {
+        bufferSettings.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Handle final calculation
+    const calculateButton = document.getElementById('calculateFinalLoads');
+    calculateButton.addEventListener('click', function() {
+        // Get calculation data from previous step (you'll need to pass this from the previous view)
+        const calculationData = JSON.parse('{{ calculation_data_json|escapejs }}' || '[]');
+        
+        // Get form data
+        const formData = new FormData(document.getElementById('finalCalculationForm'));
+        
+        // Add calculation data to form data
+        formData.append('calculation_data', JSON.stringify(calculationData));
+        
+        // Show loading indicator
+        calculateButton.disabled = true;
+        calculateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+        
+        // Send AJAX request
+        fetch('{% url "calculate_final_loads" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Display results
+                displayFinalResults(data.max_resultant_values);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            // Reset button
+            calculateButton.disabled = false;
+            calculateButton.innerHTML = '<i class="fas fa-calculator"></i> Calculate Final Loads';
+        });
+    });
+    
+    function displayFinalResults(results) {
+        const tableBody = document.querySelector('#finalLoadsTable tbody');
+        tableBody.innerHTML = '';
+        
+        let totalVert = 0;
+        let totalTrans = 0;
+        let totalLong = 0;
+        
+        for (const [setNo, values] of Object.entries(results)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${setNo}</td>
+                <td>${values.vert.toFixed(2)}</td>
+                <td>${values.trans.toFixed(2)}</td>
+                <td>${values.long.toFixed(2)}</td>
+                <td>${values.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+            
+            totalVert += values.vert;
+            totalTrans += values.trans;
+            totalLong += values.long;
+        }
+        
+        // Add total row
+        const totalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
+        const totalRow = document.createElement('tr');
+        totalRow.classList.add('highlight');
+        totalRow.innerHTML = `
+            <td><strong>Total</strong></td>
+            <td><strong>${totalVert.toFixed(2)}</strong></td>
+            <td><strong>${totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${totalLong.toFixed(2)}</strong></td>
+            <td><strong>${totalResultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(totalRow);
+        
+        // Show results section
+        document.getElementById('finalResults').style.display = 'block';
+    }
+});
+</script>
+
+<script>
+// Store factored loads data from Django
+const factoredLoadsData = {
+    {% for condition_name, condition_data in factored_loads_by_condition.items %}
+    '{{ condition_name }}': {
+        factors: {{ condition_data.factors|safe }},
+        {% if condition_data.calculation_type == 'individual_records' %}
+        allRecords: {{ condition_data.all_records|safe }},
+        {% else %}
+        allRecords: [], // No individual records when using processed sums
+        {% endif %}
+        calculationType: '{{ condition_data.calculation_type }}'
+    },
+    {% endfor %}
+};
+
+// Custom Selection Logic for Load Conditions Page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSelection();
+});
+
+function initializeSelection() {
+    const checkboxes = document.querySelectorAll('.record-checkbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectNoneBtn = document.getElementById('selectNoneBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    
+    // Update selection count and display
+    function updateSelection() {
+        const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+        selectedCountSpan.textContent = selectedCheckboxes.length;
+        
+        // Update row styling
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                row.classList.add('selected-record');
+            } else {
+                row.classList.remove('selected-record');
+            }
+        });
+        
+        // Update custom selection display and factored loads
+        updateCustomSelectionDisplay();
+        updateFactoredLoadsDisplay();
+    }
+    
+    // Select all records
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelection();
+    });
+    
+    // Select none
+    selectNoneBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelection();
+    });
+    
+    // Add event listeners to checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Initial update
+    updateSelection();
+}
+
+function updateCustomSelectionDisplay() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const statsGrid = document.getElementById('customSelectionStats');
+    const tableBody = document.getElementById('customSelectionBody');
+    const tableFooter = document.getElementById('customSelectionFooter');
+    
+    // Clear previous content
+    statsGrid.innerHTML = '';
+    tableBody.innerHTML = '';
+    tableFooter.innerHTML = '';
+    
+    if (selectedCheckboxes.length === 0) {
+        statsGrid.innerHTML = '<p>No records selected. Please select records using the checkboxes above.</p>';
+        return;
+    }
+    
+    let totalVert = 0;
+    let totalTrans = 0;
+    let totalLong = 0;
+    const selectedRecords = [];
+    
+    // Process selected records
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+        const setNo = checkbox.dataset.setNo || 'Unknown';
+        const recordId = checkbox.dataset.recordId;
+        
+        totalVert += vert;
+        totalTrans += trans;
+        totalLong += long;
+        
+        selectedRecords.push({
+            setNo,
+            recordId,
+            vert,
+            trans,
+            long,
+            resultant
+        });
+    });
+    
+    // Calculate final resultant
+    const finalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
+    
+    // Update stats grid
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Selected Records</div>
+            <div class="stat-value">${selectedCheckboxes.length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Vert</div>
+            <div class="stat-value">${totalVert.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Trans</div>
+            <div class="stat-value">${totalTrans.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Long</div>
+            <div class="stat-value">${totalLong.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Resultant</div>
+            <div class="stat-value">${finalResultant.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+    `;
+    
+    // Update table body
+    selectedRecords.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.setNo}</td>
+            <td>${record.recordId}</td>
+            <td>${record.vert.toFixed(2)}</td>
+            <td>${record.trans.toFixed(2)}</td>
+            <td>${record.long.toFixed(2)}</td>
+            <td>${record.resultant.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // Update table footer with totals
+    tableFooter.innerHTML = `
+        <tr class="highlight">
+            <td colspan="2"><strong>Selected Records Sum</strong></td>
+            <td><strong>${totalVert.toFixed(2)}</strong></td>
+            <td><strong>${totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${totalLong.toFixed(2)}</strong></td>
+            <td><strong>${finalResultant.toFixed(2)}</strong></td>
+        </tr>
+    `;
+    
+    // Store current custom selection for further calculations
+    window.currentCustomSelection = {
+        totalVert,
+        totalTrans,
+        totalLong,
+        finalResultant,
+        selectedRecords
+    };
+}
+
+function updateFactoredLoadsDisplay() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        // Hide all factored loads sections
+        document.querySelectorAll('.factored-loads-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        return;
+    }
+    
+    // Get selected record IDs
+    const selectedRecordIds = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.recordId);
+    
+    // Process each load condition
+    Object.keys(factoredLoadsData).forEach((conditionName, index) => {
+        const conditionData = factoredLoadsData[conditionName];
+        const container = document.getElementById(`factoredResults${index + 1}`);
+        const section = document.querySelector(`.factored-loads-section[data-condition="${conditionName}"]`);
+        
+        if (!container || !section) return;
+        
+        // Filter records to only show selected ones
+        const selectedFactoredRecords = conditionData.allRecords.filter(record => 
+            selectedRecordIds.includes(record.record_id)
+        );
+        
+        // Group by Set No.
+        const groupedData = {};
+        selectedFactoredRecords.forEach(record => {
+            const setNo = record['Set No.'] || 'Unknown';
+            if (!groupedData[setNo]) {
+                groupedData[setNo] = [];
+            }
+            groupedData[setNo].push(record);
+        });
+        
+        // Build HTML for factored loads
+        let html = '';
+        
+        Object.keys(groupedData).forEach(setNo => {
+            const records = groupedData[setNo];
+            html += `
+                <div class="set-container">
+                    <div class="set-header">
+                        <h4><i class="fas fa-cubes"></i> Set No. ${setNo} <span class="badge badge-primary">${records.length} records</span></h4>
                     </div>
                     
-                    <div id="load-cases-results" class="mb-3 p-3 border rounded bg-light">
-                        <!-- Load cases will be displayed here -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+            `;
+            
+            // Add headers (exclude internal fields)
+            if (records.length > 0) {
+                Object.keys(records[0]).forEach(key => {
+                    if (!['max_resultant_flag', 'record_id', 'Structure_Loads_Vert', 'Structure_Loads_Trans', 'Structure_Loads_Long', 'Resultant', 'Set_No'].includes(key)) {
+                        html += `<th>${key}</th>`;
+                    }
+                });
+            }
+            
+            html += `
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            // Add rows
+            records.forEach(record => {
+                html += `<tr>`;
+                Object.keys(record).forEach(key => {
+                    if (!['max_resultant_flag', 'record_id', 'Structure_Loads_Vert', 'Structure_Loads_Trans', 'Structure_Loads_Long', 'Resultant', 'Set_No'].includes(key)) {
+                        const value = record[key];
+                        if (key === 'Resultant (lbs)' || key.includes('Structure Loads')) {
+                            html += `<td class="resultant-cell">${value}</td>`;
+                        } else {
+                            html += `<td>${value}</td>`;
+                        }
+                    }
+                });
+                html += `</tr>`;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
                     </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        section.style.display = 'block';
+    });
+}
+
+function deleteLoadCondition(pk) {
+    if (confirm('Are you sure you want to delete this load condition?')) {
+        // Create a form and submit it via POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/load-condition/${pk}/delete/`;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            form.appendChild(csrfToken.cloneNode(true));
+        } else {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = '{{ csrf_token }}';
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>"
+
+this is complete code of calculation page 
+this is view
+"def calculation_view(request):
+    # Initialize context with default values to avoid UnboundLocalError
+    context = {'error': None}
+    
+    if request.method == 'POST':  # Handle POST requests
+        # Get calculation data and selection source from POST parameters
+        calculation_data_json = request.POST.get('calculation_data')
+        selection_source = request.POST.get('selection_source', 'imported')
+        custom_groups_json = request.POST.get('custom_groups_data', '{}')  # NEW: Get custom groups data
+        
+        if calculation_data_json:
+            try:
+                calculation_data = json.loads(calculation_data_json)
+                custom_groups_data = json.loads(custom_groups_json)  # NEW: Parse custom groups
+                
+                # Add resultant calculation and unique ID to each record
+                for index, record in enumerate(calculation_data):
+                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
                     
-                    <!-- Selected Load Cases Display -->
-                    <div class="selected-load-cases mb-3 p-3 border rounded bg-light" id="selected-load-cases" style="display: none;">
-                        <h5>Selected Load Cases:</h5>
-                        <div id="selected-cases-list" class="d-flex flex-wrap gap-2"></div>
+                    # Calculate SQRT(Vert² + Trans² + Long²) for each record
+                    resultant = math.sqrt(vert**2 + trans**2 + long**2)
+                    record['Resultant'] = round(resultant, 2)
+                    # Add unique ID for checkbox identification
+                    record['record_id'] = f"record_{index}"
+                    
+                    # Add clean keys for template access
+                    record['Structure_Loads_Vert'] = vert
+                    record['Structure_Loads_Trans'] = trans
+                    record['Structure_Loads_Long'] = long
+                    # Store Set No. in data attribute
+                    record['Set_No'] = record.get('Set No.', 'Unknown')
+                    # Store Load Case Description for grouping
+                    record['Load_Case_Description'] = record.get('Load Case Description', 'Unknown')
+                
+                # NEW: Group data based on selection source with custom groups support
+                grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
+                
+                # NEW: Create set-wise grouping within each group
+                set_wise_data = {}
+                set_max_resultants = {}
+                
+                for group_name, records in grouped_data.items():
+                    set_wise_data[group_name] = {}
+                    set_max_resultants[group_name] = {}
+                    
+                    # Group records by Set No. within this group
+                    for record in records:
+                        set_no = record.get('Set_No', 'Unknown')
+                        if set_no not in set_wise_data[group_name]:
+                            set_wise_data[group_name][set_no] = []
+                        set_wise_data[group_name][set_no].append(record)
+                    
+                    # Calculate max resultant for each set within this group
+                    for set_no, set_records in set_wise_data[group_name].items():
+                        resultant_values = [record['Resultant'] for record in set_records]
+                        max_resultant = max(resultant_values)
+                        max_index = resultant_values.index(max_resultant)
                         
-                        <!-- Custom Group Creation -->
-                        <div id="create-custom-group" class="mt-3 p-3 border rounded" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <input type="text" id="custom-group-name" placeholder="Enter custom group name" 
-                                       class="form-control" style="min-width: 200px;">
-                                <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
+                        set_max_resultants[group_name][set_no] = {
+                            'vert': set_records[max_index]['Structure_Loads_Vert'],
+                            'trans': set_records[max_index]['Structure_Loads_Trans'],
+                            'long': set_records[max_index]['Structure_Loads_Long'],
+                            'resultant': max_resultant,
+                            'record_id': set_records[max_index]['record_id']
+                        }
+                        
+                        # Add max resultant flag to set records
+                        for i, record in enumerate(set_records):
+                            if resultant_values[i] == max_resultant:
+                                record['set_max_resultant_flag'] = 'yes'
+                            else:
+                                record['set_max_resultant_flag'] = 'no'
+                                
+                global_set_max_resultants = {}
+                all_records = []
+                
+                # Collect all records from all groups
+                for group_name, records in grouped_data.items():
+                    all_records.extend(records)
+                
+                # Group all records by Set No. globally
+                global_set_records = {}
+                for record in all_records:
+                    set_no = record.get('Set_No', 'Unknown')
+                    if set_no not in global_set_records:
+                        global_set_records[set_no] = []
+                    global_set_records[set_no].append(record)
+                
+                # Find max resultant for each set across all groups
+                for set_no, records in global_set_records.items():
+                    resultant_values = [record['Resultant'] for record in records]
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    global_set_max_resultants[set_no] = {
+                        'vert': records[max_index]['Structure_Loads_Vert'],
+                        'trans': records[max_index]['Structure_Loads_Trans'],
+                        'long': records[max_index]['Structure_Loads_Long'],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id'],
+                        'group_name': None  # We don't track which group it came from for global max
+                    }
+                    
+                    # Add global max resultant flag to ALL records (not just within groups)
+                    for record in records:
+                        if record['Resultant'] == max_resultant:
+                            record['global_set_max_resultant_flag'] = 'yes'
+                        else:
+                            record['global_set_max_resultant_flag'] = 'no'
+                
+                # Calculate max values for each group and flag max resultant rows
+                group_max_values = {}
+                max_resultant_values = {}  # Store the actual values that created the max resultant
+                max_resultant_indexes = {}  # Store indexes for JavaScript approach
+                
+                for group_name, records in grouped_data.items():
+                    vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
+                    trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
+                    long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
+                    resultant_values = [record['Resultant'] for record in records]
+                    
+                    # Find the maximum resultant value
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    # Store the actual values that created the max resultant
+                    max_resultant_values[group_name] = {
+                        'vert': vert_values[max_index],
+                        'trans': trans_values[max_index],
+                        'long': long_values[max_index],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id']  # Add record ID
+                    }
+                    
+                    # Store index for JavaScript approach
+                    max_resultant_indexes[group_name] = max_index
+                    
+                    # Add a simple flag to each record (as a string to avoid underscore issues)
+                    for i, record in enumerate(records):
+                        if resultant_values[i] == max_resultant:
+                            record['max_resultant_flag'] = 'yes'
+                        else:
+                            record['max_resultant_flag'] = 'no'
+                    
+                    group_max_values[group_name] = {
+                        'max_vert': max(vert_values),
+                        'max_trans': max(trans_values),
+                        'max_long': max(long_values),
+                        'max_resultant': max_resultant,
+                        'count': len(records)
+                    }
+                
+                # Calculate combined values across all groups using the actual values that created max resultants
+                combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
+                combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
+                combined_long = sum([values['long'] for values in max_resultant_values.values()])
+                
+                # Calculate the SQRT formula for combined values
+                combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
+                
+                # Prepare context for template
+                context = {
+                    'grouped_data': grouped_data,
+                    'group_max_values': group_max_values,
+                    'max_resultant_values': max_resultant_values,
+                    'global_set_max_resultants': global_set_max_resultants,
+                    'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
+                    'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
+                    'combined_vert': combined_vert,
+                    'combined_trans': combined_trans,
+                    'combined_long': combined_long,
+                    'combined_sqrt': combined_sqrt,
+                    'calculation_data': calculation_data,
+                    'max_resultant_indexes': max_resultant_indexes,
+                    'calculation_data_json': json.dumps(calculation_data),
+                    'selection_source': selection_source,
+                    'custom_groups_data': custom_groups_data,  # NEW: Pass to template for reference
+                    'error': None
+                }
+                
+            except json.JSONDecodeError:
+                context['error'] = 'Invalid calculation data format'
+            except Exception as e:
+                context['error'] = f'Error processing data: {str(e)}'
+        else:
+            context['error'] = 'No calculation data provided'
+    
+    # Handle GET requests
+    elif request.method == 'GET':
+        calculation_data_json = request.GET.get('calculation_data')
+        selection_source = request.GET.get('selection_source', 'imported')
+        custom_groups_json = request.GET.get('custom_groups_data', '{}')  # NEW: Get custom groups data
+        
+        if calculation_data_json:
+            try:
+                calculation_data = json.loads(calculation_data_json)
+                custom_groups_data = json.loads(custom_groups_json)  # NEW: Parse custom groups
+                
+                # Add resultant calculation and unique ID to each record
+                for index, record in enumerate(calculation_data):
+                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
+                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
+                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
+                    
+                    resultant = math.sqrt(vert**2 + trans**2 + long**2)
+                    record['Resultant'] = round(resultant, 2)
+                    record['record_id'] = f"record_{index}"
+                    record['Structure_Loads_Vert'] = vert
+                    record['Structure_Loads_Trans'] = trans
+                    record['Structure_Loads_Long'] = long
+                    record['Set_No'] = record.get('Set No.', 'Unknown')
+                    record['Load_Case_Description'] = record.get('Load Case Description', 'Unknown')
+                
+                # NEW: Group data based on selection source with custom groups support
+                grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
+                
+                # NEW: Create set-wise grouping within each group for GET requests
+                set_wise_data = {}
+                set_max_resultants = {}
+                
+                for group_name, records in grouped_data.items():
+                    set_wise_data[group_name] = {}
+                    set_max_resultants[group_name] = {}
+                    
+                    # Group records by Set No. within this group
+                    for record in records:
+                        set_no = record.get('Set_No', 'Unknown')
+                        if set_no not in set_wise_data[group_name]:
+                            set_wise_data[group_name][set_no] = []
+                        set_wise_data[group_name][set_no].append(record)
+                    
+                    # Calculate max resultant for each set within this group
+                    for set_no, set_records in set_wise_data[group_name].items():
+                        resultant_values = [record['Resultant'] for record in set_records]
+                        max_resultant = max(resultant_values)
+                        max_index = resultant_values.index(max_resultant)
+                        
+                        set_max_resultants[group_name][set_no] = {
+                            'vert': set_records[max_index]['Structure_Loads_Vert'],
+                            'trans': set_records[max_index]['Structure_Loads_Trans'],
+                            'long': set_records[max_index]['Structure_Loads_Long'],
+                            'resultant': max_resultant,
+                            'record_id': set_records[max_index]['record_id']
+                        }
+                        
+                        # Add max resultant flag to set records
+                        for i, record in enumerate(set_records):
+                            if resultant_values[i] == max_resultant:
+                                record['set_max_resultant_flag'] = 'yes'
+                            else:
+                                record['set_max_resultant_flag'] = 'no'
+                
+                # Calculate max values
+                group_max_values = {}
+                max_resultant_values = {}
+                max_resultant_indexes = {}
+                
+                for group_name, records in grouped_data.items():
+                    vert_values = [float(record.get('Structure Loads Vert. (lbs)', 0) or 0) for record in records]
+                    trans_values = [float(record.get('Structure Loads Trans. (lbs)', 0) or 0) for record in records]
+                    long_values = [float(record.get('Structure Loads Long. (lbs)', 0) or 0) for record in records]
+                    resultant_values = [record['Resultant'] for record in records]
+                    
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    max_resultant_values[group_name] = {
+                        'vert': vert_values[max_index],
+                        'trans': trans_values[max_index],
+                        'long': long_values[max_index],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id']
+                    }
+                    
+                    max_resultant_indexes[group_name] = max_index
+                    
+                    for i, record in enumerate(records):
+                        if resultant_values[i] == max_resultant:
+                            record['max_resultant_flag'] = 'yes'
+                        else:
+                            record['max_resultant_flag'] = 'no'
+                    
+                    group_max_values[group_name] = {
+                        'max_vert': max(vert_values),
+                        'max_trans': max(trans_values),
+                        'max_long': max(long_values),
+                        'max_resultant': max_resultant,
+                        'count': len(records)
+                    }
+                    
+                global_set_max_resultants = {}
+                all_records = []
+                
+                # Collect all records from all groups
+                for group_name, records in grouped_data.items():
+                    all_records.extend(records)
+                
+                # Group all records by Set No. globally
+                global_set_records = {}
+                for record in all_records:
+                    set_no = record.get('Set_No', 'Unknown')
+                    if set_no not in global_set_records:
+                        global_set_records[set_no] = []
+                    global_set_records[set_no].append(record)
+                
+                # Find max resultant for each set across all groups
+                for set_no, records in global_set_records.items():
+                    resultant_values = [record['Resultant'] for record in records]
+                    max_resultant = max(resultant_values)
+                    max_index = resultant_values.index(max_resultant)
+                    
+                    global_set_max_resultants[set_no] = {
+                        'vert': records[max_index]['Structure_Loads_Vert'],
+                        'trans': records[max_index]['Structure_Loads_Trans'],
+                        'long': records[max_index]['Structure_Loads_Long'],
+                        'resultant': max_resultant,
+                        'record_id': records[max_index]['record_id'],
+                        'group_name': None
+                    }
+                    
+                    # Add global max resultant flag to ALL records
+                    for record in records:
+                        if record['Resultant'] == max_resultant:
+                            record['global_set_max_resultant_flag'] = 'yes'
+                        else:
+                            record['global_set_max_resultant_flag'] = 'no'
+                
+                # Calculate combined values
+                combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
+                combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
+                combined_long = sum([values['long'] for values in max_resultant_values.values()])
+                combined_sqrt = math.sqrt(combined_vert**2 + combined_trans**2 + combined_long**2)
+                
+                context = {
+                    'grouped_data': grouped_data,
+                    'group_max_values': group_max_values,
+                    'max_resultant_values': max_resultant_values,
+                    'global_set_max_resultants': global_set_max_resultants,
+                    'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
+                    'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
+                    'combined_vert': combined_vert,
+                    'combined_trans': combined_trans,
+                    'combined_long': combined_long,
+                    'combined_sqrt': combined_sqrt,
+                    'calculation_data': calculation_data,
+                    'max_resultant_indexes': max_resultant_indexes,
+                    'calculation_data_json': json.dumps(calculation_data),
+                    'selection_source': selection_source,
+                    'custom_groups_data': custom_groups_data,  # NEW: Pass to template
+                    'error': None
+                }
+                
+            except json.JSONDecodeError:
+                context['error'] = 'Invalid calculation data format'
+            except Exception as e:
+                context['error'] = f'Error processing data: {str(e)}'
+        else:
+            context['error'] = 'No calculation data provided'
+    else:
+        context['error'] = 'Invalid request method'
+    
+    return render(request, 'app1/calculation.html', context)"
+
+this is calculation.html 
+"  <div class="container">
+        <header>
+            <h2><i class="fas fa-calculator"></i> Calculation Results</h2>
+            <p>Detailed analysis of structural load calculations</p>
+        </header>
+        
+        {% if error %}
+            <div class="error">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+        {% else %}
+            <!-- Selection Controls -->
+            <div class="card">
+                <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
+                <!-- In the selection controls section -->
+                <div class="selection-controls">
+                    <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
+                        <i class="fas fa-check-square"></i> Select All
+                    </button>
+                    <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
+                        <i class="fas fa-square"></i> Select None
+                    </button>
+                    <button type="button" id="selectMaxResultantBtn" class="btn btn-outline-info">
+                        <i class="fas fa-star"></i> Select Group Max Resultant
+                    </button>
+                    <button type="button" id="selectSetMaxResultantBtn" class="btn btn-outline-warning">
+                        <i class="fas fa-layer-group"></i> Select Set Max Resultant (Within Groups)
+                    </button>
+                    <!-- NEW BUTTON -->
+                    <button type="button" id="selectGlobalSetMaxResultantBtn" class="btn btn-outline-success">
+                        <i class="fas fa-globe"></i> Select Global Set Max Resultant
+                    </button>
+                    <span class="selection-count">Selected: <span id="selectedCount">0</span> records</span>
+                </div>
+            </div>
+
+          <div class="card">
+    <h3><i class="fas fa-list-ol"></i> Selected Records 
+        {% if selection_source == 'imported' %}Grouped by Load Case{% endif %}
+        {% if selection_source == 'group' %}Grouped by Load Case Groups{% endif %}
+        {% if selection_source == 'custom' %}Grouped by Custom Groups{% endif %}
+        {% if not selection_source %}Grouped by Set Number{% endif %}
+    </h3>
+    
+    {% for group_name, records in grouped_data.items %}
+        <div class="set-container">
+            <div class="set-header">
+                <h4>
+                    <i class="fas fa-cubes"></i> 
+                    {% if selection_source == 'imported' %}Load Case: {{ group_name }}{% endif %}
+                    {% if selection_source == 'group' %}Group: {{ group_name }}{% endif %}
+                    {% if selection_source == 'custom' %}Custom Group: {{ group_name }}{% endif %}
+                    {% if not selection_source %}Set No. {{ group_name }}{% endif %}
+                    <span class="badge badge-primary">{{ records|length }} records</span>
+                </h4>
+            </div>
+
+            <!-- Group-wise table showing ALL records -->
+            <div class="group-wise-section">
+                <h5><i class="fas fa-chart-line"></i> Group Records (All Records)</h5>
+                <div class="table-container">
+                    <table class="group-records-table">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                {% for key in records.0.keys %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                        <th>{{ key }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %} 
+                                    {% if record.global_set_max_resultant_flag == 'yes' %}global-max-resultant-row{% endif %}" 
+                                data-record-id="{{ record.record_id }}">
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" 
+                                        data-record-id="{{ record.record_id }}"
+                                        data-set-no="{{ record.Set_No }}"
+                                        data-vert="{{ record.Structure_Loads_Vert }}"
+                                        data-trans="{{ record.Structure_Loads_Trans }}"
+                                        data-long="{{ record.Structure_Loads_Long }}"
+                                        data-resultant="{{ record.Resultant }}"
+                                        {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
+                                    {% if record.global_set_max_resultant_flag == 'yes' %}
+                                    <span class="global-max-badge" title="Global Max for Set {{ record.Set_No }}"></span>
+                                    {% endif %}
+                                </td>
+                                {% for key, value in record.items %}
+                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                        {% if key == 'Resultant' %}
+                                            <td class="resultant-cell">{{ value }}</td>
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Set-wise tables for this group -->
+            <div class="set-wise-section">
+                <h5><i class="fas fa-layer-group"></i> Set-wise Records</h5>
+                
+                {% for set_no, set_records in set_wise_data.items %}
+                    {% if set_no == group_name %}
+                        {% for inner_set_no, inner_set_records in set_records.items %}
+                        <div class="set-subgroup">
+                            <h6>
+                                <i class="fas fa-cube"></i> Set {{ inner_set_no }}
+                                <span class="badge badge-secondary">{{ inner_set_records|length }} records</span>
+                            </h6>
+                            
+                            <div class="table-container">
+                                <table class="set-records-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Select</th>
+                                            {% for key in inner_set_records.0.keys %}
+                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                                    <th>{{ key }}</th>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in inner_set_records %}
+                                        <tr class="{% if record.set_max_resultant_flag == 'yes' %}set-max-resultant-row{% endif %}" 
+                                            data-record-id="{{ record.record_id }}">
+                                            <td>
+                                                <input type="checkbox" class="record-checkbox set-record-checkbox" 
+                                                    data-record-id="{{ record.record_id }}"
+                                                    data-set-no="{{ record.Set_No }}"
+                                                    data-vert="{{ record.Structure_Loads_Vert }}"
+                                                    data-trans="{{ record.Structure_Loads_Trans }}"
+                                                    data-long="{{ record.Structure_Loads_Long }}"
+                                                    data-resultant="{{ record.Resultant }}"
+                                                    {% if record.set_max_resultant_flag == 'yes' %}checked{% endif %}>
+                                            </td>
+                                            {% for key, value in record.items %}
+                                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                                    {% if key == 'Resultant' %}
+                                                        <td class="resultant-cell">{{ value }}</td>
+                                                    {% else %}
+                                                        <td>{{ value }}</td>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% if not forloop.last %}<hr class="set-divider">{% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% empty %}
+                    <p>No set-wise data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+</div>
+            
+            <!-- Custom Selection Results Card -->
+            <div class="card">
+                <h3><i class="fas fa-layer-group"></i> Custom Selection Results</h3>
+                
+                <div class="stats-grid" id="customSelectionStats">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <div class="table-container">
+                    <table id="customSelectionTable">
+                        <thead>
+                            <tr>
+                                <th>Set No.</th>
+                                <th>Record ID</th>
+                                <th>Vert (lbs)</th>
+                                <th>Trans (lbs)</th>
+                                <th>Long (lbs)</th>
+                                <th>Resultant (lbs)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customSelectionBody">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                        <tfoot id="customSelectionFooter">
+                            <!-- Will be populated by JavaScript -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+
+
+            <div class="card">
+                <h3><i class="fas fa-calculator"></i> Buffer Configuration</h3>
+                
+                <form id="bufferConfigurationForm">
+                    <div class="form-group">
+                        <label for="bufferConfig">Apply Buffer</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="applyBuffer" name="apply_buffer">
+                            <label for="applyBuffer">Apply buffer to combined loads</label>
+                        </div>
+                        
+                        <div id="bufferSettings" style="display: none; margin-top: 10px;">
+                            <h4>Vertical Direction</h4>
+                            <div class="direction-config">
+                                <input type="number" id="vertBuffer" name="vert_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                                <select id="vertRounding" name="vert_rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10">Round to nearest 10</option>
+                                    <option value="100" selected>Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
+                            </div>
+                            
+                            <h4>Transverse Direction</h4>
+                            <div class="direction-config">
+                                <input type="number" id="transBuffer" name="trans_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                                <select id="transRounding" name="trans_rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10">Round to nearest 10</option>
+                                    <option value="100" selected>Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
+                            </div>
+                            
+                            <h4>Longitudinal Direction</h4>
+                            <div class="direction-config">
+                                <input type="number" id="longBuffer" name="long_buffer" placeholder="Buffer value (lbs)" value="25" step="1" min="0">
+                                <select id="longRounding" name="long_rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10" selected>Round to nearest 10</option>
+                                    <option value="100">Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Load Case Selection Form -->
-                    <form method="post" id="load-cases-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="load_cases_selection" value="true">
-                        <input type="hidden" name="selected_load_cases_input" id="selected-load-cases-input">
-                        
-                        <button type="submit" class="btn btn-primary mt-2">Apply Selected Load Cases</button>
-                    </form>
-                </div>
-
-                <hr>
-
-                <div class="filter-section mb-3">
-                    <form method="post" id="filter-previous-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="filter_by_previous" value="true">
-                        <button type="submit" class="btn btn-info" id="filter-previous-btn">
-                            🔍 Filter by Previous Selection
-                        </button>
-                        <small class="text-muted ms-2">
-                            {% if filter_criteria %}
-                                Active filters: 
-                                {% if filter_criteria.joint_labels %}
-                                    Joint Labels ({{ filter_criteria.joint_labels|length }})
-                                {% endif %}
-                                {% if filter_criteria.set_phase_combinations %}
-                                    Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
-                                    <div class="debug-info small text-info mt-1">
-                                        Combinations ({{ filter_criteria.set_phase_combinations|length }} total): 
-                                        {% for combo in filter_criteria.set_phase_combinations %}
-                                            Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            {% else %}
-                                No previous selection found
-                            {% endif %}
-                        </small>
-                    </form>
-                </div>
-
-
-                <!-- Load Values Display Section -->
-                <div id="load-values-section">
-                    <h4>Load Values</h4>
-                    <p class="text-muted">This data will be used for calculations based on your selected load cases.</p>
-                    
-                    <div class="btn-container mb-3">
-                        <button id="calculate-btn" class="btn btn-success calculation-btn" disabled>
-                            Calculate Selected Records
-                        </button>
-                        <span id="selected-count" class="selected-count badge bg-secondary ms-2">0 selected</span>
-                    </div>
-
+                    <button type="button" id="applyBufferBtn" class="btn btn-primary">
+                        <i class="fas fa-calculator"></i> Apply Buffer
+                    </button>
+                </form>
+                
+                <div id="bufferedResults" style="display: none; margin-top: 20px;">
+                    <h4>Buffered Results</h4>
                     <div class="table-container">
-                        <table class="table table-bordered table-striped" id="load-table">
-                            <thead class="table-dark">
+                        <table id="bufferedLoadsTable">
+                            <thead>
                                 <tr>
-                                    <th>Select</th>
-                                    {% for column in all_columns %}
-                                        <th>{{ column }}</th>
-                                    {% endfor %}
+                                    <th>Set No.</th>
+                                    <th>Vert (lbs)</th>
+                                    <th>Trans (lbs)</th>
+                                    <th>Long (lbs)</th>
+                                    <th>Resultant (lbs)</th>
                                 </tr>
                             </thead>
-                            <tbody></tbody>
+                            <tbody>
+                                <!-- Results will be populated by JavaScript -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        </div>
-
         
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+
+                <button class="btn btn-info" onclick="goToLoadConditions()">
+                    <i class="fas fa-table"></i> Configure Load Conditions
+                </button>
+
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i> Back to Home
+                </button>
+            </div>
+        {% endif %}
+    </div>
+        
+            
+        <footer>
+            <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
+        </footer>
     </div>
 
-    <!-- Edit Group Modal -->
-<div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editGroupModalLabel">Edit Group: <span id="edit-group-name"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Available Load Cases:</label>
-                    <div id="available-load-cases-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                        <!-- Available load cases will be populated here -->
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Selected Load Cases for this Group:</label>
-                    <div id="group-selected-cases" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
-                        <!-- Selected cases will be shown here -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="save-group-changes">Save Changes</button>
-            </div>
-        </div>
-    </div>
-</div>
+    <script>
+    // JavaScript approach to highlight rows as a backup
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have max resultant indexes from Django
+        {% if max_resultant_indexes %}
+            const maxResultantIndexes = {
+                {% for set_no, index in max_resultant_indexes.items %}
+                    '{{ set_no }}': {{ index }},
+                {% endfor %}
+            };
+            
+            // Find all set containers
+            const setContainers = document.querySelectorAll('.set-container');
+            
+            setContainers.forEach(container => {
+                // Extract set number from header
+                const header = container.querySelector('.set-header h4');
+                if (header) {
+                    const setText = header.textContent || header.innerText;
+                    const setMatch = setText.match(/Set No\.\s*(\S+)/);
+                    
+                    if (setMatch && setMatch[1]) {
+                        const setNo = setMatch[1].trim();
+                        const maxIndex = maxResultantIndexes[setNo];
+                        
+                        if (maxIndex !== undefined) {
+                            // Find the table rows in this set container
+                            const rows = container.querySelectorAll('tbody tr');
+                            if (rows.length > maxIndex) {
+                                rows[maxIndex].classList.add('max-resultant-row');
+                            }
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    });
+</script>
 
-
-    {% endblock %}
-
-{% block extra_js %}
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function goToLoadConditions() {
+    const calculationData = {{ calculation_data_json|safe }};
+    const processedSums = window.currentCustomSelection; // This contains the buffered sums
+    
+    // Create a form to submit the data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'load_condition' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add calculation data
+    const dataInput = document.createElement('input');
+    dataInput.type = 'hidden';
+    dataInput.name = 'calculation_data';
+    dataInput.value = JSON.stringify(calculationData);
+    form.appendChild(dataInput);
+    
+    // NEW: Add processed sums
+    const processedSumsInput = document.createElement('input');
+    processedSumsInput.type = 'hidden';
+    processedSumsInput.name = 'processed_sums';
+    processedSumsInput.value = JSON.stringify(processedSums);
+    form.appendChild(processedSumsInput);
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
 
 
 <script>
+// Buffer Configuration Logic
+// Corrected Buffer Configuration Logic
 document.addEventListener('DOMContentLoaded', function() {
-    const structureId = '{{ structure_id }}';
-    const loadCasesResults = document.getElementById('load-cases-results');
-    const selectedLoadCasesSection = document.getElementById('selected-load-cases');
-    const selectedCasesList = document.getElementById('selected-cases-list');
-    const selectedLoadCasesInput = document.getElementById('selected-load-cases-input');
-    const createCustomGroupSection = document.getElementById('create-custom-group');
-    const customGroupNameInput = document.getElementById('custom-group-name');
-    const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
-    const loadCasesForm = document.getElementById('load-cases-form');
-    const loadTable = document.getElementById('load-table');
-    const loadTableBody = loadTable.querySelector('tbody');
-    const calculateBtn = document.getElementById('calculate-btn');
-    const selectedCount = document.getElementById('selected-count');
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
     
-    const selectedLoadCases = new Set([...{{ selected_load_cases|safe }}]);
-    const loadCaseLinks = document.querySelectorAll('.load-case-link');
-    const selectedRecords = new Set();
-    let allTableData = [];
-
-    // Initialize with imported load cases
-    loadImportedLoadCases();
-    
-    function updateSelectedLoadCases() {
-        if (selectedLoadCases.size > 0) {
-            selectedLoadCasesSection.style.display = 'block';
-            selectedCasesList.innerHTML = '';
-            
-            selectedLoadCases.forEach(caseName => {
-                const caseElement = document.createElement('span');
-                caseElement.className = 'badge bg-primary selected-case';
-                caseElement.innerHTML = `
-                    ${caseName}
-                    <span class="remove-case ms-1" data-case="${caseName}" style="cursor: pointer;">×</span>
-                `;
-                selectedCasesList.appendChild(caseElement);
-            });
-            
-            // Show create custom group option
-            createCustomGroupSection.style.display = 'block';
-            
-            // Update hidden input
-            selectedLoadCasesInput.value = Array.from(selectedLoadCases).join(',');
-            
-            // Add remove event listeners
-            document.querySelectorAll('.remove-case').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const caseName = this.dataset.case;
-                    selectedLoadCases.delete(caseName);
-                    updateSelectedLoadCases();
-                    uncheckCorrespondingCheckbox(caseName);
-                });
-            });
-        } else {
-            selectedLoadCasesSection.style.display = 'none';
-            createCustomGroupSection.style.display = 'none';
-            selectedLoadCasesInput.value = '';
-        }
-    }
-    
-    function uncheckCorrespondingCheckbox(caseName) {
-        const checkboxes = document.querySelectorAll(`input[type="checkbox"][value="${caseName}"]`);
-        checkboxes.forEach(cb => {
-            cb.checked = false;
+    if (applyBufferCheckbox && bufferSettings) {
+        applyBufferCheckbox.addEventListener('change', function() {
+            bufferSettings.style.display = this.checked ? 'block' : 'none';
         });
     }
     
-    // NEW: Function to clear all selections when switching tabs
-    function clearAllSelections() {
-        selectedLoadCases.clear();
-        updateSelectedLoadCases();
-        // Also clear any checkboxes in the current results section
-        loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
+    // Handle buffer application
+    const applyBufferBtn = document.getElementById('applyBufferBtn');
+    if (applyBufferBtn) {
+        applyBufferBtn.addEventListener('click', function() {
+            applyBufferToResults();
         });
     }
     
-    // Load Case Links Event Listeners - MODIFIED to clear selections
-    document.getElementById('imported-load-cases-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        setActiveLink(this);
-        clearAllSelections(); // NEW: Clear selections when switching tabs
-        loadImportedLoadCases();
-    });
-    
-    document.getElementById('group-load-cases-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        setActiveLink(this);
-        clearAllSelections(); // NEW: Clear selections when switching tabs
-        loadGroupedLoadCases();
-    });
-    
-    document.getElementById('custom-groups-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        setActiveLink(this);
-        clearAllSelections(); // NEW: Clear selections when switching tabs
-        loadCustomGroups();
-    });
-    
-    function setActiveLink(activeLink) {
-        loadCaseLinks.forEach(link => link.classList.remove('active'));
-        activeLink.classList.add('active');
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
     }
     
-    // Load Imported Load Cases - MODIFIED to add "Select All" functionality
-    function loadImportedLoadCases() {
-        if (!structureId) {
-            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
-            return;
-        }
+    function applyBufferToResults() {
+        // Get buffer settings
+        const applyBuffer = document.getElementById('applyBuffer').checked;
+        const vertBuffer = parseFloat(document.getElementById('vertBuffer').value) || 0;
+        const transBuffer = parseFloat(document.getElementById('transBuffer').value) || 0;
+        const longBuffer = parseFloat(document.getElementById('longBuffer').value) || 0;
+        const vertRounding = parseInt(document.getElementById('vertRounding').value) || 0;
+        const transRounding = parseInt(document.getElementById('transRounding').value) || 0;
+        const longRounding = parseInt(document.getElementById('longRounding').value) || 0;
         
-        fetch(`/load-cases/?get_load_cases=true&structure_id=${structureId}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                return;
-            }
-            
-            let html = '<h5>Imported Load Cases</h5>';
-            
-            // NEW: Add "Select All" checkbox for imported load cases
-            if (data.values && data.values.length > 0) {
-                html += `
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="select-all-imported">
-                        <label class="form-check-label fw-bold" for="select-all-imported">
-                            Select All Imported Load Cases
-                        </label>
-                    </div>
-                `;
-                
-                html += '<div class="load-cases-list">';
-                data.values.forEach(caseName => {
-                    const isChecked = selectedLoadCases.has(caseName);
-                    html += `
-                        <div class="form-check">
-                            <input class="form-check-input imported-case-checkbox" type="checkbox" value="${caseName}" 
-                                   id="imported-${caseName.replace(/\s+/g, '-')}" 
-                                   ${isChecked ? 'checked' : ''}>
-                            <label class="form-check-label" for="imported-${caseName.replace(/\s+/g, '-')}">
-                                ${caseName}
-                            </label>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-            } else {
-                html += '<p class="text-muted">No load cases found</p>';
-            }
-            loadCasesResults.innerHTML = html;
-            
-            // NEW: Add "Select All" functionality for imported cases
-            const selectAllImported = document.getElementById('select-all-imported');
-            if (selectAllImported) {
-                selectAllImported.addEventListener('change', function() {
-                    const importedCheckboxes = document.querySelectorAll('.imported-case-checkbox');
-                    importedCheckboxes.forEach(cb => {
-                        cb.checked = this.checked;
-                        if (this.checked) {
-                            selectedLoadCases.add(cb.value);
-                        } else {
-                            selectedLoadCases.delete(cb.value);
-                        }
-                    });
-                    updateSelectedLoadCases();
-                });
-            }
-            
-            // Add event listeners for individual checkboxes
-            document.querySelectorAll('.imported-case-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        selectedLoadCases.add(this.value);
-                    } else {
-                        selectedLoadCases.delete(this.value);
-                        // Uncheck "Select All" if any checkbox is unchecked
-                        if (selectAllImported) {
-                            selectAllImported.checked = false;
-                        }
-                    }
-                    updateSelectedLoadCases();
-                });
-            });
-        })
-        .catch(error => {
-            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
-        });
-    }
-    
-    // Load Grouped Load Cases - MODIFIED to enhance "Select All" functionality
-    function loadGroupedLoadCases() {
-        if (!structureId) {
-            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
-            return;
-        }
-        
-        fetch(`/load-cases/?get_grouped_load_cases=true&structure_id=${structureId}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                return;
-            }
-            
-            let html = '<h5>Group Load Cases</h5>';
-            if (data.groups && Object.keys(data.groups).length > 0) {
-                // NEW: Add "Select All Groups" master checkbox
-                html += `
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="select-all-groups">
-                        <label class="form-check-label fw-bold" for="select-all-groups">
-                            Select All Groups
-                        </label>
-                    </div>
-                `;
-                
-                for (const [groupName, cases] of Object.entries(data.groups)) {
-                    html += `
-                        <div class="load-case-group mb-3 p-3 border rounded">
-                            <h6 class="d-flex align-items-center">
-                                ${groupName}
-                                <div class="form-check ms-2">
-                                    <input class="form-check-input select-all-group" type="checkbox" 
-                                           id="select-all-${groupName.replace(/\s+/g, '-')}">
-                                    <label class="form-check-label small" for="select-all-${groupName.replace(/\s+/g, '-')}">
-                                        Select All in Group
-                                    </label>
-                                </div>
-                            </h6>
-                            <div class="group-cases ms-3">`;
-                    
-                    cases.forEach(caseName => {
-                        const isChecked = selectedLoadCases.has(caseName);
-                        html += `
-                            <div class="form-check">
-                                <input class="form-check-input group-case-checkbox" type="checkbox" 
-                                       value="${caseName}" data-group="${groupName}"
-                                       id="group-${caseName.replace(/\s+/g, '-')}" 
-                                       ${isChecked ? 'checked' : ''}>
-                                <label class="form-check-label" for="group-${caseName.replace(/\s+/g, '-')}">
-                                    ${caseName}
-                                </label>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
-                }
-            } else {
-                html += '<p class="text-muted">No grouped load cases found</p>';
-            }
-            loadCasesResults.innerHTML = html;
-            
-            // NEW: Add master "Select All Groups" functionality
-            const selectAllGroups = document.getElementById('select-all-groups');
-            if (selectAllGroups) {
-                selectAllGroups.addEventListener('change', function() {
-                    const groupSelectAlls = document.querySelectorAll('.select-all-group');
-                    const groupCaseCheckboxes = document.querySelectorAll('.group-case-checkbox');
-                    
-                    groupSelectAlls.forEach(cb => {
-                        cb.checked = this.checked;
-                    });
-                    
-                    groupCaseCheckboxes.forEach(cb => {
-                        cb.checked = this.checked;
-                        if (this.checked) {
-                            selectedLoadCases.add(cb.value);
-                        } else {
-                            selectedLoadCases.delete(cb.value);
-                        }
-                    });
-                    updateSelectedLoadCases();
-                });
-            }
-            
-            // Add select all functionality for individual groups
-            document.querySelectorAll('.select-all-group').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const groupName = this.id.replace('select-all-', '');
-                    const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
-                    caseCheckboxes.forEach(cb => {
-                        cb.checked = this.checked;
-                        if (this.checked) {
-                            selectedLoadCases.add(cb.value);
-                        } else {
-                            selectedLoadCases.delete(cb.value);
-                        }
-                    });
-                    updateSelectedLoadCases();
-                    
-                    // Update master "Select All Groups" checkbox
-                    updateMasterSelectAllGroups();
-                });
-            });
-            
-            // Add individual checkbox listeners
-            document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        selectedLoadCases.add(this.value);
-                    } else {
-                        selectedLoadCases.delete(this.value);
-                        // Uncheck group's select-all
-                        const groupName = this.dataset.group;
-                        const selectAll = document.getElementById(`select-all-${groupName}`);
-                        if (selectAll) selectAll.checked = false;
-                    }
-                    updateSelectedLoadCases();
-                    
-                    // Update master "Select All Groups" checkbox
-                    updateMasterSelectAllGroups();
-                });
-            });
-            
-            // NEW: Helper function to update master "Select All Groups" checkbox
-            function updateMasterSelectAllGroups() {
-                const selectAllGroups = document.getElementById('select-all-groups');
-                if (selectAllGroups) {
-                    const allGroupCheckboxes = document.querySelectorAll('.group-case-checkbox');
-                    const allChecked = Array.from(allGroupCheckboxes).every(cb => cb.checked);
-                    selectAllGroups.checked = allChecked;
-                }
-            }
-        })
-        .catch(error => {
-            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
-        });
-    }
-    
-    // Load Custom Groups - MODIFIED to enhance "Select All" functionality
-    function loadCustomGroups() {
-        if (!structureId) {
-            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
-            return;
-        }
-        
-        fetch(`/load-cases/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                return;
-            }
-            
-            let html = '<h5>Custom Groups</h5>';
-            if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
-                // NEW: Add "Select All Custom Groups" master checkbox
-                html += `
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="select-all-custom-groups">
-                        <label class="form-check-label fw-bold" for="select-all-custom-groups">
-                            Select All Custom Groups
-                        </label>
-                    </div>
-                `;
-                
-                for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                    html += `
-                        <div class="load-case-group mb-3 p-3 border rounded" id="custom-group-${groupName.replace(/\s+/g, '-')}">
-                            <h6 class="d-flex align-items-center">
-                                <span class="group-name-display">${groupName}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-sm btn-outline-primary edit-group" data-group="${groupName}">Rename</button>
-                                    <button class="btn btn-sm btn-outline-warning edit-group-members" data-group="${groupName}">Edit</button>
-                                    <button class="btn btn-sm btn-outline-danger delete-group" data-group="${groupName}">Delete</button>
-                                </div>
-                                <div class="form-check ms-2">
-                                    <input class="form-check-input select-all-custom-group" type="checkbox" 
-                                           id="select-all-custom-${groupName.replace(/\s+/g, '-')}">
-                                    <label class="form-check-label small" for="select-all-custom-${groupName.replace(/\s+/g, '-')}">
-                                        Select All in Group
-                                    </label>
-                                </div>
-                            </h6>
-                            <div class="group-edit-form mt-2" style="display: none;">
-                                <div class="d-flex gap-2">
-                                    <input type="text" class="form-control form-control-sm edit-group-input" value="${groupName}">
-                                    <button class="btn btn-sm btn-success save-edit" data-group="${groupName}">Save</button>
-                                    <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}">Cancel</button>
-                                </div>
-                            </div>
-                            <div class="group-cases ms-3 mt-2">`;
-                    
-                    cases.forEach(caseName => {
-                        const isChecked = selectedLoadCases.has(caseName);
-                        html += `
-                            <div class="form-check">
-                                <input class="form-check-input custom-group-case-checkbox" type="checkbox" 
-                                       value="${caseName}" data-group="${groupName}"
-                                       id="custom-${caseName.replace(/\s+/g, '-')}" 
-                                       ${isChecked ? 'checked' : ''}>
-                                <label class="form-check-label" for="custom-${caseName.replace(/\s+/g, '-')}">
-                                    ${caseName}
-                                </label>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
-                }
-            } else {
-                html += '<p class="text-muted">No custom groups found</p>';
-            }
-            loadCasesResults.innerHTML = html;
-            
-            // Add custom group functionality
-            setupCustomGroupFunctionality();
-        })
-        .catch(error => {
-            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
-        });
-    }
-    
-    // Setup custom group functionality (edit, delete, select all) - MODIFIED
-    function setupCustomGroupFunctionality() {
-        // NEW: Add master "Select All Custom Groups" functionality
-        const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
-        if (selectAllCustomGroups) {
-            selectAllCustomGroups.addEventListener('change', function() {
-                const groupSelectAlls = document.querySelectorAll('.select-all-custom-group');
-                const customGroupCaseCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
-                
-                groupSelectAlls.forEach(cb => {
-                    cb.checked = this.checked;
-                });
-                
-                customGroupCaseCheckboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedLoadCases.add(cb.value);
-                    } else {
-                        selectedLoadCases.delete(cb.value);
-                    }
-                });
-                updateSelectedLoadCases();
-            });
-        }
-        
-        // Select all functionality for individual custom groups
-        document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const groupName = this.id.replace('select-all-custom-', '');
-                const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
-                caseCheckboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedLoadCases.add(cb.value);
-                    } else {
-                        selectedLoadCases.delete(cb.value);
-                    }
-                });
-                updateSelectedLoadCases();
-                
-                // Update master "Select All Custom Groups" checkbox
-                updateMasterSelectAllCustomGroups();
-            });
-        });
-        
-        // Individual checkbox listeners
-        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedLoadCases.add(this.value);
-                } else {
-                    selectedLoadCases.delete(this.value);
-                    const groupName = this.dataset.group;
-                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
-                    if (selectAll) selectAll.checked = false;
-                }
-                updateSelectedLoadCases();
-                
-                // Update master "Select All Custom Groups" checkbox
-                updateMasterSelectAllCustomGroups();
-            });
-        });
-
-        document.querySelectorAll('.edit-group-members').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const groupName = this.dataset.group;
-                openEditGroupModal(groupName);
-            });
-        });
-
-        function openEditGroupModal(groupName) {
-            // Set the group name in modal title
-            document.getElementById('edit-group-name').textContent = groupName;
-            
-            // Show loading state
-            document.getElementById('available-load-cases-list').innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
-            document.getElementById('group-selected-cases').innerHTML = '<div class="text-center py-2">Loading...</div>';
-            
-            // Fetch available load cases and current group members
-            fetch(`/load-cases/?get_all_load_cases=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert('Error loading load cases: ' + data.error);
-                    return;
-                }
-                
-                // Get current group members from the displayed checkboxes
-                const currentGroupElement = document.getElementById(`custom-group-${groupName.replace(/\s+/g, '-')}`);
-                const currentCases = [];
-                if (currentGroupElement) {
-                    const checkboxes = currentGroupElement.querySelectorAll('.custom-group-case-checkbox');
-                    checkboxes.forEach(cb => {
-                        currentCases.push(cb.value);
-                    });
-                }
-                
-                populateEditGroupModal(data.values || [], currentCases, groupName);
-                
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('editGroupModal'));
-                modal.show();
-            })
-            .catch(error => {
-                alert('Error loading load cases: ' + error);
-            });
-        }
-
-        // Function to populate the edit group modal
-        function populateEditGroupModal(allLoadCases, currentGroupCases, groupName) {
-            const availableList = document.getElementById('available-load-cases-list');
-            const selectedList = document.getElementById('group-selected-cases');
-            
-            // Clear previous content
-            availableList.innerHTML = '';
-            selectedList.innerHTML = '';
-            
-            if (!allLoadCases || allLoadCases.length === 0) {
-                availableList.innerHTML = '<p class="text-muted">No load cases available</p>';
-                return;
-            }
-            
-            // Sort load cases alphabetically for better UX
-            allLoadCases.sort();
-            
-            // Create available load cases list
-            allLoadCases.forEach(caseName => {
-                const isInGroup = currentGroupCases.includes(caseName);
-                const caseElement = document.createElement('div');
-                caseElement.className = 'form-check';
-                caseElement.innerHTML = `
-                    <input class="form-check-input available-case-checkbox" type="checkbox" 
-                        value="${caseName}" id="available-${caseName.replace(/\s+/g, '-')}"
-                        ${isInGroup ? 'checked' : ''}>
-                    <label class="form-check-label" for="available-${caseName.replace(/\s+/g, '-')}">
-                        ${caseName}
-                    </label>
-                `;
-                availableList.appendChild(caseElement);
-            });
-            
-            // Populate selected cases display
-            updateSelectedCasesDisplay(currentGroupCases);
-            
-            // Add event listeners to checkboxes
-            document.querySelectorAll('.available-case-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateSelectedCasesDisplayFromCheckboxes();
-                });
-            });
-            
-            // Set up save button
-            document.getElementById('save-group-changes').onclick = function() {
-                saveGroupChanges(groupName);
-            };
-        }
-
-        // Function to update selected cases display from checkboxes
-        function updateSelectedCasesDisplayFromCheckboxes() {
-            const selectedCases = [];
-            document.querySelectorAll('.available-case-checkbox:checked').forEach(checkbox => {
-                selectedCases.push(checkbox.value);
-            });
-            updateSelectedCasesDisplay(selectedCases);
-        }
-
-        // Function to update selected cases display
-        function updateSelectedCasesDisplay(selectedCases) {
-            const selectedList = document.getElementById('group-selected-cases');
-            
-            if (selectedCases.length === 0) {
-                selectedList.innerHTML = '<p class="text-muted">No load cases selected</p>';
-                return;
-            }
-            
-            selectedList.innerHTML = '';
-            
-            // Sort selected cases alphabetically
-            selectedCases.sort().forEach(caseName => {
-                const caseElement = document.createElement('div');
-                caseElement.className = 'selected-case-item d-flex justify-content-between align-items-center p-2 mb-1 bg-white rounded border';
-                caseElement.innerHTML = `
-                    <span class="flex-grow-1">${caseName}</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-case-btn" data-case="${caseName}">
-                        ×
-                    </button>
-                `;
-                selectedList.appendChild(caseElement);
-            });
-            
-            // Add remove functionality
-            document.querySelectorAll('.remove-case-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const caseName = this.dataset.case;
-                    const checkbox = document.querySelector(`#available-${caseName.replace(/\s+/g, '-')}`);
-                    if (checkbox) {
-                        checkbox.checked = false;
-                        updateSelectedCasesDisplayFromCheckboxes();
-                    }
-                });
-            });
-        }
-
-        // Function to save group changes
-        function saveGroupChanges(groupName) {
-            const selectedCases = [];
-            document.querySelectorAll('.available-case-checkbox:checked').forEach(checkbox => {
-                selectedCases.push(checkbox.value);
-            });
-            
-            if (selectedCases.length === 0) {
-                alert('Please select at least one load case for the group');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('edit_custom_group', 'true');
-            formData.append('structure_id', structureId);
-            formData.append('group_name', groupName);
-            selectedCases.forEach(caseName => {
-                formData.append('selected_cases[]', caseName);
-            });
-            
-            // Show loading state
-            const saveBtn = document.getElementById('save-group-changes');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Saving...';
-            saveBtn.disabled = true;
-            
-            fetch('/load-cases/', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        // Get the max resultant values from Django context
+        const maxResultantValues = {
+            {% for set_no, values in max_resultant_values.items %}
+                '{{ set_no }}': {
+                    vert: {{ values.vert }},
+                    trans: {{ values.trans }},
+                    long: {{ values.long }},
+                    resultant: {{ values.resultant }}
                 },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(`Group "${groupName}" updated successfully!`, 'success');
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editGroupModal'));
-                    if (modal) modal.hide();
-                    // Reload custom groups to reflect changes
-                    loadCustomGroups();
-                } else {
-                    alert('Error updating group: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                alert('Error updating group: ' + error);
-            })
-            .finally(() => {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-            });
-        }
-                
-        // NEW: Helper function to update master "Select All Custom Groups" checkbox
-        function updateMasterSelectAllCustomGroups() {
-            const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
-            if (selectAllCustomGroups) {
-                const allCustomGroupCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
-                const allChecked = allCustomGroupCheckboxes.length > 0 && 
-                                 Array.from(allCustomGroupCheckboxes).every(cb => cb.checked);
-                selectAllCustomGroups.checked = allChecked;
+            {% endfor %}
+        };
+        
+        // Get the original sum values
+        const originalSumValues = {
+            vert: {{ combined_vert }},
+            trans: {{ combined_trans }},
+            long: {{ combined_long }},
+            resultant: {{ combined_sqrt }}
+        };
+        
+        // Create processed sum values (initially same as original)
+        let processedSumValues = {...originalSumValues};
+        
+        // Apply buffer and rounding only to sum values if enabled
+        if (applyBuffer) {
+            // Apply buffers to sum values
+            processedSumValues.vert = applyBufferWithSign(originalSumValues.vert, vertBuffer);
+            processedSumValues.trans = applyBufferWithSign(originalSumValues.trans, transBuffer);
+            processedSumValues.long = applyBufferWithSign(originalSumValues.long, longBuffer);
+            
+            // Apply rounding to sum values using correct rounding function
+            if (vertRounding > 0) {
+                processedSumValues.vert = roundToNearest(processedSumValues.vert, vertRounding);
             }
+            if (transRounding > 0) {
+                processedSumValues.trans = roundToNearest(processedSumValues.trans, transRounding);
+            }
+            if (longRounding > 0) {
+                processedSumValues.long = roundToNearest(processedSumValues.long, longRounding);
+            }
+            
+            // Recalculate resultant after buffer and rounding
+            processedSumValues.resultant = Math.sqrt(
+                processedSumValues.vert**2 + 
+                processedSumValues.trans**2 + 
+                processedSumValues.long**2
+            );
         }
         
-        // Edit group functionality
-        document.querySelectorAll('.edit-group').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const groupName = this.dataset.group;
-                const groupElement = this.closest('.load-case-group');
-                const displayElement = groupElement.querySelector('.group-name-display');
-                const editForm = groupElement.querySelector('.group-edit-form');
-                
-                displayElement.style.display = 'none';
-                this.style.display = 'none';
-                groupElement.querySelector('.delete-group').style.display = 'none';
-                editForm.style.display = 'block';
-            });
-        });
-        
-        // Cancel edit
-        document.querySelectorAll('.cancel-edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const groupName = this.dataset.group;
-                const groupElement = this.closest('.load-case-group');
-                const displayElement = groupElement.querySelector('.group-name-display');
-                const editForm = groupElement.querySelector('.group-edit-form');
-                
-                editForm.style.display = 'none';
-                displayElement.style.display = 'inline';
-                groupElement.querySelector('.edit-group').style.display = 'inline-block';
-                groupElement.querySelector('.delete-group').style.display = 'inline-block';
-            });
-        });
-        
-        // Save edit
-        document.querySelectorAll('.save-edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const oldGroupName = this.dataset.group;
-                const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
-                
-                if (!newGroupName) {
-                    alert('Group name cannot be empty');
-                    return;
-                }
-                
-                if (newGroupName === oldGroupName) {
-                    this.closest('.group-edit-form').querySelector('.cancel-edit').click();
-                    return;
-                }
-                
-                const formData = new FormData();
-                formData.append('update_custom_group', 'true');
-                formData.append('old_group_name', oldGroupName);
-                formData.append('new_group_name', newGroupName);
-                formData.append('structure_id', structureId);
-                
-                fetch('/load-cases/', {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reload custom groups to reflect changes
-                        loadCustomGroups();
-                    } else {
-                        alert('Error updating group: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    alert('Error updating group: ' + error);
-                });
-            });
-        });
-        
-        // Delete group functionality
-        document.querySelectorAll('.delete-group').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const groupName = this.dataset.group;
-                if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-                    const formData = new FormData();
-                    formData.append('delete_custom_group', 'true');
-                    formData.append('structure_id', structureId);
-                    formData.append('group_name', groupName);
-                    
-                    fetch('/load-cases/', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Reload custom groups
-                            loadCustomGroups();
-                        } else {
-                            alert('Error deleting group: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error deleting group: ' + error);
-                    });
-                }
-            });
+        // Display buffered results
+        displayBufferedResults(maxResultantValues, processedSumValues, originalSumValues, {
+            applyBuffer,
+            vertBuffer,
+            transBuffer,
+            longBuffer,
+            vertRounding,
+            transRounding,
+            longRounding
         });
     }
     
-    // Create Custom Group
-    createCustomGroupBtn.addEventListener('click', function() {
-        const groupName = customGroupNameInput.value.trim();
+    function displayBufferedResults(setValues, processedSumValues, originalSumValues, settings) {
+        const tableBody = document.querySelector('#bufferedLoadsTable tbody');
+        tableBody.innerHTML = '';
         
-        if (!structureId) {
-            alert('Please select a structure first');
-            return;
+        // Add individual set rows (unchanged)
+        for (const [setNo, values] of Object.entries(setValues)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${setNo}</td>
+                <td>${values.vert.toFixed(2)}</td>
+                <td>${values.trans.toFixed(2)}</td>
+                <td>${values.long.toFixed(2)}</td>
+                <td>${values.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
         }
         
-        if (!groupName) {
-            alert('Please enter a group name');
-            return;
+        // Add original sum row
+        const originalSumRow = document.createElement('tr');
+        originalSumRow.classList.add('original-sum');
+        originalSumRow.innerHTML = `
+            <td><strong>Original Sum</strong></td>
+            <td><strong>${originalSumValues.vert.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.trans.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.long.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.resultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(originalSumRow);
+        
+        // Add processed sum row (only if buffer was applied)
+        if (settings.applyBuffer) {
+            const processedSumRow = document.createElement('tr');
+            processedSumRow.classList.add('highlight');
+            processedSumRow.innerHTML = `
+                <td><strong>Processed Sum</strong></td>
+                <td><strong>${processedSumValues.vert.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.trans.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.long.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.resultant.toFixed(2)}</strong></td>
+            `;
+            tableBody.appendChild(processedSumRow);
         }
         
-        if (selectedLoadCases.size === 0) {
-            alert('Please select at least one load case');
-            return;
+        // Add settings info
+        if (settings.applyBuffer) {
+            const settingsRow = document.createElement('tr');
+            settingsRow.classList.add('settings-info');
+            settingsRow.innerHTML = `
+                <td colspan="5" style="text-align: left; font-style: italic;">
+                    Applied settings: 
+                    Vert: +${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                    Trans: +${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                    Long: +${settings.longBuffer} lbs, Round to ${settings.longRounding}
+                </td>
+            `;
+            tableBody.appendChild(settingsRow);
         }
         
-        const formData = new FormData();
-        formData.append('create_custom_group', 'true');
-        formData.append('structure_id', structureId);
-        formData.append('group_name', groupName);
-        selectedLoadCases.forEach(caseName => {
-            formData.append('selected_cases', caseName);
-        });
+        // Show results section
+        document.getElementById('bufferedResults').style.display = 'block';
+    }
+});
+</script>
+
+<script>
+// Custom Selection Logic
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize selection management
+    initializeSelection();
+    
+    // Original buffer logic (keep as is)
+    initializeBufferLogic();
+});
+
+function initializeSelection() {
+    const checkboxes = document.querySelectorAll('.record-checkbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectNoneBtn = document.getElementById('selectNoneBtn');
+    const selectMaxResultantBtn = document.getElementById('selectMaxResultantBtn');
+    const selectSetMaxResultantBtn = document.getElementById('selectSetMaxResultantBtn'); // NEW
+    const selectGlobalSetMaxResultantBtn = document.getElementById('selectGlobalSetMaxResultantBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    
+    // Update selection count and display
+    function updateSelection() {
+        const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+        selectedCountSpan.textContent = selectedCheckboxes.length;
         
-        fetch('/load-cases/', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`Custom group "${groupName}" created successfully!`);
-                customGroupNameInput.value = '';
-                // Switch to custom groups tab
-                document.getElementById('custom-groups-link').click();
+        // Update row styling
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                row.classList.add('selected-record');
             } else {
-                alert('Error creating custom group: ' + data.error);
+                row.classList.remove('selected-record');
             }
-        })
-        .catch(error => {
-            alert('Error creating custom group: ' + error);
         });
+        
+        // Update custom selection display
+        updateCustomSelectionDisplay();
+    }
+    
+    // Select all records
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelection();
     });
     
-    // Function to update the load values table with filtered data
-    function updateLoadValuesTable(selectedCases) {
-    if (!structureId) {
+    // Select none
+    selectNoneBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelection();
+    });
+
+    // Select set max resultant (within groups)
+    selectSetMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check set max resultant rows (within groups)
+        const setMaxResultantRows = document.querySelectorAll('.set-max-resultant-row');
+        setMaxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+    });
+
+    // NEW: Select GLOBAL set max resultant (across all groups)
+    selectGlobalSetMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check global set max resultant rows
+        const globalSetMaxResultantRows = document.querySelectorAll('tr[data-record-id]');
+        globalSetMaxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            // Check if this row has the global max resultant flag
+            const recordId = row.dataset.recordId;
+            if (checkbox && row.classList.contains('global-max-resultant-row')) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+    });
+    
+    // Select max resultant records (group-wise)
+    selectMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check max resultant rows
+        const maxResultantRows = document.querySelectorAll('.max-resultant-row');
+        maxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+    });
+    
+    // Add event listeners to checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Initial update
+    updateSelection();
+}
+
+
+function updateCustomSelectionDisplay() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const statsGrid = document.getElementById('customSelectionStats');
+    const tableBody = document.getElementById('customSelectionBody');
+    const tableFooter = document.getElementById('customSelectionFooter');
+    
+    // Clear previous content
+    statsGrid.innerHTML = '';
+    tableBody.innerHTML = '';
+    tableFooter.innerHTML = '';
+    
+    if (selectedCheckboxes.length === 0) {
+        statsGrid.innerHTML = '<p>No records selected. Please select records using the checkboxes above.</p>';
         return;
     }
     
-    // Show loading state
-    loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+    let totalVert = 0;
+    let totalTrans = 0;
+    let totalLong = 0;
+    const selectedRecords = [];
     
-    // Build URL with selected load cases
-    const url = new URL('/load-cases/', window.location.origin);
-    url.searchParams.append('get_filtered_load_data', 'true');
-    url.searchParams.append('structure_id', structureId);
-    selectedCases.forEach(caseName => {
-        url.searchParams.append('selected_load_cases', caseName);
+    // Process selected records
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+        const setNo = checkbox.dataset.setNo || 'Unknown';
+        const recordId = checkbox.dataset.recordId;
+        
+        totalVert += vert;
+        totalTrans += trans;
+        totalLong += long;
+        
+        selectedRecords.push({
+            setNo,
+            recordId,
+            vert,
+            trans,
+            long,
+            resultant
+        });
     });
     
-    fetch(url, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            loadTableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger py-4">${data.error}</td></tr>`;
+    // Calculate final resultant
+    const finalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
+    
+    // Update stats grid
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Selected Records</div>
+            <div class="stat-value">${selectedCheckboxes.length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Vert</div>
+            <div class="stat-value">${totalVert.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Trans</div>
+            <div class="stat-value">${totalTrans.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Long</div>
+            <div class="stat-value">${totalLong.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Resultant</div>
+            <div class="stat-value">${finalResultant.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+    `;
+    
+    // Update table body
+    selectedRecords.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.setNo}</td>
+            <td>${record.recordId}</td>
+            <td>${record.vert.toFixed(2)}</td>
+            <td>${record.trans.toFixed(2)}</td>
+            <td>${record.long.toFixed(2)}</td>
+            <td>${record.resultant.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // Update table footer with totals
+    tableFooter.innerHTML = `
+        <tr class="highlight">
+            <td colspan="2"><strong>Custom Selection Sum</strong></td>
+            <td><strong>${totalVert.toFixed(2)}</strong></td>
+            <td><strong>${totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${totalLong.toFixed(2)}</strong></td>
+            <td><strong>${finalResultant.toFixed(2)}</strong></td>
+        </tr>
+    `;
+    
+    // Store current custom selection for buffer calculations
+    window.currentCustomSelection = {
+        totalVert,
+        totalTrans,
+        totalLong,
+        finalResultant,
+        selectedRecords
+    };
+}
+
+function initializeBufferLogic() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    if (applyBufferCheckbox && bufferSettings) {
+        applyBufferCheckbox.addEventListener('change', function() {
+            bufferSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
+    }
+    
+    // Handle buffer application
+    const applyBufferBtn = document.getElementById('applyBufferBtn');
+    if (applyBufferBtn) {
+        applyBufferBtn.addEventListener('click', function() {
+            applyBufferToCustomSelection();
+        });
+    }
+    
+    function applyBufferToCustomSelection() {
+        if (!window.currentCustomSelection) {
+            alert('Please select some records first.');
             return;
         }
         
-        // Clear existing table data
-        loadTableBody.innerHTML = '';
-        allTableData = []; // Reset all table data
-        selectedRecords.clear(); // Clear previous selections
+        // Get buffer settings
+        const applyBuffer = document.getElementById('applyBuffer').checked;
+        const vertBuffer = parseFloat(document.getElementById('vertBuffer').value) || 0;
+        const transBuffer = parseFloat(document.getElementById('transBuffer').value) || 0;
+        const longBuffer = parseFloat(document.getElementById('longBuffer').value) || 0;
+        const vertRounding = parseInt(document.getElementById('vertRounding').value) || 0;
+        const transRounding = parseInt(document.getElementById('transRounding').value) || 0;
+        const longRounding = parseInt(document.getElementById('longRounding').value) || 0;
         
-        if (data.load_data && data.load_data.length > 0) {
-            // Update table header if columns changed
-            updateTableHeader(data.all_columns);
+        const originalValues = window.currentCustomSelection;
+        
+        // Create processed values (initially same as original)
+        let processedValues = {...originalValues};
+        
+        // Apply buffer and rounding only if enabled
+        if (applyBuffer) {
+            // CORRECTED: Apply buffers with sign consideration
+            processedValues.totalVert = applyBufferWithSign(originalValues.totalVert, vertBuffer);
+            processedValues.totalTrans = applyBufferWithSign(originalValues.totalTrans, transBuffer);
+            processedValues.totalLong = applyBufferWithSign(originalValues.totalLong, longBuffer);
             
-            // Populate table rows
-            data.load_data.forEach((rowData, index) => {
-                const row = document.createElement('tr');
-                
-                // Add select checkbox
-                const selectCell = document.createElement('td');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'row-select';
-                checkbox.dataset.index = index;
-                selectCell.appendChild(checkbox);
-                row.appendChild(selectCell);
-                
-                // Add data cells
-                data.all_columns.forEach(column => {
-                    const cell = document.createElement('td');
-                    cell.textContent = rowData[column] || '';
-                    row.appendChild(cell);
-                });
-                
-                loadTableBody.appendChild(row);
-                
-                // Store the row data in allTableData
-                allTableData.push(rowData);
-            });
+            // Apply rounding to sum values using correct rounding function
+            if (vertRounding > 0) {
+                processedValues.totalVert = roundToNearest(processedValues.totalVert, vertRounding);
+            }
+            if (transRounding > 0) {
+                processedValues.totalTrans = roundToNearest(processedValues.totalTrans, transRounding);
+            }
+            if (longRounding > 0) {
+                processedValues.totalLong = roundToNearest(processedValues.totalLong, longRounding);
+            }
             
-            // Update record count
-            selectedCount.textContent = `${data.load_data.length} records`;
-            calculateBtn.disabled = true; // Start with disabled calculate button
-            
-            // Add row selection functionality
-            setupRowSelection();
-            updateSelectedCount();
-            
+            // Recalculate resultant after buffer and rounding
+            processedValues.finalResultant = Math.sqrt(
+                processedValues.totalVert**2 + 
+                processedValues.totalTrans**2 + 
+                processedValues.totalLong**2
+            );
+        }
+        
+        // Display buffered results
+        displayBufferedResults(processedValues, originalValues, {
+            applyBuffer,
+            vertBuffer,
+            transBuffer,
+            longBuffer,
+            vertRounding,
+            transRounding,
+            longRounding
+        });
+    }
+    
+    // NEW: Function to apply buffer based on sign
+    function applyBufferWithSign(originalValue, buffer) {
+        if (originalValue >= 0) {
+            // For positive values: add buffer
+            return originalValue + buffer;
         } else {
-            loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No data found for selected load cases</td></tr>';
-            selectedCount.textContent = '0 records';
-            calculateBtn.disabled = true;
-        }
-    })
-    .catch(error => {
-        loadTableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger py-4">Error loading data: ${error}</td></tr>`;
-    });
-}
-
-// Add select all functionality (optional but recommended)
-function addSelectAllFunctionality() {
-    // Add select all checkbox in header
-    const thead = loadTable.querySelector('thead');
-    const headerRow = thead.querySelector('tr');
-    
-    // Check if select all checkbox already exists
-    if (!headerRow.querySelector('.select-all-checkbox')) {
-        const selectAllTh = headerRow.querySelector('th:first-child');
-        if (selectAllTh) {
-            const selectAllCheckbox = document.createElement('input');
-            selectAllCheckbox.type = 'checkbox';
-            selectAllCheckbox.className = 'select-all-checkbox';
-            selectAllCheckbox.addEventListener('change', function() {
-                const rowCheckboxes = document.querySelectorAll('.row-select');
-                rowCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                    const index = parseInt(checkbox.dataset.index);
-                    const record = allTableData[index];
-                    
-                    if (this.checked) {
-                        selectedRecords.add(record);
-                    } else {
-                        selectedRecords.delete(record);
-                    }
-                });
-                updateSelectedCount();
-            });
-            selectAllTh.innerHTML = '';
-            selectAllTh.appendChild(selectAllCheckbox);
+            // For negative values: subtract buffer
+            return originalValue - buffer;
         }
     }
-}
-    // Function to update table header
-    function updateTableHeader(columns) {
-    const thead = loadTable.querySelector('thead');
-    const headerRow = thead.querySelector('tr');
     
-    // Keep the select column and update data columns
-    headerRow.innerHTML = '<th>Select</th>';
-    columns.forEach(column => {
-        const th = document.createElement('th');
-        th.textContent = column;
-        headerRow.appendChild(th);
-    });
-    
-    // Add select all functionality
-    addSelectAllFunctionality();
-}
-    
-    // Function to setup row selection
-    function setupRowSelection() {
-    const rowSelects = document.querySelectorAll('.row-select');
-    selectedRecords.clear();
-    
-    rowSelects.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const index = parseInt(this.dataset.index);
-            const record = allTableData[index];
-            
-            if (this.checked) {
-                selectedRecords.add(record);
-            } else {
-                selectedRecords.delete(record);
-            }
-            updateSelectedCount();
-        });
-    });
+    // NEW: Function to get buffer operation symbol for display
+    function getBufferSymbol(originalValue) {
+        return originalValue >= 0 ? '+' : '-';
     }
     
-    function updateSelectedCount() {
-    const selectedCount = document.getElementById('selected-count');
-    const calculateBtn = document.getElementById('calculate-btn');
-    
-    selectedCount.textContent = `${selectedRecords.size} selected`;
-    calculateBtn.disabled = selectedRecords.size === 0;
-}
-
-// Add event listener for calculate button
-document.getElementById('calculate-btn').addEventListener('click', function() {
-    if (selectedRecords.size > 0) {
-        // Prepare data for calculation - convert Set to Array
-        const calculationData = Array.from(selectedRecords);
+    function displayBufferedResults(processedValues, originalValues, settings) {
+        const tableBody = document.querySelector('#bufferedLoadsTable tbody');
+        tableBody.innerHTML = '';
         
-        // Create a form to submit the data via POST (FIX for 414 error)
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{% url 'calculation' %}";  // Make sure this matches your URL name
-        form.target = '_blank';
-        form.style.display = 'none';
-        
-        // Add CSRF token for Django POST requests
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = 'csrfmiddlewaretoken';
-        csrfToken.value = '{{ csrf_token }}';
-        form.appendChild(csrfToken);
-        
-        // Add calculation data
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'calculation_data';
-        input.value = JSON.stringify(calculationData);
-        form.appendChild(input);
-        
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-    }
-});
-
-    // Handle form submission with AJAX to prevent page refresh
-    loadCasesForm.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent default form submission
-        
-        const formData = new FormData(this);
-        
-        // Add selected load cases to form data
-        selectedLoadCases.forEach(caseName => {
-            formData.append('selected_load_cases', caseName);
-        });
-        
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update the table with filtered data
-                updateLoadValuesTable(Array.from(selectedLoadCases));
-                
-                // Show success message (optional - you can remove this if you don't want popup)
-                // showNotification('Load cases applied successfully!', 'success');
-            } else {
-                showNotification('Error applying load cases', 'error');
-            }
-        })
-        .catch(error => {
-            showNotification('Error applying load cases: ' + error, 'error');
-        });
-    });
-    
-    // Function to show notifications
-document.getElementById('filter-previous-form')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const filterBtn = document.getElementById('filter-previous-btn');
-    const originalText = filterBtn.innerHTML;
-    
-    // Show loading state
-    filterBtn.innerHTML = '⏳ Applying Filter...';
-    filterBtn.disabled = true;
-    
-    console.log('Current selected load cases:', Array.from(selectedLoadCases));
-    console.log('Applying filter with criteria:', {{ filter_criteria|default:"{}"|safe }});
-    
-    fetch(this.action, {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Filter response:', data);
-        
-        if (data.success) {
-            // Update the table with the actual filtered data
-            if (data.filtered_data && data.filtered_data.length > 0) {
-                updateTableWithFilteredData(data.filtered_data);
-                
-                let filterType = '';
-                if (data.filter_criteria.joint_labels) {
-                    filterType = `Joint Labels (${data.filter_criteria.joint_labels.length})`;
-                }
-                if (data.filter_criteria.set_phase_combinations) {
-                    filterType = `Set+Phase Combinations (${data.filter_criteria.set_phase_combinations.length})`;
-                }
-                
-                showNotification(`✅ Filter applied! Found ${data.record_count} records matching ${filterType}`, 'success');
-            } else {
-                loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-warning py-4">No matching records found for the current selection</td></tr>';
-                selectedCount.textContent = '0 records';
-                calculateBtn.disabled = true;
-                showNotification('⚠️ No matching records found for the current selection', 'warning');
-            }
-        } else {
-            showNotification('❌ Error applying filter', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Filter error:', error);
-        showNotification('❌ Error applying filter: ' + error, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        filterBtn.innerHTML = '🔍 Filter by Previous Selection';
-        filterBtn.disabled = false;
-    });
-});
-
-
-// NEW: Function to update table with pre-filtered data
-function updateTableWithFilteredData(filteredData) {
-    // Clear existing table data
-    loadTableBody.innerHTML = '';
-    allTableData = []; // Reset all table data
-    selectedRecords.clear(); // Clear previous selections
-    
-    if (filteredData && filteredData.length > 0) {
-        // Get columns from the first data item
-        const columns = Object.keys(filteredData[0]);
-        
-        // Update table header if needed
-        updateTableHeader(columns);
-        
-        // Populate table rows with filtered data
-        filteredData.forEach((rowData, index) => {
+        // Add individual record rows
+        originalValues.selectedRecords.forEach(record => {
             const row = document.createElement('tr');
-            
-            // Add select checkbox
-            const selectCell = document.createElement('td');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'row-select';
-            checkbox.dataset.index = index;
-            selectCell.appendChild(checkbox);
-            row.appendChild(selectCell);
-            
-            // Add data cells
-            columns.forEach(column => {
-                const cell = document.createElement('td');
-                const value = rowData[column] || '';
-                cell.textContent = value;
-                
-                // Highlight Set No. and Phase No. columns for better visibility
-                if (column === 'Set No.' || column === 'Phase No.') {
-                    cell.style.fontWeight = 'bold';
-                    cell.style.backgroundColor = '#e8f5e8'; // Light green
-                    cell.style.borderLeft = '3px solid #28a745';
-                }
-                
-                // Highlight Load Case Description
-                if (column === 'Load Case Description') {
-                    cell.style.fontWeight = 'bold';
-                    cell.style.backgroundColor = '#e3f2fd'; // Light blue
-                }
-                
-                row.appendChild(cell);
-            });
-            
-            loadTableBody.appendChild(row);
-            
-            // Store the row data in allTableData
-            allTableData.push(rowData);
+            row.innerHTML = `
+                <td>${record.setNo}</td>
+                <td>${record.vert.toFixed(2)}</td>
+                <td>${record.trans.toFixed(2)}</td>
+                <td>${record.long.toFixed(2)}</td>
+                <td>${record.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
         });
         
-        // Update record count
-        selectedCount.textContent = `${filteredData.length} records`;
-        calculateBtn.disabled = true; // Start with disabled calculate button
+        // Add original sum row
+        const originalSumRow = document.createElement('tr');
+        originalSumRow.classList.add('original-sum');
+        originalSumRow.innerHTML = `
+            <td><strong>Original Sum</strong></td>
+            <td><strong>${originalValues.totalVert.toFixed(2)}</strong></td>
+            <td><strong>${originalValues.totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${originalValues.totalLong.toFixed(2)}</strong></td>
+            <td><strong>${originalValues.finalResultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(originalSumRow);
         
-        // Add row selection functionality
-        setupRowSelection();
-        updateSelectedCount();
-        
-        // Add select all functionality
-        addSelectAllFunctionality();
-        
-    } else {
-        loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-4">No matching records found for the selected Set+Phase combinations</td></tr>';
-        selectedCount.textContent = '0 records';
-        calculateBtn.disabled = true;
-    }
-}
-
-
-// NEW: Update all checkboxes based on filtered results
-function updateAllCheckboxes(filteredCases) {
-    // Update imported load cases checkboxes
-    document.querySelectorAll('#load-cases-results input[type="checkbox"]').forEach(checkbox => {
-        checkbox.checked = filteredCases.includes(checkbox.value);
-    });
-    
-    // Update grouped load cases checkboxes
-    document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
-        checkbox.checked = filteredCases.includes(checkbox.value);
-    });
-    
-    // Update custom group checkboxes  
-    document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
-        checkbox.checked = filteredCases.includes(checkbox.value);
-    });
-}
-
-// NEW: Enhanced notification function
-// NEW: Enhanced notification function with better styling
-function showNotification(message, type) {
-    // Remove existing notifications
-    const existingNotifications = document.querySelectorAll('.custom-notification');
-    existingNotifications.forEach(notification => notification.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : type === 'info' ? 'info' : 'danger'} alert-dismissible fade show`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        font-weight: 500;
-    `;
-    
-    notification.innerHTML = `
-        <div class="d-flex align-items-center">
-            <span class="me-2">${getNotificationIcon(type)}</span>
-            <span>${message}</span>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
+        // Add processed sum row (only if buffer was applied)
+        if (settings.applyBuffer) {
+            const processedSumRow = document.createElement('tr');
+            processedSumRow.classList.add('highlight');
+            processedSumRow.innerHTML = `
+                <td><strong>Processed Sum</strong></td>
+                <td><strong>${processedValues.totalVert.toFixed(2)}</strong></td>
+                <td><strong>${processedValues.totalTrans.toFixed(2)}</strong></td>
+                <td><strong>${processedValues.totalLong.toFixed(2)}</strong></td>
+                <td><strong>${processedValues.finalResultant.toFixed(2)}</strong></td>
+            `;
+            tableBody.appendChild(processedSumRow);
+            
+            // Add settings info with correct symbols
+            const settingsRow = document.createElement('tr');
+            settingsRow.classList.add('settings-info');
+            settingsRow.innerHTML = `
+                <td colspan="5" style="text-align: left; font-style: italic;">
+                    Applied settings: 
+                    Vert: ${getBufferSymbol(originalValues.totalVert)}${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                    Trans: ${getBufferSymbol(originalValues.totalTrans)}${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                    Long: ${getBufferSymbol(originalValues.totalLong)}${settings.longBuffer} lbs, Round to ${settings.longRounding}
+                </td>
+            `;
+            tableBody.appendChild(settingsRow);
         }
-    }, 5000);
+        
+        // Show results section
+        document.getElementById('bufferedResults').style.display = 'block';
+    }
 }
 
-// Helper function for notification icons
-function getNotificationIcon(type) {
-    switch(type) {
-        case 'success': return '✅';
-        case 'warning': return '⚠️';
-        case 'info': return 'ℹ️';
-        case 'error': return '❌';
-        default: return '💡';
-    }
+// Keep the existing JavaScript functions (goToLoadConditions, etc.)
+function goToLoadConditions() {
+    const calculationData = {{ calculation_data_json|safe }};
+    
+    // Create a form to submit the data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'load_condition' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add calculation data
+    const dataInput = document.createElement('input');
+    dataInput.type = 'hidden';
+    dataInput.name = 'calculation_data';
+    dataInput.value = JSON.stringify(calculationData);
+    form.appendChild(dataInput);
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
 }
-    
-    // Initialize selected cases display
-    updateSelectedLoadCases();
-    
-    // Initialize table with current data on page load
-    if (selectedLoadCases.size > 0) {
-        updateLoadValuesTable(Array.from(selectedLoadCases));
-    }
-});
 </script>"
-

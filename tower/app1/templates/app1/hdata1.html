@@ -1873,7 +1873,6 @@
                 <!-- MODIFIED: Added Both button and updated styling -->
                 <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
                 <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
-                <button type="button" class="btn btn-info" id="btn-both" data-dismiss="modal">Both</button>
             </div>
         </div>
     </div>
@@ -3568,22 +3567,20 @@ function updateActiveCombinationsDisplay() {
     }
 
     activeCombinationsList.forEach(combo => {
-        // combo will be like "1-2-Ahead", "1-2-Back", or "1-2-Both"
+        // combo will be like "1-2-Ahead" or "1-2-Back" (Both is no longer possible)
         const parts = combo.split('-');
         const set = parts[0];
         const phase = parts[1];
         const status = parts[2];
         
-        // Determine badge class based on status
+        // Determine badge class based on status (Both is removed)
         let badgeClass;
         if (status === 'Ahead') {
             badgeClass = 'badge-success';
         } else if (status === 'Back') {
             badgeClass = 'badge-warning';
-        } else if (status === 'Both') {
-            badgeClass = 'badge-info';
         } else {
-            badgeClass = 'badge-secondary';
+            badgeClass = 'badge-secondary'; // Fallback for any legacy data
         }
         
         const item = document.createElement('span');
@@ -3645,22 +3642,20 @@ function updateActiveCombinationsDisplayFromResponse(newCombinations) {
     }
 
     newCombinations.forEach(combo => {
-        // combo will be like "1-2-Ahead", "1-2-Back", or "1-2-Both"
+        // combo will be like "1-2-Ahead" or "1-2-Back" (Both is removed)
         const parts = combo.split('-');
         const set = parts[0];
         const phase = parts[1];
-        const status = parts[2]; // This could be Ahead, Back, or Both
+        const status = parts[2]; // This could be Ahead or Back only now
         
-        // Determine badge class based on status
+        // Determine badge class based on status (Both is removed)
         let badgeClass;
         if (status === 'Ahead') {
             badgeClass = 'badge-success';
         } else if (status === 'Back') {
             badgeClass = 'badge-warning';
-        } else if (status === 'Both') {
-            badgeClass = 'badge-info';
         } else {
-            badgeClass = 'badge-secondary';
+            badgeClass = 'badge-secondary'; // Fallback
         }
         
         const item = document.createElement('span');
