@@ -489,9 +489,41 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+.group-factored-loads-section {
+    border-left: 4px solid #ffc107;
+    margin-bottom: 25px;
+}
+
+.factored-loads-group {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.condition-divider {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #dee2e6;
+}
+
+.group-divider {
+    margin: 30px 0;
+    border: 0;
+    border-top: 2px solid #6c757d;
+}
+
+.factored-loads-group h4 {
+    color: #495057;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
     </style>
 </head>
 <body>
+
 <div class="container">
     <header>
         <h2><i class="fas fa-table"></i> Load Conditions</h2>
@@ -499,74 +531,8 @@
     </header>
 
     {% if calculation_data %}
-    <!-- Selection Controls -->
+
     <div class="card">
-        <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
-        <div class="selection-controls">
-            <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
-                <i class="fas fa-check-square"></i> Select All
-            </button>
-            <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
-                <i class="fas fa-square"></i> Select None
-            </button>
-            <span class="selection-count">Selected: <span id="selectedCount">{{ calculation_data|length }}</span> records</span>
-        </div>
-    </div>
-
-     <div class="card">
-        <h3><i class="fas fa-list-ol"></i> Calculation Data Records</h3>
-        
-        {% for set_no, records in grouped_calculation_data.items %}
-        <div class="set-container">
-            <div class="set-header">
-                <h4><i class="fas fa-cubes"></i> Set No. {{ set_no }} <span class="badge badge-primary">{{ records|length }} records</span></h4>
-            </div>
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            {% for key in records.0.keys %}
-                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                    <th>{{ key }}</th>
-                                {% endif %}
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in records %}
-                            <tr data-record-id="{{ record.record_id }}">
-                                <td>
-                                    <input type="checkbox" class="record-checkbox" 
-                                        data-record-id="{{ record.record_id }}"
-                                        data-set-no="{{ record.Set_No }}"
-                                        data-vert="{{ record.Structure_Loads_Vert }}"
-                                        data-trans="{{ record.Structure_Loads_Trans }}"
-                                        data-long="{{ record.Structure_Loads_Long }}"
-                                        data-resultant="{{ record.Resultant }}"
-                                        checked>
-                                </td>
-                                {% for key, value in record.items %}
-                                    {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                        {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
-                                            <td class="resultant-cell">{{ value }}</td>
-                                        {% else %}
-                                            <td>{{ value }}</td>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% if not forloop.last %}<hr>{% endif %}
-        {% endfor %}
-    </div>
-
-     <div class="card">
         <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
         
         <!-- Add Parameter Button -->
@@ -658,17 +624,55 @@
     </div>
     {% endif %}
 
-    <!-- Factored Loads Display - SINGLE SECTION -->
-    {% if has_factored_loads %}
-        {% for condition_name, condition_data in factored_loads_by_condition.items %}
-        <div class="card factored-loads-section">
-            <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+    {% if using_group_wise_sums %}
+<div class="card alert alert-warning">
+    <h3><i class="fas fa-layer-group"></i> Using Group-wise Set Max Resultant Calculations</h3>
+    
+    {% for group_name, group_data in group_wise_buffered_sums.items %}
+    <div class="group-section" style="margin-bottom: 15px;">
+        <h4>Group: {{ group_name }}</h4>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Base Vert</div>
+                <div class="stat-value">{{ group_data.vert|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Trans</div>
+                <div class="stat-value">{{ group_data.trans|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Long</div>
+                <div class="stat-value">{{ group_data.long|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Base Resultant</div>
+                <div class="stat-value">{{ group_data.resultant|floatformat:2 }}</div>
+                <div class="stat-label">(lbs)</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+   <!-- Factored Loads Display - MULTIPLE SECTIONS FOR GROUPS -->
+{% if has_group_wise_factored_loads %}
+    <!-- Display factored loads for EACH group separately -->
+    {% for group_name, group_data in group_wise_factored_loads.items %}
+    <div class="card group-factored-loads-section">
+        <h3><i class="fas fa-calculator"></i> Factored Loads for Group: {{ group_name }}</h3>
+        
+        {% for condition_name, condition_data in group_data.items %}
+        <div class="factored-loads-group">
+            <h4><i class="fas fa-bolt"></i> {{ condition_name }}</h4>
             
             <!-- Show base and factored loads comparison -->
             <div class="loads-comparison">
-                {% if condition_data.calculation_type == 'processed_sums' %}
                 <div class="base-loads">
-                    <h5>Base Loads (Processed Sums)</h5>
+                    <h5>Base Loads (Group: {{ group_name }})</h5>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-label">Vert</div>
@@ -692,151 +696,131 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
                 
                 <div class="factored-loads">
                     <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
                     <div class="stats-grid">
                         <div class="stat-card highlighted">
                             <div class="stat-label">Vert</div>
-                            <div class="stat-value">
-                                {% if condition_data.calculation_type == 'processed_sums' %}
-                                    {{ condition_data.factored_loads.vert|floatformat:2 }}
-                                {% else %}
-                                    <!-- For individual records, show calculated total -->
-                                    Calculating...
-                                {% endif %}
-                            </div>
+                            <div class="stat-value">{{ condition_data.factored_loads.vert|floatformat:2 }}</div>
                             <div class="stat-label">(lbs)</div>
                         </div>
                         <div class="stat-card highlighted">
                             <div class="stat-label">Trans</div>
-                            <div class="stat-value">
-                                {% if condition_data.calculation_type == 'processed_sums' %}
-                                    {{ condition_data.factored_loads.trans|floatformat:2 }}
-                                {% else %}
-                                    Calculating...
-                                {% endif %}
-                            </div>
+                            <div class="stat-value">{{ condition_data.factored_loads.trans|floatformat:2 }}</div>
                             <div class="stat-label">(lbs)</div>
                         </div>
                         <div class="stat-card highlighted">
                             <div class="stat-label">Long</div>
-                            <div class="stat-value">
-                                {% if condition_data.calculation_type == 'processed_sums' %}
-                                    {{ condition_data.factored_loads.long|floatformat:2 }}
-                                {% else %}
-                                    Calculating...
-                                {% endif %}
-                            </div>
+                            <div class="stat-value">{{ condition_data.factored_loads.long|floatformat:2 }}</div>
                             <div class="stat-label">(lbs)</div>
                         </div>
                         <div class="stat-card highlighted">
                             <div class="stat-label">Resultant</div>
-                            <div class="stat-value">
-                                {% if condition_data.calculation_type == 'processed_sums' %}
-                                    {{ condition_data.factored_loads.resultant|floatformat:2 }}
-                                {% else %}
-                                    Calculating...
-                                {% endif %}
-                            </div>
+                            <div class="stat-value">{{ condition_data.factored_loads.resultant|floatformat:2 }}</div>
                             <div class="stat-label">(lbs)</div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+        {% if not forloop.last %}<hr class="condition-divider">{% endif %}
+        {% endfor %}
+    </div>
+    {% if not forloop.last %}<hr class="group-divider">{% endif %}
+    {% endfor %}
 
-            <!-- Individual Records Table (for individual records calculation) -->
-            {% if condition_data.grouped_data %}
-            <div class="individual-records-section">
-                <h5>
-                    <i class="fas fa-table"></i> Individual Factored Records 
-                    <small style="color: #6c757d; font-weight: normal;">
-                        (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})
-                    </small>
-                </h5>
-                {% for set_no, records in condition_data.grouped_data.items %}
-                <div class="set-container">
-                    <div class="set-header">
-                        <h6>
-                            <i class="fas fa-cubes"></i> Set No. {{ set_no }} 
-                            <span class="badge badge-secondary">{{ records|length }} records</span>
-                            <small style="color: #6c757d; font-weight: normal; margin-left: 10px;">
-                                Factors: ×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }}
-                            </small>
-                        </h6>
+{% elif has_factored_loads %}
+    <!-- Original single section for processed sums -->
+    {% for condition_name, condition_data in factored_loads_by_condition.items %}
+    <div class="card factored-loads-section">
+        <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+        
+        <!-- Show base and factored loads comparison -->
+        <div class="loads-comparison">
+            {% if condition_data.calculation_type == 'processed_sums' %}
+            <div class="base-loads">
+                <h5>Base Loads (Processed Sums)</h5>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Vert</div>
+                        <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
+                        <div class="stat-label">(lbs)</div>
                     </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    {% for key in records.0.keys %}
-                                        {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                            <th>{{ key }}</th>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for record in records %}
-                                <tr>
-                                    {% for key, value in record.items %}
-                                        {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Resultant' and key != 'Set_No' %}
-                                            {% if key == 'Resultant (lbs)' or 'Structure Loads' in key %}
-                                                <td class="resultant-cell">{{ value }}</td>
-                                            {% else %}
-                                                <td>{{ value }}</td>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="stat-card">
+                        <div class="stat-label">Trans</div>
+                        <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Long</div>
+                        <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Resultant</div>
+                        <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
+                        <div class="stat-label">(lbs)</div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-
             {% endif %}
-        </div>
-        {% endfor %}
-    {% endif %}
-
-  
-
-    <!-- Custom Selection Results -->
-    <div class="card">
-        <h3><i class="fas fa-layer-group"></i> Selected Records Summary</h3>
-        
-        <div class="stats-grid" id="customSelectionStats">
-            <!-- Will be populated by JavaScript -->
-        </div>
-        
-        <div class="table-container">
-            <table id="customSelectionTable">
-                <thead>
-                    <tr>
-                        <th>Set No.</th>
-                        <th>Record ID</th>
-                        <th>Vert (lbs)</th>
-                        <th>Trans (lbs)</th>
-                        <th>Long (lbs)</th>
-                        <th>Resultant (lbs)</th>
-                    </tr>
-                </thead>
-                <tbody id="customSelectionBody">
-                    <!-- Will be populated by JavaScript -->
-                </tbody>
-                <tfoot id="customSelectionFooter">
-                    <!-- Will be populated by JavaScript -->
-                </tfoot>
-            </table>
+            
+            <div class="factored-loads">
+                <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
+                <div class="stats-grid">
+                    <div class="stat-card highlighted">
+                        <div class="stat-label">Vert</div>
+                        <div class="stat-value">
+                            {% if condition_data.calculation_type == 'processed_sums' %}
+                                {{ condition_data.factored_loads.vert|floatformat:2 }}
+                            {% else %}
+                                Calculating...
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                    <div class="stat-card highlighted">
+                        <div class="stat-label">Trans</div>
+                        <div class="stat-value">
+                            {% if condition_data.calculation_type == 'processed_sums' %}
+                                {{ condition_data.factored_loads.trans|floatformat:2 }}
+                            {% else %}
+                                Calculating...
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                    <div class="stat-card highlighted">
+                        <div class="stat-label">Long</div>
+                        <div class="stat-value">
+                            {% if condition_data.calculation_type == 'processed_sums' %}
+                                {{ condition_data.factored_loads.long|floatformat:2 }}
+                            {% else %}
+                                Calculating...
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                    <div class="stat-card highlighted">
+                        <div class="stat-label">Resultant</div>
+                        <div class="stat-value">
+                            {% if condition_data.calculation_type == 'processed_sums' %}
+                                {{ condition_data.factored_loads.resultant|floatformat:2 }}
+                            {% else %}
+                                Calculating...
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">(lbs)</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
-    
+    {% endfor %}
+{% endif %}
 
+    <!-- REMOVED: Custom Selection Results (tied to removed sections) -->
 
     <div class="action-buttons">
         <button class="btn btn-secondary" onclick="window.history.back()">
@@ -849,11 +833,12 @@
             <i class="fas fa-home"></i> Back to Home
         </button>
     </div>
-</div>
+    {% endif %}
 
 <footer>
     <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
 </footer>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -952,284 +937,14 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-// Store factored loads data from Django
-const factoredLoadsData = {
-    {% for condition_name, condition_data in factored_loads_by_condition.items %}
-    '{{ condition_name }}': {
-        factors: {{ condition_data.factors|safe }},
-        {% if condition_data.all_records %}
-        allRecords: {{ condition_data.all_records|safe }},
-        {% else %}
-        allRecords: [],
-        {% endif %}
-        calculationType: '{{ condition_data.calculation_type }}'
-    },
-    {% endfor %}
-};
+
 
 // Custom Selection Logic for Load Conditions Page
 document.addEventListener('DOMContentLoaded', function() {
     initializeSelection();
 });
 
-function initializeSelection() {
-    const checkboxes = document.querySelectorAll('.record-checkbox');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const selectNoneBtn = document.getElementById('selectNoneBtn');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    
-    // Update selection count and display
-    function updateSelection() {
-        const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-        selectedCountSpan.textContent = selectedCheckboxes.length;
-        
-        // Update row styling
-        checkboxes.forEach(checkbox => {
-            const row = checkbox.closest('tr');
-            if (checkbox.checked) {
-                row.classList.add('selected-record');
-            } else {
-                row.classList.remove('selected-record');
-            }
-        });
-        
-        // Update custom selection display and factored loads
-        updateCustomSelectionDisplay();
-        updateFactoredLoadsDisplay();
-    }
-    
-    // Select all records
-    selectAllBtn.addEventListener('click', function() {
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
-        updateSelection();
-    });
-    
-    // Select none
-    selectNoneBtn.addEventListener('click', function() {
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        updateSelection();
-    });
-    
-    // Add event listeners to checkboxes
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelection);
-    });
-    
-    // Initial update
-    updateSelection();
-}
 
-function updateCustomSelectionDisplay() {
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    const statsGrid = document.getElementById('customSelectionStats');
-    const tableBody = document.getElementById('customSelectionBody');
-    const tableFooter = document.getElementById('customSelectionFooter');
-    
-    // Clear previous content
-    statsGrid.innerHTML = '';
-    tableBody.innerHTML = '';
-    tableFooter.innerHTML = '';
-    
-    if (selectedCheckboxes.length === 0) {
-        statsGrid.innerHTML = '<p>No records selected. Please select records using the checkboxes above.</p>';
-        return;
-    }
-    
-    let totalVert = 0;
-    let totalTrans = 0;
-    let totalLong = 0;
-    const selectedRecords = [];
-    
-    // Process selected records
-    selectedCheckboxes.forEach(checkbox => {
-        const vert = parseFloat(checkbox.dataset.vert) || 0;
-        const trans = parseFloat(checkbox.dataset.trans) || 0;
-        const long = parseFloat(checkbox.dataset.long) || 0;
-        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
-        const setNo = checkbox.dataset.setNo || 'Unknown';
-        const recordId = checkbox.dataset.recordId;
-        
-        totalVert += vert;
-        totalTrans += trans;
-        totalLong += long;
-        
-        selectedRecords.push({
-            setNo,
-            recordId,
-            vert,
-            trans,
-            long,
-            resultant
-        });
-    });
-    
-    // Calculate final resultant
-    const finalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
-    
-    // Update stats grid
-    statsGrid.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-label">Selected Records</div>
-            <div class="stat-value">${selectedCheckboxes.length}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Vert</div>
-            <div class="stat-value">${totalVert.toFixed(2)}</div>
-            <div class="stat-label">(lbs)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Trans</div>
-            <div class="stat-value">${totalTrans.toFixed(2)}</div>
-            <div class="stat-label">(lbs)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Long</div>
-            <div class="stat-value">${totalLong.toFixed(2)}</div>
-            <div class="stat-label">(lbs)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Resultant</div>
-            <div class="stat-value">${finalResultant.toFixed(2)}</div>
-            <div class="stat-label">(lbs)</div>
-        </div>
-    `;
-    
-    // Update table body
-    selectedRecords.forEach(record => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${record.setNo}</td>
-            <td>${record.recordId}</td>
-            <td>${record.vert.toFixed(2)}</td>
-            <td>${record.trans.toFixed(2)}</td>
-            <td>${record.long.toFixed(2)}</td>
-            <td>${record.resultant.toFixed(2)}</td>
-        `;
-        tableBody.appendChild(row);
-    });
-    
-    // Update table footer with totals
-    tableFooter.innerHTML = `
-        <tr class="highlight">
-            <td colspan="2"><strong>Selected Records Sum</strong></td>
-            <td><strong>${totalVert.toFixed(2)}</strong></td>
-            <td><strong>${totalTrans.toFixed(2)}</strong></td>
-            <td><strong>${totalLong.toFixed(2)}</strong></td>
-            <td><strong>${finalResultant.toFixed(2)}</strong></td>
-        </tr>
-    `;
-    
-    // Store current custom selection for further calculations
-    window.currentCustomSelection = {
-        totalVert,
-        totalTrans,
-        totalLong,
-        finalResultant,
-        selectedRecords
-    };
-}
-
-function updateFactoredLoadsDisplay() {
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    
-    if (selectedCheckboxes.length === 0) {
-        // Hide all factored loads sections
-        document.querySelectorAll('.factored-loads-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        return;
-    }
-    
-    // Get selected record IDs
-    const selectedRecordIds = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.recordId);
-    
-    // Process each load condition
-    Object.keys(factoredLoadsData).forEach((conditionName, index) => {
-        const conditionData = factoredLoadsData[conditionName];
-        const container = document.getElementById(`factoredResults${index + 1}`);
-        const section = document.querySelector(`.factored-loads-section[data-condition="${conditionName}"]`);
-        
-        if (!container || !section) return;
-        
-        // Filter records to only show selected ones
-        const selectedFactoredRecords = conditionData.allRecords.filter(record => 
-            selectedRecordIds.includes(record.record_id)
-        );
-        
-        // Group by Set No.
-        const groupedData = {};
-        selectedFactoredRecords.forEach(record => {
-            const setNo = record['Set No.'] || 'Unknown';
-            if (!groupedData[setNo]) {
-                groupedData[setNo] = [];
-            }
-            groupedData[setNo].push(record);
-        });
-        
-        // Build HTML for factored loads
-        let html = '';
-        
-        Object.keys(groupedData).forEach(setNo => {
-            const records = groupedData[setNo];
-            html += `
-                <div class="set-container">
-                    <div class="set-header">
-                        <h4><i class="fas fa-cubes"></i> Set No. ${setNo} <span class="badge badge-primary">${records.length} records</span></h4>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-            `;
-            
-            // Add headers (exclude internal fields)
-            if (records.length > 0) {
-                Object.keys(records[0]).forEach(key => {
-                    if (!['max_resultant_flag', 'record_id', 'Structure_Loads_Vert', 'Structure_Loads_Trans', 'Structure_Loads_Long', 'Resultant', 'Set_No'].includes(key)) {
-                        html += `<th>${key}</th>`;
-                    }
-                });
-            }
-            
-            html += `
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-            
-            // Add rows
-            records.forEach(record => {
-                html += `<tr>`;
-                Object.keys(record).forEach(key => {
-                    if (!['max_resultant_flag', 'record_id', 'Structure_Loads_Vert', 'Structure_Loads_Trans', 'Structure_Loads_Long', 'Resultant', 'Set_No'].includes(key)) {
-                        const value = record[key];
-                        if (key === 'Resultant (lbs)' || key.includes('Structure Loads')) {
-                            html += `<td class="resultant-cell">${value}</td>`;
-                        } else {
-                            html += `<td>${value}</td>`;
-                        }
-                    }
-                });
-                html += `</tr>`;
-            });
-            
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-        section.style.display = 'block';
-    });
-}
 
 function deleteLoadCondition(pk) {
     if (confirm('Are you sure you want to delete this load condition?')) {

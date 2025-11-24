@@ -829,7 +829,7 @@ def apply_previous_selection_filter(structure_id, filter_criteria, selected_load
         return []
     
     
-def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases, selection_source):
+def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases, selection_source, selected_groups=None):  # NEW: Add selected_groups param
     """Get filtered data with grouping structure"""
     try:
         structure = ListOfStructure.objects.get(id=structure_id)
@@ -838,6 +838,7 @@ def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases
         print(f"DEBUG get_filtered_grouped_data: filter_criteria={filter_criteria}")
         print(f"DEBUG get_filtered_grouped_data: selected_load_cases={selected_load_cases}")
         print(f"DEBUG get_filtered_grouped_data: selection_source={selection_source}")
+        print(f"DEBUG get_filtered_grouped_data: selected_groups={selected_groups}") 
         
         # Get the filtered data
         filtered_data = apply_previous_selection_filter(structure_id, filter_criteria, selected_load_cases)
@@ -871,6 +872,11 @@ def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases
                     grouped_data[group_name].append(record)
         
         elif selection_source == 'custom':
+            # NEW: If no groups selected, return empty
+            if not selected_groups:
+                print("DEBUG: No custom groups selected, returning empty grouped data")
+                return {'grouped_data': {}, 'all_columns': all_columns, 'record_count': 0, 'is_grouped': True}
+            
             # Group by custom group names
             custom_groups = LoadCaseGroup.objects.filter(
                 structure=structure, 
@@ -878,8 +884,13 @@ def get_filtered_grouped_data(structure_id, filter_criteria, selected_load_cases
             ).prefetch_related('load_cases')
             
             for group in custom_groups:
+                group_name = group.name
+                # Only include if group is in selected_groups
+                if group_name not in selected_groups:
+                    continue
+                
                 group_cases = [case.name for case in group.load_cases.all()]
-                grouped_data[group.name] = []
+                grouped_data[group_name] = []
                 
                 # Find records that belong to this custom group
                 for record in filtered_data:
@@ -957,8 +968,11 @@ def load_cases_page(request):
             filter_criteria = session_values.get('filter_criteria', {})
             selected_load_cases = session_values.get('load_cases', [])
             
+            selected_groups = request.POST.getlist('selected_groups') or []
+            
             print(f"DEBUG: Filter criteria from session: {filter_criteria}")
             print(f"DEBUG: Selected load cases from session: {selected_load_cases}")
+            print(f"DEBUG: Selected groups: {selected_groups}")
             
             # NEW: Determine selection source from the request
             selection_source = request.POST.get('selection_source', 'imported')
@@ -969,7 +983,8 @@ def load_cases_page(request):
                 structure_id, 
                 filter_criteria, 
                 selected_load_cases,
-                selection_source
+                selection_source,
+                selected_groups
             )
             
             print(f"DEBUG: Filtered grouped data - {filtered_result['record_count']} records in {len(filtered_result['grouped_data'])} groups")
@@ -1077,6 +1092,7 @@ def get_filtered_load_data(request):
     
     structure_id = request.GET.get('structure_id')
     selected_load_cases = request.GET.getlist('selected_load_cases') or []
+    selected_groups = request.GET.getlist('selected_groups') or []
     selection_source = request.GET.get('selection_source', 'imported')  # NEW: Get selection source
     
     if not structure_id:
@@ -1110,7 +1126,7 @@ def get_filtered_load_data(request):
 
             # NEW: Handle grouped response for group/custom selection sources
             if selection_source in ['group', 'custom'] and selected_load_cases:
-                return get_grouped_response(df, selected_load_cases, selection_source, structure)
+                return get_grouped_response(df, selected_load_cases, selection_source, structure, selected_groups)
             
             # Existing flat list response for imported source
             load_data = []
@@ -1146,7 +1162,7 @@ def get_filtered_load_data(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 # NEW: Function to create grouped response
-def get_grouped_response(df, selected_load_cases, selection_source, structure):
+def get_grouped_response(df, selected_load_cases, selection_source, structure, selected_groups=None):  # NEW: Add selected_groups param
     """Create grouped response for group/custom selection sources"""
     grouped_data = {}
     all_columns = list(df.columns)
@@ -1184,12 +1200,17 @@ def get_grouped_response(df, selected_load_cases, selection_source, structure):
         ).prefetch_related('load_cases')
         
         for group in custom_groups:
+            group_name = group.name
+            # NEW: Only include if group is in selected_groups
+            if selected_groups and group_name not in selected_groups:
+                continue
+            
             group_cases = [case.name for case in group.load_cases.all()]
             # Check if any cases from this group are selected
             selected_group_cases = set(group_cases) & set(selected_load_cases)
             
             if selected_group_cases:
-                grouped_data[group.name] = []
+                grouped_data[group_name] = []
                 for case_name in selected_group_cases:
                     # Find matching rows for this load case
                     case_rows = df[df['Load Case Description'] == case_name]
@@ -1203,7 +1224,7 @@ def get_grouped_response(df, selected_load_cases, selection_source, structure):
                                     row_data[col] = str(row[col])
                             else:
                                 row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
-                        grouped_data[group.name].append(row_data)
+                        grouped_data[group_name].append(row_data)
     
     # Calculate total record count
     total_records = sum(len(records) for records in grouped_data.values())
@@ -1431,6 +1452,7 @@ import math
 import json
 from django.shortcuts import render
 
+
 def calculation_view(request):
     # Initialize context with default values to avoid UnboundLocalError
     context = {'error': None}
@@ -1505,7 +1527,25 @@ def calculation_view(request):
                                 record['set_max_resultant_flag'] = 'yes'
                             else:
                                 record['set_max_resultant_flag'] = 'no'
-                                
+                
+                # NEW: Calculate group-wise sums for set max resultants
+                group_wise_set_max_sums = {}
+                for group_name, set_data in set_max_resultants.items():
+                    group_vert = sum([data['vert'] for data in set_data.values()])
+                    group_trans = sum([data['trans'] for data in set_data.values()])
+                    group_long = sum([data['long'] for data in set_data.values()])
+                    group_resultant = math.sqrt(group_vert**2 + group_trans**2 + group_long**2)
+                    
+                    group_wise_set_max_sums[group_name] = {
+                        'vert': group_vert,
+                        'trans': group_trans,
+                        'long': group_long,
+                        'resultant': group_resultant,
+                        'set_count': len(set_data)
+                    }
+                    
+                request.session['group_wise_set_max_sums'] = group_wise_set_max_sums
+                
                 global_set_max_resultants = {}
                 all_records = []
                 
@@ -1601,6 +1641,7 @@ def calculation_view(request):
                     'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
+                    'group_wise_set_max_sums': group_wise_set_max_sums,  # NEW: Group-wise sums
                     'combined_vert': combined_vert,
                     'combined_trans': combined_trans,
                     'combined_long': combined_long,
@@ -1685,6 +1726,22 @@ def calculation_view(request):
                             else:
                                 record['set_max_resultant_flag'] = 'no'
                 
+                # NEW: Calculate group-wise sums for set max resultants for GET requests
+                group_wise_set_max_sums = {}
+                for group_name, set_data in set_max_resultants.items():
+                    group_vert = sum([data['vert'] for data in set_data.values()])
+                    group_trans = sum([data['trans'] for data in set_data.values()])
+                    group_long = sum([data['long'] for data in set_data.values()])
+                    group_resultant = math.sqrt(group_vert**2 + group_trans**2 + group_long**2)
+                    
+                    group_wise_set_max_sums[group_name] = {
+                        'vert': group_vert,
+                        'trans': group_trans,
+                        'long': group_long,
+                        'resultant': group_resultant,
+                        'set_count': len(set_data)
+                    }
+                
                 # Calculate max values
                 group_max_values = {}
                 max_resultant_values = {}
@@ -1722,6 +1779,7 @@ def calculation_view(request):
                         'max_resultant': max_resultant,
                         'count': len(records)
                     }
+                request.session['group_wise_set_max_sums'] = group_wise_set_max_sums
                     
                 global_set_max_resultants = {}
                 all_records = []
@@ -1773,6 +1831,7 @@ def calculation_view(request):
                     'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
+                    'group_wise_set_max_sums': group_wise_set_max_sums,  # NEW: Group-wise sums for GET
                     'combined_vert': combined_vert,
                     'combined_trans': combined_trans,
                     'combined_long': combined_long,
@@ -1875,30 +1934,36 @@ from .models import LoadCondition, AttachmentLoad
 def load_condition_view(request):
     calculation_data = []
     processed_sums = {}
+    group_wise_buffered_sums = {}
     
     # Try to get calculation data from multiple sources
     if request.method == 'POST':
-        # Get calculation data from POST request (initial load)
         calculation_data_json = request.POST.get('calculation_data')
-        processed_sums_json = request.POST.get('processed_sums')  # NEW: Get processed sums
+        processed_sums_json = request.POST.get('processed_sums')
+        group_wise_buffered_sums_json = request.POST.get('group_wise_buffered_sums')
+        
         if calculation_data_json:
             try:
                 calculation_data = json.loads(calculation_data_json)
-                # Store in session for future requests
                 request.session['calculation_data'] = calculation_data
                 
                 if processed_sums_json:
                     processed_sums = json.loads(processed_sums_json)
                     request.session['processed_sums'] = processed_sums
+                
+                # Handle group-wise buffered sums
+                if group_wise_buffered_sums_json:
+                    group_wise_buffered_sums = json.loads(group_wise_buffered_sums_json)
+                    request.session['group_wise_buffered_sums'] = group_wise_buffered_sums
                     
             except json.JSONDecodeError:
-                # Try to get from session if POST fails
                 calculation_data = request.session.get('calculation_data', [])
                 processed_sums = request.session.get('processed_sums', {})
+                group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
     else:
-        # For GET requests (like redirects from create/edit/delete), get from session
         calculation_data = request.session.get('calculation_data', [])
         processed_sums = request.session.get('processed_sums', {})
+        group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
     
     # Get all load conditions
     load_conditions = LoadCondition.objects.all().order_by('id')
@@ -1918,187 +1983,132 @@ def load_condition_view(request):
         # Add record_id and clean keys to calculation data for template access
         for index, record in enumerate(calculation_data):
             record['record_id'] = f"record_{index}"
-            # Add clean keys for template access
             record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
             record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
             record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
             record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
-            # Store Set No. in data attribute
             record['Set_No'] = record.get('Set No.', 'Unknown')
         
-        # Group calculation data by Set No. for debug display
-        grouped_calculation_data = {}
-        for record in calculation_data:
-            set_no = record.get('Set No.', 'Unknown')
-            if set_no not in grouped_calculation_data:
-                grouped_calculation_data[set_no] = []
-            grouped_calculation_data[set_no].append(record)
-    else:
-        grouped_calculation_data = {}
-    
-    # Calculate factored loads for each load condition - CORRECTED LOGIC
-    factored_loads_by_condition = {}
+        factored_loads_by_condition = {}
+        group_wise_factored_loads = {}  # NEW: Store factored loads by group
 
-    # PRIORITY: Use processed sums if available (NEW LOGIC)
-    if processed_sums:  
-        for condition in load_conditions:
-            # Apply overload factors directly to processed sums
-            from decimal import Decimal
-            
-            # Use processed sums as base loads
-            base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
-            base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
-            base_long = Decimal(str(processed_sums.get('totalLong', 0)))
-            
-            # Apply overload factors
-            factored_vert = base_vert * Decimal(str(condition.vertical_factor))
-            factored_trans = base_trans * Decimal(str(condition.transverse_factor))
-            factored_long = base_long * Decimal(str(condition.longitudinal_factor))
-            
-            # Convert to float
-            factored_vert = float(factored_vert)
-            factored_trans = float(factored_trans)
-            factored_long = float(factored_long)
-            
-            # Recalculate resultant
-            factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
-            
-            # NEW: Calculate individual factored records even when using processed sums
-            factored_records = []
-            if calculation_data:
-                for record in calculation_data:
-                    # Create a copy of the record
-                    factored_record = record.copy()
-                    
-                    # Extract the correct load values from the record
-                    vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
-                    trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
-                    long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
-                    
-                    # Apply overload factors - use Decimal for precise multiplication
+        # PRIORITY 1: Use group-wise buffered sums if available (Select Set Max Resultant Within Groups)
+        if group_wise_buffered_sums:
+            # Process EACH group separately
+            for group_name, group_data in group_wise_buffered_sums.items():
+                group_factored_loads = {}
+                
+                for condition in load_conditions:
                     from decimal import Decimal
-                    factored_vert_individual = Decimal(str(vert)) * Decimal(str(condition.vertical_factor))
-                    factored_trans_individual = Decimal(str(trans)) * Decimal(str(condition.transverse_factor))
-                    factored_long_individual = Decimal(str(long)) * Decimal(str(condition.longitudinal_factor))
                     
-                    # Convert back to float for consistency
-                    factored_vert_individual = float(factored_vert_individual)
-                    factored_trans_individual = float(factored_trans_individual)
-                    factored_long_individual = float(factored_long_individual)
+                    # Use group-wise buffered sums as base loads
+                    base_vert = Decimal(str(group_data.get('vert', 0)))
+                    base_trans = Decimal(str(group_data.get('trans', 0)))
+                    base_long = Decimal(str(group_data.get('long', 0)))
                     
-                    # Update the record with factored values
-                    factored_record['Structure Loads Vert. (lbs)'] = round(factored_vert_individual, 2)
-                    factored_record['Structure Loads Trans. (lbs)'] = round(factored_trans_individual, 2)
-                    factored_record['Structure Loads Long. (lbs)'] = round(factored_long_individual, 2)
+                    # Apply overload factors
+                    factored_vert = base_vert * Decimal(str(condition.vertical_factor))
+                    factored_trans = base_trans * Decimal(str(condition.transverse_factor))
+                    factored_long = base_long * Decimal(str(condition.longitudinal_factor))
                     
-                    # Recalculate resultant
-                    factored_resultant_individual = math.sqrt(factored_vert_individual**2 + factored_trans_individual**2 + factored_long_individual**2)
-                    factored_record['Resultant (lbs)'] = round(factored_resultant_individual, 2)
+                    factored_vert = float(factored_vert)
+                    factored_trans = float(factored_trans)
+                    factored_long = float(factored_long)
                     
-                    factored_records.append(factored_record)
-                
-                # Group factored records by Set No.
-                grouped_factored_data = {}
-                for record in factored_records:
-                    set_no = record.get('Set No.', 'Unknown')
-                    if set_no not in grouped_factored_data:
-                        grouped_factored_data[set_no] = []
-                    grouped_factored_data[set_no].append(record)
-            else:
-                grouped_factored_data = {}
-                factored_records = []
-            
-            factored_loads_by_condition[condition.description] = {
-                'base_loads': {  # Store original processed sums for reference
-                    'vert': float(base_vert),
-                    'trans': float(base_trans),
-                    'long': float(base_long),
-                    'resultant': processed_sums.get('finalResultant', 0)
-                },
-                'factored_loads': {
-                    'vert': factored_vert,
-                    'trans': factored_trans,
-                    'long': factored_long,
-                    'resultant': factored_resultant
-                },
-                'factors': {
-                    'vertical': condition.vertical_factor,
-                    'transverse': condition.transverse_factor,
-                    'longitudinal': condition.longitudinal_factor
-                },
-                'calculation_type': 'processed_sums',  # Track which logic was used
-                # NEW: Add individual records data for template
-                'grouped_data': grouped_factored_data,
-                'all_records': factored_records
-            }
+                    factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
 
-    
-    # FALLBACK: Use individual records if no processed sums available (OLD LOGIC)
-    elif calculation_data:
-        for condition in load_conditions:
-            factored_records = []
-            
-            # Process each record individually
-            for record in calculation_data:
-                # Create a copy of the record
-                factored_record = record.copy()
+                    group_factored_loads[condition.description] = {
+                        'base_loads': {
+                            'vert': float(base_vert),
+                            'trans': float(base_trans),
+                            'long': float(base_long),
+                            'resultant': group_data.get('resultant', 0)
+                        },
+                        'factored_loads': {
+                            'vert': factored_vert,
+                            'trans': factored_trans,
+                            'long': factored_long,
+                            'resultant': factored_resultant
+                        },
+                        'factors': {
+                            'vertical': condition.vertical_factor,
+                            'transverse': condition.transverse_factor,
+                            'longitudinal': condition.longitudinal_factor
+                        },
+                        'calculation_type': 'group_wise_buffered',
+                        'group_name': group_name
+                    }
                 
-                # Extract the correct load values from the record
-                vert = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
-                trans = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
-                long = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
-                
-                # Apply overload factors - use Decimal for precise multiplication
+                # Store factored loads for this group
+                group_wise_factored_loads[group_name] = group_factored_loads
+
+        # PRIORITY 2: Use processed sums if available (Select Group Max Resultant with Buffer)
+        elif processed_sums and processed_sums.get('totalVert') is not None:  
+            for condition in load_conditions:
                 from decimal import Decimal
-                factored_vert = Decimal(str(vert)) * Decimal(str(condition.vertical_factor))
-                factored_trans = Decimal(str(trans)) * Decimal(str(condition.transverse_factor))
-                factored_long = Decimal(str(long)) * Decimal(str(condition.longitudinal_factor))
                 
-                # Convert back to float for consistency
+                # Use processed sums as base loads
+                base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
+                base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
+                base_long = Decimal(str(processed_sums.get('totalLong', 0)))
+                
+                # Apply overload factors
+                factored_vert = base_vert * Decimal(str(condition.vertical_factor))
+                factored_trans = base_trans * Decimal(str(condition.transverse_factor))
+                factored_long = base_long * Decimal(str(condition.longitudinal_factor))
+                
                 factored_vert = float(factored_vert)
                 factored_trans = float(factored_trans)
                 factored_long = float(factored_long)
                 
-                # Update the record with factored values
-                factored_record['Structure Loads Vert. (lbs)'] = round(factored_vert, 2)
-                factored_record['Structure Loads Trans. (lbs)'] = round(factored_trans, 2)
-                factored_record['Structure Loads Long. (lbs)'] = round(factored_long, 2)
-                
-                # Recalculate resultant
                 factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
-                factored_record['Resultant (lbs)'] = round(factored_resultant, 2)
-                
-                factored_records.append(factored_record)
-            
-            # Group factored records by Set No.
-            grouped_factored_data = {}
-            for record in factored_records:
-                set_no = record.get('Set No.', 'Unknown')
-                if set_no not in grouped_factored_data:
-                    grouped_factored_data[set_no] = []
-                grouped_factored_data[set_no].append(record)
-            
-            factored_loads_by_condition[condition.description] = {
-                'grouped_data': grouped_factored_data,
-                'factors': {
-                    'vertical': condition.vertical_factor,
-                    'transverse': condition.transverse_factor,
-                    'longitudinal': condition.longitudinal_factor
-                },
-                'all_records': factored_records,  # Store all records for JavaScript filtering
-                'calculation_type': 'individual_records'  # Track which logic was used
-            }
+
+                factored_loads_by_condition[condition.description] = {
+                    'base_loads': {
+                        'vert': float(base_vert),
+                        'trans': float(base_trans),
+                        'long': float(base_long),
+                        'resultant': processed_sums.get('finalResultant', 0)
+                    },
+                    'factored_loads': {
+                        'vert': factored_vert,
+                        'trans': factored_trans,
+                        'long': factored_long,
+                        'resultant': factored_resultant
+                    },
+                    'factors': {
+                        'vertical': condition.vertical_factor,
+                        'transverse': condition.transverse_factor,
+                        'longitudinal': condition.longitudinal_factor
+                    },
+                    'calculation_type': 'processed_sums',
+                }
+        
+        # PRIORITY 3: Fallback to individual records calculation
+        elif calculation_data:
+            for condition in load_conditions:
+                factored_loads_by_condition[condition.description] = {
+                    'factors': {
+                        'vertical': condition.vertical_factor,
+                        'transverse': condition.transverse_factor,
+                        'longitudinal': condition.longitudinal_factor
+                    },
+                    'calculation_type': 'individual_records'
+                }
     
     context = {
         'load_conditions': load_conditions,
         'attachment_loads': attachment_loads,
         'calculation_data': calculation_data,
-        'calculation_data_json': json.dumps(calculation_data),  # For JavaScript
+        'calculation_data_json': json.dumps(calculation_data),
         'factored_loads_by_condition': factored_loads_by_condition,
-        'has_factored_loads': bool(factored_loads_by_condition),
-        'grouped_calculation_data': grouped_calculation_data,
-        'processed_sums': processed_sums,  # NEW: Pass to template
-        'using_processed_sums': bool(processed_sums)  # NEW: Flag for template
+        'group_wise_factored_loads': group_wise_factored_loads,  # NEW: Add to context
+        'has_factored_loads': bool(factored_loads_by_condition) or bool(group_wise_factored_loads),
+        'processed_sums': processed_sums,
+        'using_processed_sums': bool(processed_sums),
+        'group_wise_buffered_sums': group_wise_buffered_sums,
+        'using_group_wise_sums': bool(group_wise_buffered_sums),
+        'has_group_wise_factored_loads': bool(group_wise_factored_loads)  # NEW: Flag for template
     }
     
     return render(request, 'app1/load_condition.html', context)

@@ -81,6 +81,7 @@
             flex-direction: column;
             min-height: 100vh;
             line-height: 1.6;
+            padding-top: 60px;
         }
 
         /* Header Styles */
@@ -93,6 +94,7 @@
             z-index: 1000;
             padding: 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            height: 60px;
         }
 
         .navbar {
@@ -111,6 +113,7 @@
             align-items: center;
             gap: var(--space-sm);
             flex: 1; /* Allow it to take available space */
+            flex: 0 0 auto;
         }
 
         .logo img {
@@ -134,13 +137,15 @@
             align-items: center;
             justify-content: center; /* Center the navigation */
             flex: 2; /* Take more space to help with centering */
+            flex-grow: 1; /* Allow it to grow to fill space */
+            margin: 0 20px;
         }
 
 
         .menu {
             display: flex;
             list-style: none;
-            gap: var(--space-xs);
+            gap: 3.5rem;
             justify-content: center; /* Center menu items */
             width: 100%; /* Take full width of its container */
         }
@@ -159,7 +164,6 @@
             border-radius: var(--radius-sm);
             font-size: 1.1rem;
             position: relative;
-            margin-top:7px;
         }
 
         .menu-link:hover, 
@@ -196,21 +200,22 @@
             position: relative;
             display: flex;
             justify-content: flex-end; /* Push search to the right */
-            flex: 1; /* Allow it to take available space */
-            margin-left:100px;
+            flex: 0 0 auto; /* Ensure it only takes the space it needs */
+            margin-left: 0; /* REMOVE OR SET TO 0: The margin-left: 100px was pushing the search bar too far */
+            align-items: center;
         }
         .search-input {
-            padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: var(--radius-lg);
             width: 200px;
             transition: var(--transition-normal);
-            font-size: 0.9rem;
             background-color: rgba(255, 255, 255, 0.15);
             color: var(--ui-white);
             backdrop-filter: blur(5px);
             padding:5px;
             margin-top:-5px;
+            padding: 6px 12px; /* Adjusted padding to match the image better */
+            font-size: 1rem;
         }
 
         .search-input::placeholder {
@@ -654,6 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadCaseLinks = document.querySelectorAll('.load-case-link');
     const selectedRecords = new Set();
     let allTableData = [];
+    const selectedGroups = new Set();
 
     // Initialize with imported load cases
     loadImportedLoadCases();
@@ -1083,6 +1089,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         selectedLoadCases.delete(cb.value);
                     }
                 });
+                
+                // NEW: Update selectedGroups
+                if (this.checked) {
+                    // Add all custom group names to selectedGroups
+                    const allGroupElements = document.querySelectorAll('.load-case-group[id^="custom-group-"]');
+                    allGroupElements.forEach(el => {
+                        const groupName = el.id.replace('custom-group-', '');
+                        selectedGroups.add(groupName);
+                    });
+                } else {
+                    // Clear selectedGroups
+                    selectedGroups.clear();
+                }
+                
                 updateSelectedLoadCases();
             });
         }
@@ -1096,8 +1116,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     cb.checked = this.checked;
                     if (this.checked) {
                         selectedLoadCases.add(cb.value);
+                        selectedGroups.add(groupName);  // NEW: Add to selected groups
                     } else {
                         selectedLoadCases.delete(cb.value);
+                        selectedGroups.delete(groupName);  // NEW: Remove from selected groups
                     }
                 });
                 updateSelectedLoadCases();
@@ -1106,17 +1128,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateMasterSelectAllCustomGroups();
             });
         });
-        
-        // Individual checkbox listeners
-        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+
+                
+                // Individual checkbox listeners
+                document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 if (this.checked) {
                     selectedLoadCases.add(this.value);
                 } else {
                     selectedLoadCases.delete(this.value);
+                    // If no cases are selected in this group, remove the group from selectedGroups
                     const groupName = this.dataset.group;
-                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
-                    if (selectAll) selectAll.checked = false;
+                    const groupCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                    const anyChecked = Array.from(groupCheckboxes).some(cb => cb.checked);
+                    if (!anyChecked) {
+                        selectedGroups.delete(groupName);  // NEW: Remove group if no cases selected
+                    }
                 }
                 updateSelectedLoadCases();
                 
@@ -1515,6 +1542,12 @@ document.addEventListener('DOMContentLoaded', function() {
         url.searchParams.append('selected_load_cases', caseName);
     });
     
+    if (selectionSource === 'custom') {
+        selectedGroups.forEach(groupName => {
+            url.searchParams.append('selected_groups', groupName);
+        });
+    }
+
     fetch(url, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -1981,11 +2014,10 @@ function getCurrentCustomGroupsData() {
 
     // Handle form submission with AJAX to prevent page refresh
     loadCasesForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     
     const formData = new FormData(this);
     
-    // Determine selection source based on active tab
     let selectionSource = 'imported';
     if (document.getElementById('group-load-cases-link').classList.contains('active')) {
         selectionSource = 'group';
@@ -1993,10 +2025,16 @@ function getCurrentCustomGroupsData() {
         selectionSource = 'custom';
     }
     
-    // Add selected load cases to form data
     selectedLoadCases.forEach(caseName => {
         formData.append('selected_load_cases', caseName);
     });
+    
+    // NEW: Add selected_groups for 'custom'
+    if (selectionSource === 'custom') {
+        selectedGroups.forEach(groupName => {
+            formData.append('selected_groups', groupName);
+        });
+    }
     
     fetch(this.action, {
         method: 'POST',
@@ -2009,7 +2047,6 @@ function getCurrentCustomGroupsData() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Update the table with filtered data using correct selection source
             updateLoadValuesTable(Array.from(selectedLoadCases), selectionSource);
         } else {
             showNotification('Error applying load cases', 'error');
@@ -2028,7 +2065,6 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     const filterBtn = document.getElementById('filter-previous-btn');
     const originalText = filterBtn.innerHTML;
     
-    // NEW: Determine current selection source
     let selectionSource = 'imported';
     if (document.getElementById('group-load-cases-link').classList.contains('active')) {
         selectionSource = 'group';
@@ -2036,8 +2072,15 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
         selectionSource = 'custom';
     }
     
-    // Add selection source to form data
+    // Add selection source
     formData.append('selection_source', selectionSource);
+    
+    // NEW: Add selected_groups for 'custom'
+    if (selectionSource === 'custom') {
+        selectedGroups.forEach(groupName => {
+            formData.append('selected_groups', groupName);
+        });
+    }
     
     // Show loading state
     filterBtn.innerHTML = '⏳ Applying Filter...';
@@ -2046,6 +2089,7 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     console.log('=== FILTER DEBUG INFO ===');
     console.log('Current selected load cases:', Array.from(selectedLoadCases));
     console.log('Selection source:', selectionSource);
+    console.log('Selected groups:', Array.from(selectedGroups));  // NEW: Debug selected groups
     console.log('Filter criteria from template:', {{ filter_criteria|default:"{}"|safe }});
     console.log('Structure ID:', structureId);
     console.log('========================');
@@ -2068,7 +2112,6 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
         console.log('========================');
         
         if (data.success) {
-            // Update the table with the filtered grouped data
             if (data.is_grouped && data.grouped_data) {
                 updateTableWithGroupedData(data.grouped_data, data.all_columns);
                 
@@ -2097,7 +2140,6 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
         showNotification('❌ Error applying filter: ' + error, 'error');
     })
     .finally(() => {
-        // Reset button state
         filterBtn.innerHTML = '🔍 Filter by attachment selection';
         filterBtn.disabled = false;
     });
