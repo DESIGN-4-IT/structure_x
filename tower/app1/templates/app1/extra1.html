@@ -1,92 +1,2910 @@
+Read the entire code carefully and act as a senior software engineer with strong experience in transmission-line calculations.
+
+Your task is to fix and correctly implement the selection logic described below.
+
+1. Select Group Max Resultant
+
+Goal:
+For each group (Load Case Group, Imported Group, or Custom Group):
+
+Find all records belonging to that group.
+
+Compare their Resultant values.
+
+Select only one record — the one with the maximum Resultant in that group.
+
+Do NOT use Set No. logic for this feature.
 
 2. Select Set Max Resultant (Within Groups)
 
-Functionality:
-Selects the record with the highest Resultant value for each Set No., within each group.
+This feature already works correctly. Do not change it.
 
-Behavior:
-Inside every group, for each unique Set No., it selects only one record, which has the maximum Resultant value for that Set.
+Correct current behavior:
 
-Example (based on our data):
+Inside each group, find all Set Nos.
 
-Custom Group: hurri1
-It has records for Set 9 and Set 10 
-1 max record from Set 9 and 1 max record from Set 10 (total 2 records).
+For each Set No, select the record with the highest Resultant.
 
-Custom Group: NESC1
-It also has records for Set 9 and Set 10 
-1 max record from each set (total 2 records).
+If duplicates are included, the duplicate max records are also selected correctly.
 
-✔ Total selected = 4 records (2 from hurri1 + 2 from NESC1)
+Group-wise addition is also correct.
 
-then we have 
+Issue to Fix (Only One Area)
 
-Group-wise Calculations (Separate Addition)
+When buffer and rounding are applied correctly,
+but 
+The following values must always be calculated based on the correct selected records:
 
-Here the system performs separate summation for each group.
-Each group’s two max-resultant records are summed individually.
+Sum of Vertical Loads
 
-see this is hurri1 2 set max records 
-and then sum of this records highlighted here 
-hurri1 4 records Group Sum	1341.00	47.00	-7565.00	7683.08
+Sum of Transverse Loads
 
-same for NESC1 
+Sum of Longitudinal Loads
 
-then after summation, we apply buffer operation on each group’s Original Sum.
-so this is Original Sum of Custom Group: hurri1
-same below also we have this original sum of vert ,tran and long in Group-wise Calculations (Separate Addition): section 
- so now we Apply Buffer to This Group Hurri1 
-Sum of Vertical Loads:
-1341.00 lbs
-Sum of Transverse Loads:
-47.00 lbs
-Sum of Longitudinal Loads:
--7565.00 lbs
-Resultant Load:
-7683.08 lbs
-
-This gives the Processed (Buffered) Sum for each group.
+Resultant Load
 
 
-Buffered / Processed Values Example
-Group	Vert	Transverse	Longitudinal
-hurri1	1500.00	200.00	-7700.00
-NESC1	1600.00	-200.00	-12900.00
-Using Group-wise Processed Sum in Load Conditions Page
+Right now, these sums only shows non-duplicate record sum when we select duplicate records they ignore duplicates sum in this Group-wise Set Max Resultant Calculations Custom Group: section .
+in this section "<div class="calculation-results">
+                    <div class="calculation-grid">
+                        <div class="calc-item">
+                            <label>Sum of Vertical Loads:</label>
+                            <span class="calc-value">{{ sums.vert|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Sum of Transverse Loads:</label>
+                            <span class="calc-value">{{ sums.trans|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Sum of Longitudinal Loads:</label>
+                            <span class="calc-value">{{ sums.long|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item resultant">
+                            <label>Resultant Load:</label>
+                            <span class="calc-value">{{ sums.resultant|floatformat:2 }} lbs</span>
+                        </div>
+                    </div>"
+Everything else is correct.
 
-When we click Configure Load Conditions, we move to the Load Conditions page.
-Here, we display the values from Group-wise Set Max Resultant Calculations.
+✅ Beginner-Friendly Hint: Where to Modify/Add Code
 
-Displayed Data Example:
+You DO NOT need to touch:
 
-Group: hurri1
+❌ Selection logic
+❌ Set No. logic
+❌ Group Max Resultant logic
 
-Base Vert: 1500.00 lbs
+this is calculation.html 
+" <div class="container">
+    <header>
+        <h2><i class="fas fa-calculator"></i> Calculation Results</h2>
+        <p>Detailed analysis of structural load calculations</p>
+    </header>
+    
+    {% if error %}
+        <div class="error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+    {% else %}
+        <!-- Selection Controls -->
+        <div class="card">
+            <h3><i class="fas fa-mouse-pointer"></i> Record Selection</h3>
+            <div class="selection-controls">
+                <button type="button" id="selectAllBtn" class="btn btn-outline-primary">
+                    <i class="fas fa-check-square"></i> Select All
+                </button>
+                <button type="button" id="selectNoneBtn" class="btn btn-outline-secondary">
+                    <i class="fas fa-square"></i> Select None
+                </button>
+                <button type="button" id="selectMaxResultantBtn" class="btn btn-outline-info">
+                    <i class="fas fa-star"></i> Select Group Max Resultant
+                </button>
+                <button type="button" id="selectSetMaxResultantBtn" class="btn btn-outline-warning">
+                    <i class="fas fa-layer-group"></i> Select Set Max Resultant (Within Groups)
+                </button>
+                <button type="button" id="selectGlobalSetMaxResultantBtn" class="btn btn-outline-success">
+                    <i class="fas fa-globe"></i> Select Global Set Max Resultant
+                </button>
+                <button type="button" id="excludeDuplicatesBtn" class="btn btn-outline-danger">
+                    <i class="fas fa-filter"></i> Exclude Duplicates
+                </button>
+                <button type="button" id="includeDuplicatesBtn" class="btn btn-outline-info">
+                    <i class="fas fa-copy"></i> Include Duplicates
+                </button>
+                <button type="button" id="debugSelectionBtn" class="btn btn-outline-dark">
+                    <i class="fas fa-bug"></i> Debug Selection
+                </button>
+                <span class="selection-count">Selected: <span id="selectedCount">0</span> records</span>
+            </div>
+        </div>
 
-Base Trans: 200.00 lbs
+        <!-- Main Groups Card -->
+        <div class="card">
+            <h3><i class="fas fa-list-ol"></i> Selected Records 
+                {% if selection_source == 'imported' %}Grouped by Load Case{% endif %}
+                {% if selection_source == 'group' %}Grouped by Load Case Groups{% endif %}
+                {% if selection_source == 'custom' %}Grouped by Custom Groups{% endif %}
+                {% if not selection_source %}Grouped by Set Number{% endif %}
+            </h3>
+            
+            {% for group_name, records in grouped_data.items %}
+                <div class="set-container">
+                    <div class="set-header">
+                        <h4>
+                            <i class="fas fa-cubes"></i> 
+                            {% if selection_source == 'imported' %}Load Case: {{ group_name }}{% endif %}
+                            {% if selection_source == 'group' %}Group: {{ group_name }}{% endif %}
+                            {% if selection_source == 'custom' %}Custom Group: {{ group_name }}{% endif %}
+                            {% if not selection_source %}Set No. {{ group_name }}{% endif %}
+                            <span class="badge badge-primary">{{ records|length }} records</span>
+                        </h4>
+                    </div>
 
-Base Long: -7700.00 lbs
+                    <!-- Group-wise table showing ALL records -->
+                    <div class="group-wise-section">
+                        <h5><i class="fas fa-chart-line"></i> Group Records (All Records)</h5>
+                        <div class="table-container">
+                            <table class="group-records-table">
+                                <thead>
+                                    <tr>
+                                        <th>Select</th>
+                                        {% for key in records.0.keys %}
+                                            {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                                <th>{{ key }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in records %}
+                                    <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %} 
+                                            {% if record.global_set_max_resultant_flag == 'yes' %}global-max-resultant-row{% endif %}" 
+                                        data-record-id="{{ record.record_id }}">
+                                        <td>
+                                            <input type="checkbox" class="record-checkbox" 
+                                                data-record-id="{{ record.record_id }}"
+                                                data-set-no="{{ record.Set_No }}"
+                                                data-vert="{{ record.Structure_Loads_Vert }}"
+                                                data-trans="{{ record.Structure_Loads_Trans }}"
+                                                data-long="{{ record.Structure_Loads_Long }}"
+                                                data-resultant="{{ record.Resultant }}"
+                                                {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
+                                            {% if record.global_set_max_resultant_flag == 'yes' %}
+                                            <span class="global-max-badge" title="Global Max for Set {{ record.Set_No }}"></span>
+                                            {% endif %}
+                                        </td>
+                                        {% for key, value in record.items %}
+                                            {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                                {% if key == 'Resultant' %}
+                                                    <td class="resultant-cell">{{ value }}</td>
+                                                {% else %}
+                                                    <td>{{ value }}</td>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-Base Resultant: 7847.29 lbs
+                    <!-- Set-wise tables for this group -->
+                    <div class="set-wise-section">
+    <h5><i class="fas fa-layer-group"></i> Set-wise Records</h5>
+    
+    <!-- FIX: Direct access to set_wise_data for current group -->
+    {% if set_wise_data and set_wise_data|get_item:group_name %}
+        {% for set_no, set_records in set_wise_data|get_item:group_name|items %}
+        <div class="set-subgroup">
+            <h6>
+                <i class="fas fa-cube"></i> Set {{ set_no }}
+                <span class="badge badge-secondary">{{ set_records|length }} records</span>
+            </h6>
+            
+            <div class="table-container">
+                <table class="set-records-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for key in set_records.0.keys %}
+                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                    <th>{{ key }}</th>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in set_records %}
+                        <tr class="{% if record.set_max_resultant_flag == 'yes' %}set-max-resultant-row{% endif %}" 
+                            data-record-id="{{ record.record_id }}">
+                            <td>
+                                <input type="checkbox" class="record-checkbox set-record-checkbox" 
+                                    data-record-id="{{ record.record_id }}"
+                                    data-set-no="{{ record.Set_No }}"
+                                    data-vert="{{ record.Structure_Loads_Vert }}"
+                                    data-trans="{{ record.Structure_Loads_Trans }}"
+                                    data-long="{{ record.Structure_Loads_Long }}"
+                                    data-resultant="{{ record.Resultant }}"
+                                    {% if record.set_max_resultant_flag == 'yes' %}data-set-max-resultant="true"{% endif %}
+                                    {% if record.set_max_resultant_flag == 'yes' %}checked{% endif %}>
+                            </td>
+                            {% for key, value in record.items %}
+                                {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
+                                    {% if key == 'Resultant' %}
+                                        <td class="resultant-cell">{{ value }}</td>
+                                    {% else %}
+                                        <td>{{ value }}</td>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if not forloop.last %}<hr class="set-divider">{% endif %}
+        {% endfor %}
+    {% else %}
+        <p>No set-wise data available for this group.</p>
+    {% endif %}
+</div>
+                </div>
+                {% if not forloop.last %}<hr>{% endif %}
+            {% endfor %}
+        </div>
 
-Group: NESC1
+        <!-- Group-wise Set Max Resultant Calculations Card -->
+        <div class="card">
+            <h3><i class="fas fa-calculator"></i> Group-wise Set Max Resultant Calculations</h3>
+            
+            {% for group_name, sums in group_wise_set_max_sums.items %}
+            <div class="group-calculation-section">
+                <h4>
+                    <i class="fas fa-layer-group"></i> 
+                    {% if selection_source == 'imported' %}Load Case: {{ group_name }}{% endif %}
+                    {% if selection_source == 'group' %}Group: {{ group_name }}{% endif %}
+                    {% if selection_source == 'custom' %}Custom Group: {{ group_name }}{% endif %}
+                    {% if not selection_source %}Set No. {{ group_name }}{% endif %}
+                    <span class="badge badge-info">{{ sums.set_count }} sets</span>
+                </h4>
+                
+                <div class="calculation-results">
+                    <div class="calculation-grid">
+                        <div class="calc-item">
+                            <label>Sum of Vertical Loads:</label>
+                            <span class="calc-value">{{ sums.vert|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Sum of Transverse Loads:</label>
+                            <span class="calc-value">{{ sums.trans|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Sum of Longitudinal Loads:</label>
+                            <span class="calc-value">{{ sums.long|floatformat:2 }} lbs</span>
+                        </div>
+                        <div class="calc-item resultant">
+                            <label>Resultant Load:</label>
+                            <span class="calc-value">{{ sums.resultant|floatformat:2 }} lbs</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Buffer Configuration for this Group -->
+                    <div class="group-buffer-config">
+                        <h5><i class="fas fa-sliders-h"></i> Apply Buffer to This Group</h5>
+                        <div class="buffer-controls">
+                            <div class="buffer-input">
+                                <label>Vertical Buffer:</label>
+                                <input type="number" class="group-vert-buffer" placeholder="Buffer (lbs)" value="100" step="1" min="0">
+                                <select class="group-vert-rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10">Round to nearest 10</option>
+                                    <option value="100" selected>Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
+                            </div>
+                            <div class="buffer-input">
+                                <label>Transverse Buffer:</label>
+                                <input type="number" class="group-trans-buffer" placeholder="Buffer (lbs)" value="100" step="1" min="0">
+                                <select class="group-trans-rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10">Round to nearest 10</option>
+                                    <option value="100" selected>Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
+                            </div>
+                            <div class="buffer-input">
+                                <label>Longitudinal Buffer:</label>
+                                <input type="number" class="group-long-buffer" placeholder="Buffer (lbs)" value="25" step="1" min="0">
+                                <select class="group-long-rounding">
+                                    <option value="0">No rounding</option>
+                                    <option value="1">Round to nearest 1</option>
+                                    <option value="10" selected>Round to nearest 10</option>
+                                    <option value="100">Round to nearest 100</option>
+                                    <option value="1000">Round to nearest 1000</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary apply-group-buffer" data-group="{{ group_name }}">
+                                <i class="fas fa-calculator"></i> Apply Buffer
+                            </button>
+                        </div>
+                        
+                        <div class="buffered-results" id="bufferedResults{{ group_name }}" style="display: none; margin-top: 10px;">
+                            <h6>Buffered Results for {{ group_name }}</h6>
+                            <div class="table-container">
+                                <table class="buffered-group-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Load Type</th>
+                                            <th>Original</th>
+                                            <th>Buffered</th>
+                                            <th>Difference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bufferedBody{{ group_name }}">
+                                        <!-- Will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if not forloop.last %}<hr class="group-divider">{% endif %}
+            {% endfor %}
+            
+            {% if not group_wise_set_max_sums %}
+            <div class="no-data-message">
+                <p>No group-wise calculations available. Please use "Select Set Max Resultant (Within Groups)" to see calculations.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Custom Selection Results Card -->
+        <div class="card">
+            <h3><i class="fas fa-layer-group"></i> Custom Selection Results</h3>
+            
+            <div class="stats-grid" id="customSelectionStats">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            
+            <div class="table-container">
+                <table id="customSelectionTable">
+                    <thead>
+                        <tr>
+                            <th>Set No.</th>
+                            <th>Record ID</th>
+                            <th>Vert (lbs)</th>
+                            <th>Trans (lbs)</th>
+                            <th>Long (lbs)</th>
+                            <th>Resultant (lbs)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customSelectionBody">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                    <tfoot id="customSelectionFooter">
+                        <!-- Will be populated by JavaScript -->
+                    </tfoot>
+                </table>
+            </div>
+        </div>
 
-Base Vert: 1600.00 lbs
+        <!-- Buffer Configuration Card -->
+        <div class="card">
+            <h3><i class="fas fa-calculator"></i> Buffer Configuration</h3>
+            
+            <form id="bufferConfigurationForm">
+                <div class="form-group">
+                    <label for="bufferConfig">Apply Buffer</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="applyBuffer" name="apply_buffer">
+                        <label for="applyBuffer">Apply buffer to combined loads</label>
+                    </div>
+                    
+                    <div id="bufferSettings" style="display: none; margin-top: 10px;">
+                        <h4>Vertical Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="vertBuffer" name="vert_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                            <select id="vertRounding" name="vert_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10">Round to nearest 10</option>
+                                <option value="100" selected>Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
+                        
+                        <h4>Transverse Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="transBuffer" name="trans_buffer" placeholder="Buffer value (lbs)" value="100" step="1" min="0">
+                            <select id="transRounding" name="trans_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10">Round to nearest 10</option>
+                                <option value="100" selected>Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
+                        
+                        <h4>Longitudinal Direction</h4>
+                        <div class="direction-config">
+                            <input type="number" id="longBuffer" name="long_buffer" placeholder="Buffer value (lbs)" value="25" step="1" min="0">
+                            <select id="longRounding" name="long_rounding">
+                                <option value="0">No rounding</option>
+                                <option value="1">Round to nearest 1</option>
+                                <option value="10" selected>Round to nearest 10</option>
+                                <option value="100">Round to nearest 100</option>
+                                <option value="1000">Round to nearest 1000</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" id="applyBufferBtn" class="btn btn-primary">
+                    <i class="fas fa-calculator"></i> Apply Buffer
+                </button>
+            </form>
+            
+            <div id="bufferedResults" style="display: none; margin-top: 20px;">
+                <h4>Buffered Results</h4>
+                <div class="table-container">
+                    <table id="bufferedLoadsTable">
+                        <thead>
+                            <tr>
+                                <th>Set No.</th>
+                                <th>Vert (lbs)</th>
+                                <th>Trans (lbs)</th>
+                                <th>Long (lbs)</th>
+                                <th>Resultant (lbs)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Results will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Report
+            </button>
 
-Base Trans: -200.00 lbs
+            <button class="btn btn-info" onclick="goToLoadConditions()">
+                <i class="fas fa-table"></i> Configure Load Conditions
+            </button>
 
-Base Long: -12900.00 lbs
+            <button class="btn btn-secondary" onclick="window.location.href='/'">
+                <i class="fas fa-home"></i> Back to Home
+            </button>
+        </div>
+    {% endif %}
+</div>
 
-Base Resultant: 13000.38 lbs
+<footer>
+    <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
+</footer>
+</div>
 
-Applying Factored Loads
 
-Next, we apply Factored Loads (e.g., NESC LIGHT 250B Load Factors) separately for each group.
+    <script>
+    // JavaScript approach to highlight rows as a backup
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have max resultant indexes from Django
+        {% if max_resultant_indexes %}
+            const maxResultantIndexes = {
+                {% for set_no, index in max_resultant_indexes.items %}
+                    '{{ set_no }}': {{ index }},
+                {% endfor %}
+            };
+            
+            // Find all set containers
+            const setContainers = document.querySelectorAll('.set-container');
+            
+            setContainers.forEach(container => {
+                // Extract set number from header
+                const header = container.querySelector('.set-header h4');
+                if (header) {
+                    const setText = header.textContent || header.innerText;
+                    const setMatch = setText.match(/Set No\.\s*(\S+)/);
+                    
+                    if (setMatch && setMatch[1]) {
+                        const setNo = setMatch[1].trim();
+                        const maxIndex = maxResultantIndexes[setNo];
+                        
+                        if (maxIndex !== undefined) {
+                            // Find the table rows in this set container
+                            const rows = container.querySelectorAll('tbody tr');
+                            if (rows.length > maxIndex) {
+                                rows[maxIndex].classList.add('max-resultant-row');
+                            }
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    });
+</script>
 
-Example for Group: hurri1
+<script>
 
-Vert: 1500 × 1.5 = 2250.00
+    document.getElementById('debugSelectionBtn').addEventListener('click', debugSetMaxSelection);
 
-Same calculation is done for Trans and Long.
+    document.addEventListener('DOMContentLoaded', function() {
+    // Existing event listeners...
+    const excludeDuplicatesBtn = document.getElementById('excludeDuplicatesBtn');
+    const includeDuplicatesBtn = document.getElementById('includeDuplicatesBtn');
+    
+    if (excludeDuplicatesBtn) {
+        excludeDuplicatesBtn.addEventListener('click', excludeDuplicateRecords);
+    }
+    
+    if (includeDuplicatesBtn) {
+        includeDuplicatesBtn.addEventListener('click', includeDuplicateRecords);
+    }
+    
+    // Initialize button states
+    updateDuplicateButtonsState();
+});
 
-Similarly, for Group: NESC1, we apply the same load condition factors to its processed values, independently.
+// ENHANCED: Function to remove duplicate records from selection
+function excludeDuplicateRecords() {
+    console.log('=== EXCLUDE DUPLICATES: Removing duplicate records ===');
+    
+    const allCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    
+    if (allCheckboxes.length === 0) {
+        showNotification('No records selected to check for duplicates', 'warning');
+        return;
+    }
+    
+    // Determine current selection mode
+    const activeMode = getActiveSelectionMode();
+    console.log(`Active mode for exclude duplicates: ${activeMode}`);
+    
+    const recordsToKeep = new Set();
+    const duplicatesToUncheck = [];
+    
+    // Group records based on active mode
+    const groupedRecords = groupRecordsByActiveMode(allCheckboxes, activeMode);
+    
+    // For each group, keep only one record (the one with highest resultant)
+    for (const [groupKey, records] of Object.entries(groupedRecords)) {
+        if (records.length > 0) {
+            // Find record with highest resultant in this group
+            let maxResultant = -1;
+            let recordToKeep = null;
+            
+            records.forEach(record => {
+                const resultant = parseFloat(record.dataset.resultant) || 0;
+                if (resultant > maxResultant) {
+                    maxResultant = resultant;
+                    recordToKeep = record;
+                }
+            });
+            
+            if (recordToKeep) {
+                recordsToKeep.add(recordToKeep);
+                console.log(`✅ KEEPING in group ${groupKey}: Record ${recordToKeep.dataset.recordId}, Resultant: ${maxResultant}`);
+                
+                // Mark all other records in this group as duplicates
+                records.forEach(record => {
+                    if (record !== recordToKeep) {
+                        duplicatesToUncheck.push(record);
+                    }
+                });
+            }
+        }
+    }
+    
+    // Uncheck duplicates
+    let duplicatesRemoved = 0;
+    duplicatesToUncheck.forEach(checkbox => {
+        checkbox.checked = false;
+        duplicatesRemoved++;
+    });
+    
+    // Update display
+    updateSelection();
+    
+    // Show feedback
+    if (duplicatesRemoved > 0) {
+        showNotification(`Removed ${duplicatesRemoved} duplicate record(s). ${recordsToKeep.size} unique records remain.`, 'success');
+    } else {
+        showNotification('No duplicates found in the current selection', 'info');
+    }
+    
+    console.log(`=== DUPLICATE REMOVAL: Removed ${duplicatesRemoved} duplicates, ${recordsToKeep.size} unique records remain ===`);
+}
+
+// CORRECTED: Function to include duplicate records based on active mode
+function includeDuplicateRecords() {
+    console.log('=== INCLUDE DUPLICATES: Adding duplicate records ===');
+    
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        showNotification('No records selected. Please select some records first.', 'warning');
+        return;
+    }
+    
+    // Determine current selection mode
+    const activeMode = getActiveSelectionMode();
+    console.log(`Active mode for include duplicates: ${activeMode}`);
+    
+    let duplicatesAdded = 0;
+    const allCheckboxes = document.querySelectorAll('.record-checkbox');
+    
+    if (activeMode === 'group') {
+    // GROUP MAX MODE: Include duplicates within each group (same max resultant) - ONLY FROM GROUP-WISE SECTION
+    console.log('GROUP MAX MODE: Including duplicates within each group (GROUP-WISE SECTION ONLY)');
+    
+    // Group selected records by their parent group
+    const selectedByGroup = {};
+    selectedCheckboxes.forEach(checkbox => {
+        const groupContainer = checkbox.closest('.set-container');
+        const groupHeader = groupContainer.querySelector('.set-header h4');
+        const groupName = extractGroupName(groupHeader);
+        
+        if (!selectedByGroup[groupName]) {
+            selectedByGroup[groupName] = [];
+        }
+        selectedByGroup[groupName].push(checkbox);
+    });
+    
+    // For each group, find max resultant and include all records with same resultant FROM GROUP-WISE SECTION ONLY
+    for (const [groupName, groupRecords] of Object.entries(selectedByGroup)) {
+        if (groupRecords.length === 0) continue;
+        
+        // Find max resultant in this group's selected records
+        let maxResultant = -1;
+        groupRecords.forEach(record => {
+            const resultant = parseFloat(record.dataset.resultant) || 0;
+            if (resultant > maxResultant) {
+                maxResultant = resultant;
+            }
+        });
+        
+        console.log(`🔍 Group ${groupName}: Max resultant = ${maxResultant}`);
+        
+        // Find ALL records in this group's GROUP-WISE SECTION (including unselected) with same resultant
+        const allGroupRecords = document.querySelectorAll('.set-container');
+        allGroupRecords.forEach(groupContainer => {
+            const groupHeader = groupContainer.querySelector('.set-header h4');
+            const currentGroupName = extractGroupName(groupHeader);
+            
+            if (currentGroupName === groupName) {
+                // ONLY look in the GROUP-WISE section, NOT in set-wise sections
+                const groupWiseSection = groupContainer.querySelector('.group-wise-section');
+                if (groupWiseSection) {
+                    const groupCheckboxes = groupWiseSection.querySelectorAll('.record-checkbox');
+                    groupCheckboxes.forEach(checkbox => {
+                        if (!checkbox.checked) {
+                            const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+                            if (Math.abs(resultant - maxResultant) < 0.001) {
+                                checkbox.checked = true;
+                                duplicatesAdded++;
+                                console.log(`✅ ADDED GROUP DUPLICATE: Record ${checkbox.dataset.recordId}, Group ${groupName}, Resultant: ${resultant} (GROUP-WISE SECTION)`);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+        
+    } else if (activeMode === 'set') {
+        // SET MAX WITHIN GROUPS MODE: Include duplicates within each set of each group
+        console.log('SET MAX MODE: Including duplicates within each set of each group');
+        
+        // Group selected records by group + set combination
+        const selectedByGroupSet = {};
+        selectedCheckboxes.forEach(checkbox => {
+            const groupContainer = checkbox.closest('.set-container');
+            const groupHeader = groupContainer.querySelector('.set-header h4');
+            const groupName = extractGroupName(groupHeader);
+            const setNo = checkbox.dataset.setNo;
+            const key = `${groupName}_SET_${setNo}`;
+            
+            if (!selectedByGroupSet[key]) {
+                selectedByGroupSet[key] = [];
+            }
+            selectedByGroupSet[key].push(checkbox);
+        });
+        
+        // For each group+set combination, find max resultant and include duplicates
+        for (const [groupSetKey, setRecords] of Object.entries(selectedByGroupSet)) {
+            if (setRecords.length === 0) continue;
+            
+            // Find max resultant in this set's selected records
+            let maxResultant = -1;
+            setRecords.forEach(record => {
+                const resultant = parseFloat(record.dataset.resultant) || 0;
+                if (resultant > maxResultant) {
+                    maxResultant = resultant;
+                }
+            });
+            
+            const [groupName, setNo] = groupSetKey.split('_SET_');
+            console.log(`🔍 Group ${groupName}, Set ${setNo}: Max resultant = ${maxResultant}`);
+            
+            // Find ALL records in this specific set (including unselected) with same resultant
+            const allGroupRecords = document.querySelectorAll('.set-container');
+            allGroupRecords.forEach(groupContainer => {
+                const groupHeader = groupContainer.querySelector('.set-header h4');
+                const currentGroupName = extractGroupName(groupHeader);
+                
+                if (currentGroupName === groupName) {
+                    // Look in set subgroups within this group
+                    const setSubgroups = groupContainer.querySelectorAll('.set-subgroup');
+                    setSubgroups.forEach(subgroup => {
+                        const setHeader = subgroup.querySelector('h6');
+                        const currentSetInfo = setHeader ? setHeader.textContent.trim() : '';
+                        if (currentSetInfo.includes(`Set ${setNo}`)) {
+                            const setCheckboxes = subgroup.querySelectorAll('.record-checkbox');
+                            setCheckboxes.forEach(checkbox => {
+                                if (!checkbox.checked && checkbox.dataset.setNo === setNo) {
+                                    const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+                                    if (Math.abs(resultant - maxResultant) < 0.001) {
+                                        checkbox.checked = true;
+                                        duplicatesAdded++;
+                                        console.log(`✅ ADDED SET DUPLICATE: Record ${checkbox.dataset.recordId}, Group ${groupName}, Set ${setNo}, Resultant: ${resultant}`);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+    } else if (activeMode === 'global') {
+        // GLOBAL SET MAX MODE: Include duplicates across all groups for each Set No.
+        console.log('GLOBAL SET MAX MODE: Including duplicates across all groups for each Set No.');
+        
+        // Group selected records by Set No. only (across all groups)
+        const selectedBySet = {};
+        selectedCheckboxes.forEach(checkbox => {
+            const setNo = checkbox.dataset.setNo;
+            if (!selectedBySet[setNo]) {
+                selectedBySet[setNo] = [];
+            }
+            selectedBySet[setNo].push(checkbox);
+        });
+        
+        // For each Set No., find max resultant and include duplicates across all groups
+        for (const [setNo, setRecords] of Object.entries(selectedBySet)) {
+            if (setRecords.length === 0) continue;
+            
+            // Find max resultant for this Set No. across all groups
+            let maxResultant = -1;
+            setRecords.forEach(record => {
+                const resultant = parseFloat(record.dataset.resultant) || 0;
+                if (resultant > maxResultant) {
+                    maxResultant = resultant;
+                }
+            });
+            
+            console.log(`🔍 Global Set ${setNo}: Max resultant = ${maxResultant}`);
+            
+            // Find ALL records with this Set No. (across all groups) with same resultant
+            allCheckboxes.forEach(checkbox => {
+                if (!checkbox.checked && checkbox.dataset.setNo === setNo) {
+                    const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+                    if (Math.abs(resultant - maxResultant) < 0.001) {
+                        checkbox.checked = true;
+                        duplicatesAdded++;
+                        console.log(`✅ ADDED GLOBAL DUPLICATE: Record ${checkbox.dataset.recordId}, Set ${setNo}, Resultant: ${resultant}`);
+                    }
+                }
+            });
+        }
+        
+    } else {
+        console.log('Unknown mode, using fallback duplicate detection');
+        // Fallback to simple Set No. matching
+        selectedCheckboxes.forEach(selectedCheckbox => {
+            const setNo = selectedCheckbox.dataset.setNo;
+            
+            allCheckboxes.forEach(checkbox => {
+                if (!checkbox.checked && checkbox.dataset.setNo === setNo) {
+                    checkbox.checked = true;
+                    duplicatesAdded++;
+                    console.log(`✅ ADDED FALLBACK DUPLICATE: Record ${checkbox.dataset.recordId}, Set ${setNo}`);
+                }
+            });
+        });
+    }
+    
+    // Update display
+    updateSelection();
+    
+    // Show feedback
+    if (duplicatesAdded > 0) {
+        showNotification(`Added ${duplicatesAdded} duplicate record(s) in ${activeMode} mode`, 'success');
+    } else {
+        showNotification(`No duplicates found in ${activeMode} mode`, 'info');
+    }
+    
+    console.log(`=== DUPLICATE INCLUSION: Added ${duplicatesAdded} duplicates in ${activeMode} mode ===`);
+}
+
+// Helper function to extract group name from header
+function extractGroupName(groupHeader) {
+    if (!groupHeader) return 'UnknownGroup';
+    
+    const headerText = groupHeader.textContent || groupHeader.innerText;
+    
+    if (headerText.includes('Load Case:')) {
+        return headerText.split('Load Case:')[1].split('<')[0].trim();
+    } else if (headerText.includes('Group:')) {
+        return headerText.split('Group:')[1].split('<')[0].trim();
+    } else if (headerText.includes('Custom Group:')) {
+        return headerText.split('Custom Group:')[1].split('<')[0].trim();
+    } else if (headerText.includes('Set No.')) {
+        return headerText.split('Set No.')[1].split('<')[0].trim();
+    } else {
+        // Remove HTML tags and trim
+        return headerText.replace(/<[^>]*>/g, '').trim();
+    }
+}
+
+// IMPROVED: Determine the current active selection mode
+function getActiveSelectionMode() {
+    // First try to use the tracked mode
+    if (lastSelectionMode !== 'unknown') {
+        return lastSelectionMode;
+    }
+    
+    // Fallback to detection based on current selection patterns
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        return 'unknown';
+    }
+    
+    // Check for Global Set Max pattern (one record per unique Set No. across all groups)
+    const uniqueSetNos = new Set();
+    selectedCheckboxes.forEach(checkbox => {
+        uniqueSetNos.add(checkbox.dataset.setNo);
+    });
+    
+    if (selectedCheckboxes.length === uniqueSetNos.size) {
+        const allSetNos = new Set();
+        document.querySelectorAll('.record-checkbox').forEach(cb => allSetNos.add(cb.dataset.setNo));
+        
+        // If we have exactly one record per Set No. that exists in the data, it's Global Set Max
+        if (uniqueSetNos.size === allSetNos.size) {
+            return 'global';
+        }
+    }
+    
+    // Check for Set Max Within Groups pattern (records with set-max-resultant-row class)
+    const setMaxCheckboxes = Array.from(selectedCheckboxes).filter(checkbox => {
+        const row = checkbox.closest('tr');
+        return row && row.classList.contains('set-max-resultant-row');
+    });
+    
+    if (setMaxCheckboxes.length > 0 && setMaxCheckboxes.length === selectedCheckboxes.length) {
+        return 'set';
+    }
+    
+    // Check for Group Max pattern (one max record per group)
+    const groups = new Set();
+    let hasMultipleRecordsInGroup = false;
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const groupContainer = checkbox.closest('.set-container');
+        if (groupContainer) {
+            const groupHeader = groupContainer.querySelector('.set-header h4');
+            const groupName = extractGroupName(groupHeader);
+            
+            if (groups.has(groupName)) {
+                hasMultipleRecordsInGroup = true;
+            }
+            groups.add(groupName);
+        }
+    });
+    
+    // If we have exactly one record per group and no group has multiple records, it's Group Max
+    if (selectedCheckboxes.length === groups.size && !hasMultipleRecordsInGroup) {
+        return 'group';
+    }
+    
+    return 'unknown';
+}
+
+// NEW: Group records based on active mode
+function groupRecordsByActiveMode(checkboxes, mode) {
+    const groups = {};
+    
+    checkboxes.forEach(checkbox => {
+        const groupKey = getRecordGroupKey(checkbox, mode);
+        
+        if (!groups[groupKey]) {
+            groups[groupKey] = [];
+        }
+        
+        groups[groupKey].push(checkbox);
+    });
+    
+    return groups;
+}
+
+// ENHANCED: Get grouping key based on active mode
+function getRecordGroupKey(checkbox, mode) {
+    const setNo = checkbox.dataset.setNo || 'Unknown';
+    
+    switch (mode) {
+        case 'global':
+            // Global Set Max: group only by Set No. across all groups
+            return `GLOBAL_SET_${setNo}`;
+            
+        case 'set':
+            // Set Max Within Groups: group by combination of group and Set No.
+            const groupContainer = checkbox.closest('.set-container');
+            const groupHeader = groupContainer ? groupContainer.querySelector('.set-header h4') : null;
+            let groupName = 'UnknownGroup';
+            
+            if (groupHeader) {
+                const headerText = groupHeader.textContent || groupHeader.innerText;
+                // More robust group name extraction
+                if (headerText.includes('Load Case:')) {
+                    groupName = headerText.split('Load Case:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Group:')) {
+                    groupName = headerText.split('Group:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Custom Group:')) {
+                    groupName = headerText.split('Custom Group:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Set No.')) {
+                    groupName = headerText.split('Set No.')[1].split('<')[0].trim();
+                } else {
+                    groupName = headerText.replace(/<[^>]*>/g, '').trim();
+                }
+            }
+            return `SET_${groupName}_${setNo}`;
+            
+        case 'group':
+            // Group Max: group by group only (ignore Set No.)
+            const groupContainer2 = checkbox.closest('.set-container');
+            const groupHeader2 = groupContainer2 ? groupContainer2.querySelector('.set-header h4') : null;
+            let groupName2 = 'UnknownGroup';
+            
+            if (groupHeader2) {
+                const headerText = groupHeader2.textContent || groupHeader2.innerText;
+                if (headerText.includes('Load Case:')) {
+                    groupName2 = headerText.split('Load Case:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Group:')) {
+                    groupName2 = headerText.split('Group:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Custom Group:')) {
+                    groupName2 = headerText.split('Custom Group:')[1].split('<')[0].trim();
+                } else if (headerText.includes('Set No.')) {
+                    groupName2 = headerText.split('Set No.')[1].split('<')[0].trim();
+                } else {
+                    groupName2 = headerText.replace(/<[^>]*>/g, '').trim();
+                }
+            }
+            return `GROUP_${groupName2}`;
+            
+        default:
+            // Fallback: group by Set No. and load values
+            const vert = parseFloat(checkbox.dataset.vert) || 0;
+            const trans = parseFloat(checkbox.dataset.trans) || 0;
+            const long = parseFloat(checkbox.dataset.long) || 0;
+            return `FALLBACK_SET_${setNo}_V${vert.toFixed(2)}_T${trans.toFixed(2)}_L${long.toFixed(2)}`;
+    }
+}
+
+// DEBUG: Function to verify grouping logic
+function debugGroupingLogic() {
+    console.log('=== DEBUG: Grouping Logic Verification ===');
+    
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const activeMode = getActiveSelectionMode();
+    
+    console.log(`Active mode: ${activeMode}`);
+    console.log(`Selected records: ${selectedCheckboxes.length}`);
+    
+    // Show how each selected record is grouped
+    selectedCheckboxes.forEach((checkbox, index) => {
+        const groupKey = getRecordGroupKey(checkbox, activeMode);
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+        const groupContainer = checkbox.closest('.set-container');
+        const groupHeader = groupContainer ? groupContainer.querySelector('.set-header h4') : null;
+        const groupName = groupHeader ? groupHeader.textContent.trim() : 'Unknown';
+        
+        console.log(`Record ${index + 1}:`);
+        console.log(`  - ID: ${checkbox.dataset.recordId}`);
+        console.log(`  - Set: ${checkbox.dataset.setNo}`);
+        console.log(`  - Group: ${groupName}`);
+        console.log(`  - Resultant: ${resultant}`);
+        console.log(`  - Group Key: ${groupKey}`);
+    });
+    
+    // Show grouping
+    const groupedRecords = groupRecordsByActiveMode(selectedCheckboxes, activeMode);
+    console.log('Grouped records:');
+    for (const [groupKey, records] of Object.entries(groupedRecords)) {
+        console.log(`  ${groupKey}: ${records.length} records`);
+        records.forEach(record => {
+            console.log(`    - Record ${record.dataset.recordId}, Resultant: ${record.dataset.resultant}`);
+        });
+    }
+    
+    console.log('=== END GROUPING DEBUG ===');
+}
+
+// Add this to your debug button
+document.getElementById('debugSelectionBtn').addEventListener('click', function() {
+    debugGroupingLogic();
+    debugSelectionState();
+});
+
+// ENHANCED: Create a comprehensive unique key for record comparison
+function createRecordKey(checkbox) {
+    // Use combination of key fields to identify duplicates
+    const setNo = checkbox.dataset.setNo || 'Unknown';
+    const vert = parseFloat(checkbox.dataset.vert) || 0;
+    const trans = parseFloat(checkbox.dataset.trans) || 0;
+    const long = parseFloat(checkbox.dataset.long) || 0;
+    
+    // For structural loads, these values determine if records are duplicates
+    // Round to 2 decimal places to handle floating point precision
+    return `SET_${setNo}_V${vert.toFixed(2)}_T${trans.toFixed(2)}_L${long.toFixed(2)}`;
+}
+
+// ENHANCED Notification Function
+function showNotification(message, type = 'info', duration = 5000) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 400px;
+        max-width: 600px;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    const icon = type === 'success' ? 'fa-check-circle' : 
+                 type === 'warning' ? 'fa-exclamation-triangle' : 
+                 type === 'error' ? 'fa-times-circle' : 'fa-info-circle';
+    
+    notification.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <i class="fas ${icon} mr-2"></i>
+                <strong>${type.toUpperCase()}:</strong> ${message}
+            </div>
+            <button type="button" class="close ml-3" onclick="this.parentElement.parentElement.remove()">
+                <span>&times;</span>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+// ENHANCED: Update selection count and handle duplicate styling
+function updateSelection() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    
+    // Update count
+    selectedCountSpan.textContent = selectedCheckboxes.length;
+    
+    // Update row styling and identify duplicates
+    const recordMap = new Map();
+    const duplicateRecords = new Set();
+    const uniqueRecords = new Set();
+    
+    // First pass: Identify duplicates and unique records
+    selectedCheckboxes.forEach(checkbox => {
+        const recordKey = createRecordKey(checkbox);
+        
+        if (recordMap.has(recordKey)) {
+            // This is a duplicate - mark both records
+            duplicateRecords.add(recordMap.get(recordKey));
+            duplicateRecords.add(checkbox);
+        } else {
+            // First occurrence - mark as unique
+            recordMap.set(recordKey, checkbox);
+            uniqueRecords.add(checkbox);
+        }
+    });
+    
+    // Remove records from unique set if they became duplicates
+    duplicateRecords.forEach(duplicate => {
+        uniqueRecords.delete(duplicate);
+    });
+    
+    // Second pass: Apply styling to all rows
+    document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        
+        // Reset classes
+        row.classList.remove('selected-record', 'duplicate-record', 'unique-record');
+        
+        if (checkbox.checked) {
+            row.classList.add('selected-record');
+            
+            // Apply specific styling
+            if (duplicateRecords.has(checkbox)) {
+                row.classList.add('duplicate-record');
+            } else if (uniqueRecords.has(checkbox)) {
+                row.classList.add('unique-record');
+            }
+        }
+    });
+    
+    // Update custom selection display
+    updateCustomSelectionDisplay();
+    
+    // Update button states based on selection
+    updateDuplicateButtonsState();
+    
+    // Log selection state for debugging
+    console.log(`Selection: ${selectedCheckboxes.length} total, ${uniqueRecords.size} unique, ${duplicateRecords.size} duplicates`);
+}
+
+// NEW: Update duplicate buttons state based on current selection
+function updateDuplicateButtonsState() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const hasDuplicates = hasDuplicateRecords();
+    
+    // Enable/disable buttons based on selection state
+    document.getElementById('excludeDuplicatesBtn').disabled = selectedCheckboxes.length === 0;
+    document.getElementById('includeDuplicatesBtn').disabled = selectedCheckboxes.length === 0;
+    
+    // Visual feedback
+    if (hasDuplicates) {
+        document.getElementById('excludeDuplicatesBtn').classList.add('btn-danger');
+        document.getElementById('excludeDuplicatesBtn').classList.remove('btn-outline-danger');
+    } else {
+        document.getElementById('excludeDuplicatesBtn').classList.remove('btn-danger');
+        document.getElementById('excludeDuplicatesBtn').classList.add('btn-outline-danger');
+    }
+}
+
+// NEW: Check if current selection has duplicates
+function hasDuplicateRecords() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const recordMap = new Map();
+    
+    for (let checkbox of selectedCheckboxes) {
+        const recordKey = createRecordKey(checkbox);
+        if (recordMap.has(recordKey)) {
+            return true;
+        }
+        recordMap.set(recordKey, checkbox);
+    }
+    
+    return false;
+}
+
+/// ENHANCED: Function to analyze current selection state
+function debugSelectionState() {
+    console.log('=== DEBUG: Current Selection Analysis ===');
+    
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const recordMap = new Map();
+    const duplicates = [];
+    const groupsAnalysis = {};
+    
+    console.log(`Total selected: ${selectedCheckboxes.length}`);
+    
+    // Analyze for duplicates
+    selectedCheckboxes.forEach(checkbox => {
+        const key = createRecordKey(checkbox);
+        const row = checkbox.closest('tr');
+        const groupContainer = row.closest('.set-container');
+        const groupHeader = groupContainer.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : 'Unknown Group';
+        
+        if (!groupsAnalysis[groupName]) {
+            groupsAnalysis[groupName] = { count: 0, records: [] };
+        }
+        groupsAnalysis[groupName].count++;
+        groupsAnalysis[groupName].records.push(checkbox.dataset.recordId);
+        
+        if (recordMap.has(key)) {
+            duplicates.push({
+                original: recordMap.get(key),
+                duplicate: checkbox,
+                key: key
+            });
+        } else {
+            recordMap.set(key, checkbox);
+        }
+    });
+    
+    console.log(`Unique records: ${recordMap.size}`);
+    console.log(`Duplicate pairs: ${duplicates.length}`);
+    
+    // Show group distribution
+    console.log('Group distribution:');
+    for (const [groupName, data] of Object.entries(groupsAnalysis)) {
+        console.log(`  ${groupName}: ${data.count} records`);
+    }
+    
+    duplicates.forEach((dup, index) => {
+        console.log(`Duplicate pair ${index + 1}:`);
+        console.log(`  Original: Record ${dup.original.dataset.recordId}, Set ${dup.original.dataset.setNo}`);
+        console.log(`  Duplicate: Record ${dup.duplicate.dataset.recordId}, Set ${dup.duplicate.dataset.setNo}`);
+    });
+    
+    console.log('=== END DEBUG ===');
+}
+
+// Update your debug button to use this function
+document.getElementById('debugSelectionBtn').addEventListener('click', debugSelectionState);
+
+// Enhanced debug function
+function debugGroupAndSetSelection() {
+    console.log('=== DEBUG: Group and Set Analysis ===');
+    
+    // Check all groups in the main section
+    const groups = document.querySelectorAll('.set-container');
+    console.log(`Total groups in main view: ${groups.length}`);
+    
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        // Count total records in this group
+        const totalRecords = group.querySelectorAll('.record-checkbox').length;
+        
+        // Count set-wise sections
+        const setSections = group.querySelectorAll('.set-subgroup');
+        
+        console.log(`Group: ${groupName}`);
+        console.log(`  - Total records: ${totalRecords}`);
+        console.log(`  - Set sections: ${setSections.length}`);
+        
+        // Check each set section
+        setSections.forEach((setSection, setIndex) => {
+            const setHeader = setSection.querySelector('h6');
+            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
+            const setRecords = setSection.querySelectorAll('.record-checkbox');
+            const setMaxRecords = setSection.querySelectorAll('.set-max-resultant-row');
+            
+            console.log(`    ${setInfo}`);
+            console.log(`      - Records: ${setRecords.length}`);
+            console.log(`      - Set max rows: ${setMaxRecords.length}`);
+        });
+    });
+    
+    // Check group-wise calculations section
+    const calculationGroups = document.querySelectorAll('.group-calculation-section');
+    console.log(`Groups in calculations section: ${calculationGroups.length}`);
+    calculationGroups.forEach(group => {
+        const header = group.querySelector('h4');
+        console.log(`  - ${header ? header.textContent.trim() : 'Unknown group'}`);
+    });
+    
+    console.log('=== END DEBUG ===');
+}
+
+// Call this after page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(debugGroupAndSetSelection, 1500);
+});
+
+// DEBUG: Function to check set max resultant selection
+function debugSetMaxSelection() {
+    console.log('=== DEBUG: Set Max Resultant Analysis ===');
+    
+    // Check all groups
+    const groups = document.querySelectorAll('.set-container');
+    console.log(`Total groups found: ${groups.length}`);
+    
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        // Count set max rows in this group
+        const setMaxRows = group.querySelectorAll('.set-max-resultant-row');
+        const setMaxCheckboxes = group.querySelectorAll('.record-checkbox[data-set-max-resultant="true"]');
+        
+        console.log(`Group: ${groupName}`);
+        console.log(`  - Set max rows (CSS): ${setMaxRows.length}`);
+        console.log(`  - Set max checkboxes (data): ${setMaxCheckboxes.length}`);
+        
+        // Log each set max record
+        setMaxRows.forEach((row, index) => {
+            const checkbox = row.querySelector('.record-checkbox');
+            if (checkbox) {
+                console.log(`    Record ${index + 1}: ID=${checkbox.dataset.recordId}, Set=${checkbox.dataset.setNo}`);
+            }
+        });
+    });
+    
+    console.log('=== END DEBUG ===');
+}
+
+// Call this after page load to see what's available
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(debugSetMaxSelection, 1000);
+});
+
+// Enhanced page load debugging
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== PAGE LOAD: Initializing calculation page ===');
+    
+    // Wait for full page render
+    setTimeout(() => {
+        console.log('=== INITIAL PAGE STATE ===');
+        
+        const totalGroups = document.querySelectorAll('.set-container').length;
+        const totalSetSubgroups = document.querySelectorAll('.set-subgroup').length;
+        const totalRecords = document.querySelectorAll('.record-checkbox').length;
+        
+        console.log(`📈 Initial counts:`);
+        console.log(`   - Groups: ${totalGroups}`);
+        console.log(`   - Set subgroups: ${totalSetSubgroups}`);
+        console.log(`   - Total records: ${totalRecords}`);
+        
+        // Verify template rendering
+        debugTemplateRendering();
+        
+    }, 2000);
+});
+
+// Debug template rendering
+function debugTemplateRendering() {
+    console.log('=== TEMPLATE RENDERING VERIFICATION ===');
+    
+    const groups = document.querySelectorAll('.set-container');
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        const setSubgroups = group.querySelectorAll('.set-subgroup');
+        console.log(`🔍 ${groupName}: ${setSubgroups.length} set subgroups`);
+        
+        setSubgroups.forEach((subgroup, setIndex) => {
+            const setHeader = subgroup.querySelector('h6');
+            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
+            const records = subgroup.querySelectorAll('.record-checkbox');
+            
+            console.log(`   ${setInfo}: ${records.length} records`);
+            
+            // Check if set max rows are properly styled
+            const setMaxRows = subgroup.querySelectorAll('.set-max-resultant-row');
+            console.log(`      Set max rows (CSS): ${setMaxRows.length}`);
+            
+            setMaxRows.forEach(row => {
+                const checkbox = row.querySelector('.record-checkbox');
+                if (checkbox) {
+                    console.log(`      ✅ Set max: Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
+                }
+            });
+        });
+    });
+}
+
+function goToLoadConditions() {
+    const calculationData = {{ calculation_data_json|safe }};
+    const processedSums = window.currentCustomSelection; // This contains the buffered sums
+    
+    // Create a form to submit the data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'load_condition' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add calculation data
+    const dataInput = document.createElement('input');
+    dataInput.type = 'hidden';
+    dataInput.name = 'calculation_data';
+    dataInput.value = JSON.stringify(calculationData);
+    form.appendChild(dataInput);
+    
+    // NEW: Add processed sums
+    const processedSumsInput = document.createElement('input');
+    processedSumsInput.type = 'hidden';
+    processedSumsInput.name = 'processed_sums';
+    processedSumsInput.value = JSON.stringify(processedSums);
+    form.appendChild(processedSumsInput);
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+
+<script>
+// Buffer Configuration Logic
+// Corrected Buffer Configuration Logic
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    if (applyBufferCheckbox && bufferSettings) {
+        applyBufferCheckbox.addEventListener('change', function() {
+            bufferSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Handle buffer application
+    const applyBufferBtn = document.getElementById('applyBufferBtn');
+    if (applyBufferBtn) {
+        applyBufferBtn.addEventListener('click', function() {
+            applyBufferToResults();
+        });
+    }
+    
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
+    }
+    
+    function applyBufferToResults() {
+        // Get buffer settings
+        const applyBuffer = document.getElementById('applyBuffer').checked;
+        const vertBuffer = parseFloat(document.getElementById('vertBuffer').value) || 0;
+        const transBuffer = parseFloat(document.getElementById('transBuffer').value) || 0;
+        const longBuffer = parseFloat(document.getElementById('longBuffer').value) || 0;
+        const vertRounding = parseInt(document.getElementById('vertRounding').value) || 0;
+        const transRounding = parseInt(document.getElementById('transRounding').value) || 0;
+        const longRounding = parseInt(document.getElementById('longRounding').value) || 0;
+        
+        // Get the max resultant values from Django context
+        const maxResultantValues = {
+            {% for set_no, values in max_resultant_values.items %}
+                '{{ set_no }}': {
+                    vert: {{ values.vert }},
+                    trans: {{ values.trans }},
+                    long: {{ values.long }},
+                    resultant: {{ values.resultant }}
+                },
+            {% endfor %}
+        };
+        
+        // Get the original sum values
+        const originalSumValues = {
+            vert: {{ combined_vert }},
+            trans: {{ combined_trans }},
+            long: {{ combined_long }},
+            resultant: {{ combined_sqrt }}
+        };
+        
+        // Create processed sum values (initially same as original)
+        let processedSumValues = {...originalSumValues};
+        
+        // Apply buffer and rounding only to sum values if enabled
+        if (applyBuffer) {
+            // Apply buffers to sum values
+            processedSumValues.vert = applyBufferWithSign(originalSumValues.vert, vertBuffer);
+            processedSumValues.trans = applyBufferWithSign(originalSumValues.trans, transBuffer);
+            processedSumValues.long = applyBufferWithSign(originalSumValues.long, longBuffer);
+            
+            // Apply rounding to sum values using correct rounding function
+            if (vertRounding > 0) {
+                processedSumValues.vert = roundToNearest(processedSumValues.vert, vertRounding);
+            }
+            if (transRounding > 0) {
+                processedSumValues.trans = roundToNearest(processedSumValues.trans, transRounding);
+            }
+            if (longRounding > 0) {
+                processedSumValues.long = roundToNearest(processedSumValues.long, longRounding);
+            }
+            
+            // Recalculate resultant after buffer and rounding
+            processedSumValues.resultant = Math.sqrt(
+                processedSumValues.vert**2 + 
+                processedSumValues.trans**2 + 
+                processedSumValues.long**2
+            );
+        }
+        
+        // Display buffered results
+        displayBufferedResults(maxResultantValues, processedSumValues, originalSumValues, {
+            applyBuffer,
+            vertBuffer,
+            transBuffer,
+            longBuffer,
+            vertRounding,
+            transRounding,
+            longRounding
+        });
+    }
+    
+    function displayBufferedResults(setValues, processedSumValues, originalSumValues, settings) {
+        const tableBody = document.querySelector('#bufferedLoadsTable tbody');
+        tableBody.innerHTML = '';
+        
+        // Add individual set rows (unchanged)
+        for (const [setNo, values] of Object.entries(setValues)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${setNo}</td>
+                <td>${values.vert.toFixed(2)}</td>
+                <td>${values.trans.toFixed(2)}</td>
+                <td>${values.long.toFixed(2)}</td>
+                <td>${values.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+        
+        // Add original sum row
+        const originalSumRow = document.createElement('tr');
+        originalSumRow.classList.add('original-sum');
+        originalSumRow.innerHTML = `
+            <td><strong>Original Sum</strong></td>
+            <td><strong>${originalSumValues.vert.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.trans.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.long.toFixed(2)}</strong></td>
+            <td><strong>${originalSumValues.resultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(originalSumRow);
+        
+        // Add processed sum row (only if buffer was applied)
+        if (settings.applyBuffer) {
+            const processedSumRow = document.createElement('tr');
+            processedSumRow.classList.add('highlight');
+            processedSumRow.innerHTML = `
+                <td><strong>Processed Sum</strong></td>
+                <td><strong>${processedSumValues.vert.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.trans.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.long.toFixed(2)}</strong></td>
+                <td><strong>${processedSumValues.resultant.toFixed(2)}</strong></td>
+            `;
+            tableBody.appendChild(processedSumRow);
+        }
+        
+        // Add settings info
+        if (settings.applyBuffer) {
+            const settingsRow = document.createElement('tr');
+            settingsRow.classList.add('settings-info');
+            settingsRow.innerHTML = `
+                <td colspan="5" style="text-align: left; font-style: italic;">
+                    Applied settings: 
+                    Vert: +${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                    Trans: +${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                    Long: +${settings.longBuffer} lbs, Round to ${settings.longRounding}
+                </td>
+            `;
+            tableBody.appendChild(settingsRow);
+        }
+        
+        // Show results section
+        document.getElementById('bufferedResults').style.display = 'block';
+    }
+
+    const applyGroupBufferBtns = document.querySelectorAll('.apply-group-buffer');
+    applyGroupBufferBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const groupName = this.getAttribute('data-group');
+            applyBufferToGroup(groupName);
+        });
+    });
+
+    window.groupWiseBufferedSums = {};
+    
+    // NEW: Function to apply buffer to a specific group
+    function applyBufferToGroup(groupName) {
+    console.log(`=== Applying buffer to group: ${groupName} ===`);
+    
+    // Find the group container
+    const groupContainers = document.querySelectorAll('.set-container');
+    let targetGroup = null;
+    
+    groupContainers.forEach(container => {
+        const header = container.querySelector('.set-header h4');
+        if (header && header.textContent.includes(groupName)) {
+            targetGroup = container;
+        }
+    });
+    
+    if (!targetGroup) {
+        alert(`Group container not found for: ${groupName}`);
+        return;
+    }
+    
+    // CRITICAL: Get ALL selected checkboxes in this group (not just set max ones)
+    // This respects include/exclude duplicate logic
+    const selectedCheckboxes = targetGroup.querySelectorAll('.record-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert(`No records selected in group: ${groupName}. Please select records first.`);
+        return;
+    }
+    
+    console.log(`Found ${selectedCheckboxes.length} selected records in group ${groupName}`);
+    
+    // Calculate ORIGINAL sum from currently selected checkboxes
+    let originalVert = 0;
+    let originalTrans = 0;
+    let originalLong = 0;
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        
+        originalVert += vert;
+        originalTrans += trans;
+        originalLong += long;
+        
+        console.log(`Record ${checkbox.dataset.recordId}: Vert=${vert}, Trans=${trans}, Long=${long}`);
+    });
+    
+    const originalResultant = Math.sqrt(
+        originalVert**2 + 
+        originalTrans**2 + 
+        originalLong**2
+    );
+    
+    console.log(`Original sum for group ${groupName}:`);
+    console.log(`  Vert: ${originalVert}, Trans: ${originalTrans}, Long: ${originalLong}`);
+    console.log(`  Resultant: ${originalResultant}`);
+    
+    // Get buffer inputs for this group
+    const bufferControls = document.querySelector(`.apply-group-buffer[data-group="${groupName}"]`).closest('.buffer-controls');
+    const vertBuffer = parseFloat(bufferControls.querySelector('.group-vert-buffer').value) || 0;
+    const transBuffer = parseFloat(bufferControls.querySelector('.group-trans-buffer').value) || 0;
+    const longBuffer = parseFloat(bufferControls.querySelector('.group-long-buffer').value) || 0;
+    const vertRounding = parseInt(bufferControls.querySelector('.group-vert-rounding').value) || 0;
+    const transRounding = parseInt(bufferControls.querySelector('.group-trans-rounding').value) || 0;
+    const longRounding = parseInt(bufferControls.querySelector('.group-long-rounding').value) || 0;
+    
+    console.log(`Buffer settings: Vert=${vertBuffer}, Trans=${transBuffer}, Long=${longBuffer}`);
+    
+    // Apply buffers with sign consideration
+    let processedVert = applyBufferWithSign(originalVert, vertBuffer);
+    let processedTrans = applyBufferWithSign(originalTrans, transBuffer);
+    let processedLong = applyBufferWithSign(originalLong, longBuffer);
+    
+    // Apply rounding
+    if (vertRounding > 0) {
+        processedVert = roundToNearest(processedVert, vertRounding);
+        console.log(`Rounded Vert: ${originalVert} -> ${processedVert} (nearest ${vertRounding})`);
+    }
+    if (transRounding > 0) {
+        processedTrans = roundToNearest(processedTrans, transRounding);
+        console.log(`Rounded Trans: ${originalTrans} -> ${processedTrans} (nearest ${transRounding})`);
+    }
+    if (longRounding > 0) {
+        processedLong = roundToNearest(processedLong, longRounding);
+        console.log(`Rounded Long: ${originalLong} -> ${processedLong} (nearest ${longRounding})`);
+    }
+    
+    // Recalculate resultant
+    const processedResultant = Math.sqrt(
+        processedVert**2 + 
+        processedTrans**2 + 
+        processedLong**2
+    );
+    
+    console.log(`Processed sum for group ${groupName}:`);
+    console.log(`  Vert: ${processedVert}, Trans: ${processedTrans}, Long: ${processedLong}`);
+    console.log(`  Resultant: ${processedResultant}`);
+    
+    // Display results
+    displayGroupBufferedResults(
+        groupName, 
+        { 
+            vert: originalVert, 
+            trans: originalTrans, 
+            long: originalLong, 
+            resultant: originalResultant 
+        },
+        { 
+            vert: processedVert, 
+            trans: processedTrans, 
+            long: processedLong, 
+            resultant: processedResultant 
+        },
+        { vertBuffer, transBuffer, longBuffer, vertRounding, transRounding, longRounding }
+    );
+    
+    // Store the buffered sums for this group
+    window.groupWiseBufferedSums[groupName] = {
+        vert: processedVert,
+        trans: processedTrans,
+        long: processedLong,
+        resultant: processedResultant,
+        groupName: groupName,
+        selectedCount: selectedCheckboxes.length,
+        originalVert: originalVert,
+        originalTrans: originalTrans,
+        originalLong: originalLong,
+        originalResultant: originalResultant,
+        bufferApplied: true
+    };
+    
+    console.log(`=== Buffer applied to group ${groupName} ===`);
+}
+    
+    // NEW: Function to apply buffer based on sign (same as global)
+    function applyBufferWithSign(originalValue, buffer) {
+        return originalValue >= 0 ? originalValue + buffer : originalValue - buffer;
+    }
+    
+    // NEW: Function to display buffered results for a group
+    function displayGroupBufferedResults(groupName, originalValues, processedValues, settings) {
+    const tableBody = document.getElementById(`bufferedBody${groupName}`);
+    tableBody.innerHTML = '';
+    
+    // Add a header row showing selection info
+    const infoRow = document.createElement('tr');
+    infoRow.innerHTML = `
+        <td colspan="4" style="text-align: left; font-style: italic; background-color: #f0f8ff;">
+            <i class="fas fa-info-circle"></i> 
+            Buffer applied to <strong>currently selected records</strong> in this group
+            (respects include/exclude duplicate logic)
+        </td>
+    `;
+    tableBody.appendChild(infoRow);
+    
+    // Vertical
+    const vertRow = document.createElement('tr');
+    vertRow.innerHTML = `
+        <td>Vertical</td>
+        <td>${originalValues.vert.toFixed(2)}</td>
+        <td>${processedValues.vert.toFixed(2)}</td>
+        <td>${(processedValues.vert - originalValues.vert).toFixed(2)}</td>
+    `;
+    tableBody.appendChild(vertRow);
+    
+    // Transverse
+    const transRow = document.createElement('tr');
+    transRow.innerHTML = `
+        <td>Transverse</td>
+        <td>${originalValues.trans.toFixed(2)}</td>
+        <td>${processedValues.trans.toFixed(2)}</td>
+        <td>${(processedValues.trans - originalValues.trans).toFixed(2)}</td>
+    `;
+    tableBody.appendChild(transRow);
+    
+    // Longitudinal
+    const longRow = document.createElement('tr');
+    longRow.innerHTML = `
+        <td>Longitudinal</td>
+        <td>${originalValues.long.toFixed(2)}</td>
+        <td>${processedValues.long.toFixed(2)}</td>
+        <td>${(processedValues.long - originalValues.long).toFixed(2)}</td>
+    `;
+    tableBody.appendChild(longRow);
+    
+    // Resultant
+    const resultantRow = document.createElement('tr');
+    resultantRow.classList.add('highlight');
+    resultantRow.innerHTML = `
+        <td><strong>Resultant</strong></td>
+        <td><strong>${originalValues.resultant.toFixed(2)}</strong></td>
+        <td><strong>${processedValues.resultant.toFixed(2)}</strong></td>
+        <td><strong>${(processedValues.resultant - originalValues.resultant).toFixed(2)}</strong></td>
+    `;
+    tableBody.appendChild(resultantRow);
+    
+    // Settings info
+    const vertSymbol = originalValues.vert >= 0 ? '+' : '-';
+    const transSymbol = originalValues.trans >= 0 ? '+' : '-';
+    const longSymbol = originalValues.long >= 0 ? '+' : '-';
+    
+    const settingsRow = document.createElement('tr');
+    settingsRow.innerHTML = `
+        <td colspan="4" style="text-align: left; font-style: italic;">
+            <i class="fas fa-sliders-h"></i> Applied settings: 
+            Vert: ${vertSymbol}${Math.abs(settings.vertBuffer)} (round to ${settings.vertRounding}) | 
+            Trans: ${transSymbol}${Math.abs(settings.transBuffer)} (round to ${settings.transRounding}) | 
+            Long: ${longSymbol}${Math.abs(settings.longBuffer)} (round to ${settings.longRounding})
+        </td>
+    `;
+    tableBody.appendChild(settingsRow);
+    
+    // Show the results section
+    const resultsDiv = document.getElementById(`bufferedResults${groupName}`);
+    resultsDiv.style.display = 'block';
+    
+    // Scroll to results if needed
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+});
+</script>
+
+<script>
+// Custom Selection Logic
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize selection management
+    initializeSelection();
+    
+    // Original buffer logic (keep as is)
+    initializeBufferLogic();
+});
+
+// Track the last used selection mode - ADD AT THE TOP OF YOUR SCRIPT
+let lastSelectionMode = 'unknown';
+
+// Function to update selection mode
+function updateSelectionMode(mode) {
+    lastSelectionMode = mode;
+    console.log(`Selection mode updated to: ${mode}`);
+}
+
+function initializeSelection() {
+    const checkboxes = document.querySelectorAll('.record-checkbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectNoneBtn = document.getElementById('selectNoneBtn');
+    const selectMaxResultantBtn = document.getElementById('selectMaxResultantBtn');
+    const selectSetMaxResultantBtn = document.getElementById('selectSetMaxResultantBtn');
+    const selectGlobalSetMaxResultantBtn = document.getElementById('selectGlobalSetMaxResultantBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    
+    // Update selection count and display
+    function updateSelection() {
+        const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+        selectedCountSpan.textContent = selectedCheckboxes.length;
+        
+        // Update row styling
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                row.classList.add('selected-record');
+            } else {
+                row.classList.remove('selected-record');
+            }
+        });
+        
+        // Update custom selection display
+        updateCustomSelectionDisplay();
+    }
+    
+    // Select all records
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelection();
+    });
+    
+    // Select none
+    selectNoneBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelection();
+    });
+
+    selectSetMaxResultantBtn.addEventListener('click', function() {
+    console.log('=== GUARANTEED SELECTION: Starting set max resultant selection ===');
+    
+    // Step 1: Uncheck all checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    let totalSelected = 0;
+    
+    // Step 2: Find ALL set subgroups on the page
+    const allSetSubgroups = document.querySelectorAll('.set-subgroup');
+    console.log(`Found ${allSetSubgroups.length} set subgroups total`);
+    
+    // Step 3: Process EACH set subgroup individually
+    allSetSubgroups.forEach((subgroup, subgroupIndex) => {
+        const setHeader = subgroup.querySelector('h6');
+        const setInfo = setHeader ? setHeader.textContent.trim() : `Subgroup ${subgroupIndex + 1}`;
+        
+        // Find all checkboxes in this specific set subgroup
+        const setCheckboxes = subgroup.querySelectorAll('.record-checkbox');
+        console.log(`Processing ${setInfo}: ${setCheckboxes.length} records`);
+        
+        if (setCheckboxes.length === 0) {
+            console.log(`Skipping ${setInfo} - no records found`);
+            return;
+        }
+        
+        // Step 4: Find the record with MAXIMUM resultant in this set
+        let maxResultant = -1;
+        let maxCheckbox = null;
+        
+        setCheckboxes.forEach(checkbox => {
+            const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+            if (resultant > maxResultant) {
+                maxResultant = resultant;
+                maxCheckbox = checkbox;
+            }
+        });
+        
+        // Step 5: Select the max resultant record
+        if (maxCheckbox) {
+            maxCheckbox.checked = true;
+            totalSelected++;
+            
+            // Ensure data attribute is set
+            maxCheckbox.setAttribute('data-set-max-resultant', 'true');
+            
+            console.log(`✅ SELECTED: ${setInfo} - Record ${maxCheckbox.dataset.recordId}, Set ${maxCheckbox.dataset.setNo}, Resultant: ${maxResultant}`);
+        } else {
+            console.log(`❌ FAILED: ${setInfo} - No max record found`);
+        }
+    });
+    
+    // Step 6: Final verification
+    updateSelection();
+    
+    console.log(`=== SELECTION COMPLETE: ${totalSelected} set max records selected ===`);
+    
+    // Show user feedback
+    if (totalSelected > 0) {
+        showNotification(`Successfully selected ${totalSelected} set max resultant records`, 'success');
+    } else {
+        showNotification('No set max records were selected - please check the data', 'warning');
+    }
+
+    updateSelectionMode('set');
+    
+    // Run comprehensive debug
+    debugGuaranteedSelection();
+});
+
+
+// COMPREHENSIVE DEBUG: Verify the guaranteed selection
+function debugGuaranteedSelection() {
+    console.log('=== GUARANTEED SELECTION VERIFICATION ===');
+    
+    const groups = document.querySelectorAll('.set-container');
+    let totalExpected = 0;
+    let totalActual = 0;
+    
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        const setSubgroups = group.querySelectorAll('.set-subgroup');
+        const selectedInGroup = group.querySelectorAll('.record-checkbox:checked');
+        
+        console.log(`📊 ${groupName}:`);
+        console.log(`   - Set subgroups: ${setSubgroups.length}`);
+        console.log(`   - Selected records: ${selectedInGroup.length}`);
+        
+        totalExpected += setSubgroups.length;
+        totalActual += selectedInGroup.length;
+        
+        // Check each set subgroup
+        setSubgroups.forEach((subgroup, setIndex) => {
+            const setHeader = subgroup.querySelector('h6');
+            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
+            const selectedInSet = subgroup.querySelectorAll('.record-checkbox:checked');
+            
+            console.log(`   ${setInfo}: ${selectedInSet.length} selected`);
+            
+            if (selectedInSet.length === 0) {
+                console.log(`   ❌ MISSING SELECTION in ${setInfo}`);
+                
+                // Debug: Show all records in this set
+                const allInSet = subgroup.querySelectorAll('.record-checkbox');
+                console.log(`      All records in ${setInfo}:`);
+                allInSet.forEach((checkbox, idx) => {
+                    console.log(`      [${idx}] Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
+                });
+            } else if (selectedInSet.length > 1) {
+                console.log(`   ⚠️  MULTIPLE SELECTIONS in ${setInfo}`);
+            } else {
+                console.log(`   ✅ CORRECT: 1 selected in ${setInfo}`);
+            }
+        });
+    });
+    
+    console.log(`=== SUMMARY: ${totalActual}/${totalExpected} set max records selected ===`);
+    
+    if (totalActual === totalExpected) {
+        console.log('🎉 SUCCESS: All set max records selected correctly!');
+    } else {
+        console.log(`❌ PROBLEM: Missing ${totalExpected - totalActual} selections`);
+    }
+}
+
+
+    // Select GLOBAL set max resultant (across all groups)
+    selectGlobalSetMaxResultantBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Check global set max resultant rows
+        const globalSetMaxResultantRows = document.querySelectorAll('.global-max-resultant-row');
+        globalSetMaxResultantRows.forEach(row => {
+            const checkbox = row.querySelector('.record-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelection();
+        updateSelectionMode('global');
+    });
+    
+// CORRECTED: Select max resultant records from ALL groups
+selectMaxResultantBtn.addEventListener('click', function() {
+    console.log('=== SELECT GROUP MAX RESULTANT: Starting selection from ALL groups (GROUP-WISE SECTION ONLY) ===');
+    
+    // Step 1: Uncheck all checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    let totalSelected = 0;
+    
+    // Step 2: Process EACH group independently
+    const groups = document.querySelectorAll('.set-container');
+    console.log(`Found ${groups.length} groups to process`);
+    
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        // Find ALL records in this group's GROUP-WISE SECTION ONLY
+        const groupWiseSection = group.querySelector('.group-wise-section');
+        if (!groupWiseSection) {
+            console.log(`❌ No group-wise section found for ${groupName}`);
+            return;
+        }
+        
+        const groupCheckboxes = groupWiseSection.querySelectorAll('.record-checkbox');
+        let maxResultant = -1;
+        let maxRecords = []; // Store ALL records with max resultant
+        
+        console.log(`Processing ${groupName}: ${groupCheckboxes.length} records in group-wise section`);
+        
+        // First pass: Find the maximum resultant
+        groupCheckboxes.forEach(checkbox => {
+            const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+            if (resultant > maxResultant) {
+                maxResultant = resultant;
+            }
+        });
+        
+        // Second pass: Select ALL records with this maximum resultant
+        groupCheckboxes.forEach(checkbox => {
+            const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+            if (Math.abs(resultant - maxResultant) < 0.001) { // Floating point comparison
+                checkbox.checked = true;
+                maxRecords.push(checkbox);
+                totalSelected++;
+            }
+        });
+        
+        console.log(`✅ SELECTED in ${groupName}: ${maxRecords.length} records with resultant ${maxResultant} (GROUP-WISE SECTION ONLY)`);
+    });
+    
+    // Step 3: Update display
+    updateSelection();
+    
+    console.log(`=== GROUP MAX SELECTION COMPLETE: ${totalSelected} max resultant records selected from ${groups.length} groups (GROUP-WISE SECTION ONLY) ===`);
+    
+    // Show user feedback
+    if (totalSelected > 0) {
+        showNotification(`Selected ${totalSelected} group max resultant records from group-wise sections only`, 'success');
+    } else {
+        showNotification('No group max records were selected', 'warning');
+    }
+
+    updateSelectionMode('group');
+    
+    // Debug the selection
+    debugSelectionState();
+});
+    
+    // Add event listeners to checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Initial update
+    updateSelection();
+}
+
+function debugVerifyGroupSelection() {
+    console.log('=== VERIFY: Group Selection Analysis ===');
+    
+    const groups = document.querySelectorAll('.set-container');
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        // Count selected records in this group
+        const selectedInGroup = group.querySelectorAll('.record-checkbox:checked');
+        const setSubgroups = group.querySelectorAll('.set-subgroup');
+        
+        console.log(`Group: ${groupName}`);
+        console.log(`  - Selected records: ${selectedInGroup.length}`);
+        console.log(`  - Set subgroups: ${setSubgroups.length}`);
+        
+        // Check each set subgroup
+        setSubgroups.forEach((subgroup, setIndex) => {
+            const setHeader = subgroup.querySelector('h6');
+            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
+            const selectedInSet = subgroup.querySelectorAll('.record-checkbox:checked');
+            
+            console.log(`    ${setInfo}: ${selectedInSet.length} selected`);
+            
+            selectedInSet.forEach(checkbox => {
+                console.log(`      - Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
+            });
+        });
+    });
+    
+    console.log('=== END VERIFY ===');
+}
+
+// NEW: Function to ensure data attributes are properly set
+function ensureSetMaxResultantAttributes() {
+    console.log('DEBUG: Ensuring set max resultant attributes...');
+    
+    const setMaxRows = document.querySelectorAll('.set-max-resultant-row');
+    setMaxRows.forEach(row => {
+        const checkbox = row.querySelector('.record-checkbox');
+        if (checkbox) {
+            // Ensure the data attribute is set
+            if (!checkbox.hasAttribute('data-set-max-resultant')) {
+                checkbox.setAttribute('data-set-max-resultant', 'true');
+                console.log(`DEBUG: Added data attribute to record ${checkbox.dataset.recordId}`);
+            }
+        }
+    });
+    
+    console.log(`DEBUG: Processed ${setMaxRows.length} set max rows`);
+}
+
+// Call this after page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(ensureSetMaxResultantAttributes, 2000);
+});
+
+// Enhanced debug function for comprehensive analysis
+function debugComprehensiveAnalysis() {
+    console.log('=== COMPREHENSIVE DEBUG: Full Analysis ===');
+    
+    // 1. Check all groups in main view
+    const groups = document.querySelectorAll('.set-container');
+    console.log(`1. Total groups in main view: ${groups.length}`);
+    
+    groups.forEach((group, groupIndex) => {
+        const groupHeader = group.querySelector('.set-header h4');
+        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
+        
+        const totalRecords = group.querySelectorAll('.record-checkbox').length;
+        const setSections = group.querySelectorAll('.set-subgroup');
+        const setMaxRows = group.querySelectorAll('.set-max-resultant-row');
+        
+        console.log(`   Group: ${groupName}`);
+        console.log(`     - Total records: ${totalRecords}`);
+        console.log(`     - Set sections: ${setSections.length}`);
+        console.log(`     - Set max rows (CSS): ${setMaxRows.length}`);
+        
+        // Check each set section
+        setSections.forEach((setSection, setIndex) => {
+            const setHeader = setSection.querySelector('h6');
+            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
+            const setRecords = setSection.querySelectorAll('.record-checkbox');
+            const setMaxInSection = setSection.querySelectorAll('.set-max-resultant-row');
+            const setMaxWithDataAttr = setSection.querySelectorAll('.record-checkbox[data-set-max-resultant="true"]');
+            
+            console.log(`       ${setInfo}`);
+            console.log(`         - Total records: ${setRecords.length}`);
+            console.log(`         - Set max rows (CSS): ${setMaxInSection.length}`);
+            console.log(`         - Set max (data attr): ${setMaxWithDataAttr.length}`);
+            
+            // Log details of set max records
+            setMaxInSection.forEach((row, idx) => {
+                const checkbox = row.querySelector('.record-checkbox');
+                if (checkbox) {
+                    const hasDataAttr = checkbox.hasAttribute('data-set-max-resultant');
+                    console.log(`           Set Max ${idx + 1}: ID=${checkbox.dataset.recordId}, Set=${checkbox.dataset.setNo}, DataAttr=${hasDataAttr}, Resultant=${checkbox.dataset.resultant}`);
+                }
+            });
+        });
+    });
+    
+    // 2. Check group-wise calculations section
+    const calculationGroups = document.querySelectorAll('.group-calculation-section');
+    console.log(`2. Groups in calculations section: ${calculationGroups.length}`);
+    calculationGroups.forEach(group => {
+        const header = group.querySelector('h4');
+        console.log(`   - ${header ? header.textContent.trim() : 'Unknown group'}`);
+    });
+    
+    // 3. Check current selection
+    const selectedCount = document.querySelectorAll('.record-checkbox:checked').length;
+    console.log(`3. Currently selected records: ${selectedCount}`);
+    
+    console.log('=== END COMPREHENSIVE DEBUG ===');
+}
+
+// Replace your current debug function call
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(debugComprehensiveAnalysis, 1500);
+});
+
+function updateCustomSelectionDisplay() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const statsGrid = document.getElementById('customSelectionStats');
+    const tableBody = document.getElementById('customSelectionBody');
+    const tableFooter = document.getElementById('customSelectionFooter');
+    
+    // Clear previous content
+    statsGrid.innerHTML = '';
+    tableBody.innerHTML = '';
+    tableFooter.innerHTML = '';
+    
+    if (selectedCheckboxes.length === 0) {
+        statsGrid.innerHTML = '<p>No records selected. Please select records using the checkboxes above.</p>';
+        return;
+    }
+    
+    // NEW: Check if this is a "Set Max Resultant Within Groups" selection
+    const isSetMaxWithinGroupsSelection = Array.from(selectedCheckboxes).every(checkbox => {
+        const row = checkbox.closest('tr');
+        return row && row.classList.contains('set-max-resultant-row');
+    });
+    
+    if (isSetMaxWithinGroupsSelection) {
+        // Handle "Set Max Resultant Within Groups" selection - calculate separately for each group
+        handleSetMaxWithinGroupsSelection(selectedCheckboxes, statsGrid, tableBody, tableFooter);
+    } else {
+        // Handle all other selections (combined addition)
+        handleCombinedSelection(selectedCheckboxes, statsGrid, tableBody, tableFooter);
+    }
+}
+
+// NEW: Function to handle "Set Max Resultant Within Groups" selection
+function handleSetMaxWithinGroupsSelection(selectedCheckboxes, statsGrid, tableBody, tableFooter) {
+    // Group selected records by their parent group
+    const recordsByGroup = {};
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+        const setNo = checkbox.dataset.setNo || 'Unknown';
+        const recordId = checkbox.dataset.recordId;
+        
+        // Find which group this record belongs to by finding the set container
+        const row = checkbox.closest('tr');
+        const setContainer = row.closest('.set-container');
+        const groupHeader = setContainer.querySelector('.set-header h4');
+        let groupName = 'Unknown Group';
+        
+        if (groupHeader) {
+            const headerText = groupHeader.textContent || groupHeader.innerText;
+            // Extract group name based on selection source
+            if (headerText.includes('Load Case:')) {
+                groupName = headerText.split('Load Case:')[1].split('<')[0].trim();
+            } else if (headerText.includes('Group:')) {
+                groupName = headerText.split('Group:')[1].split('<')[0].trim();
+            } else if (headerText.includes('Custom Group:')) {
+                groupName = headerText.split('Custom Group:')[1].split('<')[0].trim();
+            } else if (headerText.includes('Set No.')) {
+                groupName = headerText.split('Set No.')[1].split('<')[0].trim();
+            }
+        }
+        
+        // Initialize group if not exists
+        if (!recordsByGroup[groupName]) {
+            recordsByGroup[groupName] = {
+                totalVert: 0,
+                totalTrans: 0,
+                totalLong: 0,
+                records: []
+            };
+        }
+        
+        // Add to group totals
+        recordsByGroup[groupName].totalVert += vert;
+        recordsByGroup[groupName].totalTrans += trans;
+        recordsByGroup[groupName].totalLong += long;
+        recordsByGroup[groupName].records.push({
+            setNo,
+            recordId,
+            vert,
+            trans,
+            long,
+            resultant,
+            groupName
+        });
+    });
+    
+    // Calculate group-wise resultants and store group results
+    const groupResults = [];
+    let overallVert = 0;
+    let overallTrans = 0;
+    let overallLong = 0;
+    
+    for (const [groupName, groupData] of Object.entries(recordsByGroup)) {
+        // Calculate resultant for THIS GROUP (separate calculation)
+        const groupResultant = Math.sqrt(
+            groupData.totalVert**2 + 
+            groupData.totalTrans**2 + 
+            groupData.totalLong**2
+        );
+        
+        groupResults.push({
+            groupName,
+            totalVert: groupData.totalVert,
+            totalTrans: groupData.totalTrans,
+            totalLong: groupData.totalLong,
+            resultant: groupResultant,
+            recordCount: groupData.records.length
+        });
+        
+        // For overall total, we still sum the components
+        overallVert += groupData.totalVert;
+        overallTrans += groupData.totalTrans;
+        overallLong += groupData.totalLong;
+    }
+    
+    const finalResultant = Math.sqrt(overallVert**2 + overallTrans**2 + overallLong**2);
+    
+    // Update stats grid with group-wise breakdown
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Selected Records</div>
+            <div class="stat-value">${selectedCheckboxes.length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Groups</div>
+            <div class="stat-value">${Object.keys(recordsByGroup).length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Overall Vert</div>
+            <div class="stat-value">${overallVert.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Overall Trans</div>
+            <div class="stat-value">${overallTrans.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Overall Long</div>
+            <div class="stat-value">${overallLong.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Overall Resultant</div>
+            <div class="stat-value">${finalResultant.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+    `;
+    
+    // Add group-wise stats breakdown
+    const groupStatsDiv = document.createElement('div');
+    groupStatsDiv.className = 'group-stats-breakdown';
+    groupStatsDiv.style.gridColumn = '1 / -1';
+    groupStatsDiv.style.marginTop = '10px';
+    groupStatsDiv.style.padding = '10px';
+    groupStatsDiv.style.backgroundColor = '#f8f9fa';
+    groupStatsDiv.style.borderRadius = '5px';
+    
+    groupStatsDiv.innerHTML = '<h5><i class="fas fa-layer-group"></i> Group-wise Calculations (Separate Addition):</h5>';
+    
+    groupResults.forEach(group => {
+        groupStatsDiv.innerHTML += `
+            <div class="group-stat-item">
+                <strong>${group.groupName}:</strong> 
+                Vert: ${group.totalVert.toFixed(2)} | 
+                Trans: ${group.totalTrans.toFixed(2)} | 
+                Long: ${group.totalLong.toFixed(2)} | 
+                Resultant: ${group.resultant.toFixed(2)} lbs
+                (${group.recordCount} set max records)
+            </div>
+        `;
+    });
+    
+    statsGrid.appendChild(groupStatsDiv);
+    
+    // Update table body - show records grouped by their original groups
+    for (const [groupName, groupData] of Object.entries(recordsByGroup)) {
+        // Add group header
+        const groupHeaderRow = document.createElement('tr');
+        groupHeaderRow.className = 'group-header-row';
+        const groupResultant = Math.sqrt(groupData.totalVert**2 + groupData.totalTrans**2 + groupData.totalLong**2);
+        groupHeaderRow.innerHTML = `
+            <td colspan="6" style="background-color: #e9ecef; font-weight: bold;">
+                <i class="fas fa-layer-group"></i> ${groupName}
+                - ${groupData.records.length} set max records
+                (Group Resultant: ${groupResultant.toFixed(2)} lbs)
+            </td>
+        `;
+        tableBody.appendChild(groupHeaderRow);
+        
+        // Add records for this group
+        groupData.records.forEach(record => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${record.setNo}</td>
+                <td>${record.recordId}</td>
+                <td>${record.vert.toFixed(2)}</td>
+                <td>${record.trans.toFixed(2)}</td>
+                <td>${record.long.toFixed(2)}</td>
+                <td>${record.resultant.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // Update table footer with group-wise totals and overall total
+    groupResults.forEach(group => {
+        const groupFooterRow = document.createElement('tr');
+        groupFooterRow.className = 'group-subtotal';
+        groupFooterRow.innerHTML = `
+            <td colspan="2"><strong>${group.groupName} Group Sum</strong></td>
+            <td><strong>${group.totalVert.toFixed(2)}</strong></td>
+            <td><strong>${group.totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${group.totalLong.toFixed(2)}</strong></td>
+            <td><strong>${group.resultant.toFixed(2)}</strong></td>
+        `;
+        tableFooter.appendChild(groupFooterRow);
+    });
+    
+    // Add overall total
+    const overallFooterRow = document.createElement('tr');
+    overallFooterRow.className = 'highlight';
+    overallFooterRow.innerHTML = `
+        <td colspan="2"><strong>Combined Overall Sum</strong></td>
+        <td><strong>${overallVert.toFixed(2)}</strong></td>
+        <td><strong>${overallTrans.toFixed(2)}</strong></td>
+        <td><strong>${overallLong.toFixed(2)}</strong></td>
+        <td><strong>${finalResultant.toFixed(2)}</strong></td>
+    `;
+    tableFooter.appendChild(overallFooterRow);
+    
+    // Store current custom selection
+    window.currentCustomSelection = {
+        totalVert: overallVert,
+        totalTrans: overallTrans,
+        totalLong: overallLong,
+        finalResultant: finalResultant,
+        selectedRecords: Array.from(selectedCheckboxes).map(checkbox => {
+            return {
+                setNo: checkbox.dataset.setNo,
+                recordId: checkbox.dataset.recordId,
+                vert: parseFloat(checkbox.dataset.vert) || 0,
+                trans: parseFloat(checkbox.dataset.trans) || 0,
+                long: parseFloat(checkbox.dataset.long) || 0,
+                resultant: parseFloat(checkbox.dataset.resultant) || 0
+            };
+        }),
+        // Store group-wise data specifically for "Set Max Resultant Within Groups"
+        isSetMaxWithinGroups: true,
+        groupWiseData: recordsByGroup,
+        groupResults: groupResults
+    };
+}
+
+// NEW: Function to handle all other selections (combined addition)
+function handleCombinedSelection(selectedCheckboxes, statsGrid, tableBody, tableFooter) {
+    let totalVert = 0;
+    let totalTrans = 0;
+    let totalLong = 0;
+    const selectedRecords = [];
+    
+    // Process selected records (combined addition)
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+        const setNo = checkbox.dataset.setNo || 'Unknown';
+        const recordId = checkbox.dataset.recordId;
+        
+        totalVert += vert;
+        totalTrans += trans;
+        totalLong += long;
+        
+        selectedRecords.push({
+            setNo,
+            recordId,
+            vert,
+            trans,
+            long,
+            resultant
+        });
+    });
+    
+    // Calculate final resultant
+    const finalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
+    
+    // Update stats grid
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Selected Records</div>
+            <div class="stat-value">${selectedCheckboxes.length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Vert</div>
+            <div class="stat-value">${totalVert.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Trans</div>
+            <div class="stat-value">${totalTrans.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Long</div>
+            <div class="stat-value">${totalLong.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Resultant</div>
+            <div class="stat-value">${finalResultant.toFixed(2)}</div>
+            <div class="stat-label">(lbs)</div>
+        </div>
+    `;
+    
+    // Update table body
+    selectedRecords.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.setNo}</td>
+            <td>${record.recordId}</td>
+            <td>${record.vert.toFixed(2)}</td>
+            <td>${record.trans.toFixed(2)}</td>
+            <td>${record.long.toFixed(2)}</td>
+            <td>${record.resultant.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // Update table footer with totals
+    tableFooter.innerHTML = `
+        <tr class="highlight">
+            <td colspan="2"><strong>Combined Sum</strong></td>
+            <td><strong>${totalVert.toFixed(2)}</strong></td>
+            <td><strong>${totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${totalLong.toFixed(2)}</strong></td>
+            <td><strong>${finalResultant.toFixed(2)}</strong></td>
+        </tr>
+    `;
+    
+    // Store current custom selection for buffer calculations
+    window.currentCustomSelection = {
+        totalVert,
+        totalTrans,
+        totalLong,
+        finalResultant,
+        selectedRecords,
+        isSetMaxWithinGroups: false
+    };
+}
+
+function initializeBufferLogic() {
+    // Toggle buffer settings visibility
+    const applyBufferCheckbox = document.getElementById('applyBuffer');
+    const bufferSettings = document.getElementById('bufferSettings');
+    
+    if (applyBufferCheckbox && bufferSettings) {
+        applyBufferCheckbox.addEventListener('change', function() {
+            bufferSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Correct rounding function that handles both positive and negative numbers
+    function roundToNearest(value, rounding) {
+        if (rounding === 0) return value;
+        return Math.sign(value) * Math.ceil(Math.abs(value) / rounding) * rounding;
+    }
+    
+    // Handle buffer application
+    const applyBufferBtn = document.getElementById('applyBufferBtn');
+    if (applyBufferBtn) {
+        applyBufferBtn.addEventListener('click', function() {
+            applyBufferToCustomSelection();
+        });
+    }
+    
+    function applyBufferToCustomSelection() {
+    if (!window.currentCustomSelection) {
+        alert('Please select some records first.');
+        return;
+    }
+
+    // Get buffer settings
+    const applyBuffer = document.getElementById('applyBuffer').checked;
+    const vertBuffer = parseFloat(document.getElementById('vertBuffer').value) || 0;
+    const transBuffer = parseFloat(document.getElementById('transBuffer').value) || 0;
+    const longBuffer = parseFloat(document.getElementById('longBuffer').value) || 0;
+    const vertRounding = parseInt(document.getElementById('vertRounding').value) || 0;
+    const transRounding = parseInt(document.getElementById('transRounding').value) || 0;
+    const longRounding = parseInt(document.getElementById('longRounding').value) || 0;
+
+    // CRITICAL FIX: Always recalculate from currently selected checkboxes
+    // This respects include/exclude duplicate logic
+    let totalVert = 0;
+    let totalTrans = 0;
+    let totalLong = 0;
+    const selectedRecords = [];
+
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const vert = parseFloat(checkbox.dataset.vert) || 0;
+        const trans = parseFloat(checkbox.dataset.trans) || 0;
+        const long = parseFloat(checkbox.dataset.long) || 0;
+        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
+
+        totalVert += vert;
+        totalTrans += trans;
+        totalLong += long;
+
+        selectedRecords.push({
+            setNo: checkbox.dataset.setNo,
+            recordId: checkbox.dataset.recordId,
+            vert: vert,
+            trans: trans,
+            long: long,
+            resultant: resultant
+        });
+    });
+
+    // Store original values BEFORE applying buffer
+    const originalValues = {
+        totalVert: totalVert,
+        totalTrans: totalTrans,
+        totalLong: totalLong,
+        finalResultant: Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2),
+        selectedRecords: selectedRecords,
+        // Preserve the selection mode info
+        isSetMaxWithinGroups: window.currentCustomSelection.isSetMaxWithinGroups || false,
+        groupWiseData: window.currentCustomSelection.groupWiseData || null
+    };
+
+    // Create processed values (initially same as original)
+    let processedValues = {...originalValues};
+
+    // Apply buffer and rounding only if enabled
+    if (applyBuffer) {
+        // Apply buffers with sign consideration to ORIGINAL values
+        processedValues.totalVert = applyBufferWithSign(originalValues.totalVert, vertBuffer);
+        processedValues.totalTrans = applyBufferWithSign(originalValues.totalTrans, transBuffer);
+        processedValues.totalLong = applyBufferWithSign(originalValues.totalLong, longBuffer);
+
+        // Apply rounding to processed values
+        if (vertRounding > 0) {
+            processedValues.totalVert = roundToNearest(processedValues.totalVert, vertRounding);
+        }
+        if (transRounding > 0) {
+            processedValues.totalTrans = roundToNearest(processedValues.totalTrans, transRounding);
+        }
+        if (longRounding > 0) {
+            processedValues.totalLong = roundToNearest(processedValues.totalLong, longRounding);
+        }
+
+        // Recalculate resultant after buffer and rounding
+        processedValues.finalResultant = Math.sqrt(
+            processedValues.totalVert**2 + 
+            processedValues.totalTrans**2 + 
+            processedValues.totalLong**2
+        );
+    }
+
+    // Update window.currentCustomSelection with correct values
+    window.currentCustomSelection = {
+        ...originalValues,  // Keep original data
+        processedTotalVert: processedValues.totalVert,
+        processedTotalTrans: processedValues.totalTrans,
+        processedTotalLong: processedValues.totalLong,
+        processedFinalResultant: processedValues.finalResultant,
+        bufferApplied: applyBuffer,
+        bufferSettings: applyBuffer ? {
+            vertBuffer,
+            transBuffer,
+            longBuffer,
+            vertRounding,
+            transRounding,
+            longRounding
+        } : null
+    };
+
+    // Display buffered results
+    displayBufferedResults(processedValues, originalValues, {
+        applyBuffer,
+        vertBuffer,
+        transBuffer,
+        longBuffer,
+        vertRounding,
+        transRounding,
+        longRounding
+    });
+
+    console.log('Buffer applied with include/exclude duplicate logic respected');
+    console.log(`Selected checkboxes: ${selectedCheckboxes.length}`);
+    console.log(`Original sum - Vert: ${originalValues.totalVert}, Trans: ${originalValues.totalTrans}, Long: ${originalValues.totalLong}`);
+}
+    
+    // NEW: Function to apply buffer based on sign
+    function applyBufferWithSign(originalValue, buffer) {
+        if (originalValue >= 0) {
+            // For positive values: add buffer
+            return originalValue + buffer;
+        } else {
+            // For negative values: subtract buffer
+            return originalValue - buffer;
+        }
+    }
+    
+    // NEW: Function to get buffer operation symbol for display
+    function getBufferSymbol(originalValue) {
+        return originalValue >= 0 ? '+' : '-';
+    }
+    
+    function displayBufferedResults(processedValues, originalValues, settings) {
+    const tableBody = document.querySelector('#bufferedLoadsTable tbody');
+    tableBody.innerHTML = '';
+    
+    // Add individual record rows
+    originalValues.selectedRecords.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.setNo}</td>
+            <td>${record.vert.toFixed(2)}</td>
+            <td>${record.trans.toFixed(2)}</td>
+            <td>${record.long.toFixed(2)}</td>
+            <td>${record.resultant.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // Add original sum row
+    const originalSumRow = document.createElement('tr');
+    originalSumRow.classList.add('original-sum');
+    originalSumRow.innerHTML = `
+        <td><strong>Original Sum</strong></td>
+        <td><strong>${originalValues.totalVert.toFixed(2)}</strong></td>
+        <td><strong>${originalValues.totalTrans.toFixed(2)}</strong></td>
+        <td><strong>${originalValues.totalLong.toFixed(2)}</strong></td>
+        <td><strong>${originalValues.finalResultant.toFixed(2)}</strong></td>
+    `;
+    tableBody.appendChild(originalSumRow);
+    
+    // Add processed sum row (only if buffer was applied)
+    if (settings.applyBuffer) {
+        const processedSumRow = document.createElement('tr');
+        processedSumRow.classList.add('highlight');
+        processedSumRow.innerHTML = `
+            <td><strong>Processed Sum</strong></td>
+            <td><strong>${processedValues.totalVert.toFixed(2)}</strong></td>
+            <td><strong>${processedValues.totalTrans.toFixed(2)}</strong></td>
+            <td><strong>${processedValues.totalLong.toFixed(2)}</strong></td>
+            <td><strong>${processedValues.finalResultant.toFixed(2)}</strong></td>
+        `;
+        tableBody.appendChild(processedSumRow);
+        
+        // CRITICAL: Ensure the processed values are stored for Load Conditions
+        window.currentCustomSelection = processedValues;
+        
+        // Add settings info with correct symbols
+        const settingsRow = document.createElement('tr');
+        settingsRow.classList.add('settings-info');
+        settingsRow.innerHTML = `
+            <td colspan="5" style="text-align: left; font-style: italic;">
+                Applied settings: 
+                Vert: ${getBufferSymbol(originalValues.totalVert)}${settings.vertBuffer} lbs, Round to ${settings.vertRounding} | 
+                Trans: ${getBufferSymbol(originalValues.totalTrans)}${settings.transBuffer} lbs, Round to ${settings.transRounding} | 
+                Long: ${getBufferSymbol(originalValues.totalLong)}${settings.longBuffer} lbs, Round to ${settings.longRounding}
+            </td>
+        `;
+        tableBody.appendChild(settingsRow);
+    }
+    
+    // Show results section
+    document.getElementById('bufferedResults').style.display = 'block';
+}
+}
+
+// Keep the existing JavaScript functions (goToLoadConditions, etc.)
+function goToLoadConditions() {
+    const calculationData = {{ calculation_data_json|safe }};
+    
+    // Determine which data to send based on what was calculated
+    let processedSums = null;
+    let groupWiseSums = null;
+    
+    // Check if group-wise buffered sums exist
+    if (window.groupWiseBufferedSums && Object.keys(window.groupWiseBufferedSums).length > 0) {
+        groupWiseSums = window.groupWiseBufferedSums;
+        console.log('Sending group-wise buffered sums:', groupWiseSums);
+    }
+    // Check if custom selection with buffer exists
+    else if (window.currentCustomSelection) {
+        // Send both original and processed values
+        processedSums = {
+            // Original values (from selected checkboxes)
+            totalVert: window.currentCustomSelection.totalVert,
+            totalTrans: window.currentCustomSelection.totalTrans,
+            totalLong: window.currentCustomSelection.totalLong,
+            finalResultant: window.currentCustomSelection.finalResultant,
+            selectedRecords: window.currentCustomSelection.selectedRecords,
+            isSetMaxWithinGroups: window.currentCustomSelection.isSetMaxWithinGroups || false,
+            
+            // Processed values (if buffer was applied)
+            processedTotalVert: window.currentCustomSelection.processedTotalVert || window.currentCustomSelection.totalVert,
+            processedTotalTrans: window.currentCustomSelection.processedTotalTrans || window.currentCustomSelection.totalTrans,
+            processedTotalLong: window.currentCustomSelection.processedTotalLong || window.currentCustomSelection.totalLong,
+            processedFinalResultant: window.currentCustomSelection.processedFinalResultant || window.currentCustomSelection.finalResultant,
+            
+            // Buffer info
+            bufferApplied: window.currentCustomSelection.bufferApplied || false,
+            bufferSettings: window.currentCustomSelection.bufferSettings || null
+        };
+        console.log('Sending processed sums:', processedSums);
+    } else {
+        alert('No calculation data available. Please perform calculations first.');
+        return;
+    }
+
+    // Create a form to submit the data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'load_condition' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add calculation data
+    const dataInput = document.createElement('input');
+    dataInput.type = 'hidden';
+    dataInput.name = 'calculation_data';
+    dataInput.value = JSON.stringify(calculationData);
+    form.appendChild(dataInput);
+    
+    // Add processed sums
+    if (processedSums) {
+        const processedSumsInput = document.createElement('input');
+        processedSumsInput.type = 'hidden';
+        processedSumsInput.name = 'processed_sums';
+        processedSumsInput.value = JSON.stringify(processedSums);
+        form.appendChild(processedSumsInput);
+    }
+    
+    // Add group-wise buffered sums
+    if (groupWiseSums) {
+        const groupWiseSumsInput = document.createElement('input');
+        groupWiseSumsInput.type = 'hidden';
+        groupWiseSumsInput.name = 'group_wise_buffered_sums';
+        groupWiseSumsInput.value = JSON.stringify(groupWiseSums);
+        form.appendChild(groupWiseSumsInput);
+    }
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+"

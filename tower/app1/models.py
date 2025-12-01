@@ -68,6 +68,20 @@ class AttachmentLoad(models.Model):
     def __str__(self):
         return f"{self.get_load_case_display()} - {self.attachment}"
 
+
+class LoadConditionSelection(models.Model):
+    custom_group_name = models.CharField(max_length=100)
+    load_condition = models.ForeignKey(LoadCondition, on_delete=models.CASCADE)
+    is_selected = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('custom_group_name', 'load_condition')
+    
+    def __str__(self):
+        return f"{self.custom_group_name} - {self.load_condition.description}"
+    
+    
 from django.db import models
 
 

@@ -1463,10 +1463,16 @@ def calculation_view(request):
         selection_source = request.POST.get('selection_source', 'imported')
         custom_groups_json = request.POST.get('custom_groups_data', '{}')  # NEW: Get custom groups data
         
+        print(f"DEBUG calculation_view: selection_source = {selection_source}")
+        print(f"DEBUG calculation_view: custom_groups_json = {custom_groups_json}")
+        
         if calculation_data_json:
             try:
                 calculation_data = json.loads(calculation_data_json)
                 custom_groups_data = json.loads(custom_groups_json)  # NEW: Parse custom groups
+                
+                print(f"DEBUG calculation_view: calculation_data count = {len(calculation_data)}")
+                print(f"DEBUG calculation_view: custom_groups_data = {custom_groups_data}")
                 
                 # Add resultant calculation and unique ID to each record
                 for index, record in enumerate(calculation_data):
@@ -1491,12 +1497,23 @@ def calculation_view(request):
                 
                 # NEW: Group data based on selection source with custom groups support
                 grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
-                
+                print(f"DEBUG: Total groups after grouping: {len(grouped_data)}")
+                for group_name, records in grouped_data.items():
+                    print(f"DEBUG: Group '{group_name}': {len(records)} records")
+                    
+                    # Debug Set Nos. within this group
+                    set_nos = set()
+                    for record in records:
+                        set_nos.add(record.get('Set_No', 'Unknown'))
+                    print(f"DEBUG:   Set Nos. in '{group_name}': {set_nos}")
+
                 # NEW: Create set-wise grouping within each group
                 set_wise_data = {}
                 set_max_resultants = {}
                 
+                
                 for group_name, records in grouped_data.items():
+                    
                     set_wise_data[group_name] = {}
                     set_max_resultants[group_name] = {}
                     
@@ -1506,6 +1523,8 @@ def calculation_view(request):
                         if set_no not in set_wise_data[group_name]:
                             set_wise_data[group_name][set_no] = []
                         set_wise_data[group_name][set_no].append(record)
+                        
+                    print(f"DEBUG: Group '{group_name}' has {len(set_wise_data[group_name])} unique Set Nos.")
                     
                     # Calculate max resultant for each set within this group
                     for set_no, set_records in set_wise_data[group_name].items():
@@ -1527,6 +1546,7 @@ def calculation_view(request):
                                 record['set_max_resultant_flag'] = 'yes'
                             else:
                                 record['set_max_resultant_flag'] = 'no'
+                    print(f"DEBUG: Group '{group_name}' set max resultants: {list(set_max_resultants[group_name].keys())}")
                 
                 # NEW: Calculate group-wise sums for set max resultants
                 group_wise_set_max_sums = {}
@@ -1689,7 +1709,15 @@ def calculation_view(request):
                 
                 # NEW: Group data based on selection source with custom groups support
                 grouped_data = group_calculation_data(calculation_data, selection_source, custom_groups_data)
-                
+                print(f"DEBUG: Total groups after grouping: {len(grouped_data)}")
+                for group_name, records in grouped_data.items():
+                    print(f"DEBUG: Group '{group_name}': {len(records)} records")
+                    
+                    # Debug Set Nos. within this group
+                    set_nos = set()
+                    for record in records:
+                        set_nos.add(record.get('Set_No', 'Unknown'))
+                    print(f"DEBUG:   Set Nos. in '{group_name}': {set_nos}")
                 # NEW: Create set-wise grouping within each group for GET requests
                 set_wise_data = {}
                 set_max_resultants = {}
@@ -1704,6 +1732,7 @@ def calculation_view(request):
                         if set_no not in set_wise_data[group_name]:
                             set_wise_data[group_name][set_no] = []
                         set_wise_data[group_name][set_no].append(record)
+                    print(f"DEBUG: Group '{group_name}' has {len(set_wise_data[group_name])} unique Set Nos.")
                     
                     # Calculate max resultant for each set within this group
                     for set_no, set_records in set_wise_data[group_name].items():
@@ -1725,6 +1754,7 @@ def calculation_view(request):
                                 record['set_max_resultant_flag'] = 'yes'
                             else:
                                 record['set_max_resultant_flag'] = 'no'
+                    print(f"DEBUG: Group '{group_name}' set max resultants: {list(set_max_resultants[group_name].keys())}")
                 
                 # NEW: Calculate group-wise sums for set max resultants for GET requests
                 group_wise_set_max_sums = {}
@@ -1855,7 +1885,16 @@ def calculation_view(request):
     
     return render(request, 'app1/calculation.html', context)
 
+# In views.py, add this to your context or create a custom filter
+from django.template.defaulttags import register
 
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+
+@register.filter
+def items(dictionary):
+    return dictionary.items()
 
 def group_calculation_data(calculation_data, selection_source, custom_groups_data=None):
     """Group calculation data based on selection source with custom groups support"""
@@ -1883,17 +1922,23 @@ def group_calculation_data(calculation_data, selection_source, custom_groups_dat
             grouped_data[group_name].append(record)
     
     elif selection_source == 'custom' and custom_groups_data:
-        # Group by custom groups using the provided mapping
-        # custom_groups_data should be a dict like: {'hurri1': ['Hurricane NL+', 'Hurricane NL-'], ...}
+        # FIX: Improved custom groups handling to preserve all groups
+        print(f"DEBUG: Processing custom groups: {custom_groups_data}")
+        
+        # Initialize ALL custom groups first to ensure they appear
         for group_name, load_cases in custom_groups_data.items():
-            grouped_data[group_name] = []
-            for record in calculation_data:
-                case_name = record.get('Load Case Description', '')
+            grouped_data[group_name] = []  # Create group even if empty initially
+        
+        # Now populate with matching records
+        for record in calculation_data:
+            case_name = record.get('Load Case Description', '')
+            for group_name, load_cases in custom_groups_data.items():
                 if case_name in load_cases:
                     grouped_data[group_name].append(record)
-            # Remove empty groups
-            if not grouped_data[group_name]:
-                del grouped_data[group_name]
+        
+        # DEBUG: Log group counts
+        for group_name, records in grouped_data.items():
+            print(f"DEBUG: Group '{group_name}': {len(records)} records")
     
     else:  # Default fallback - group by Set No.
         for record in calculation_data:
@@ -1936,6 +1981,9 @@ def load_condition_view(request):
     processed_sums = {}
     group_wise_buffered_sums = {}
     
+    # Initialize selected_conditions as empty dict
+    selected_conditions = {}
+    
     # Try to get calculation data from multiple sources
     if request.method == 'POST':
         calculation_data_json = request.POST.get('calculation_data')
@@ -1965,6 +2013,11 @@ def load_condition_view(request):
         processed_sums = request.session.get('processed_sums', {})
         group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
     
+    # Get selected conditions from session with proper initialization
+    selected_conditions = request.session.get('selected_conditions', {})
+    if selected_conditions is None:
+        selected_conditions = {}
+    
     # Get all load conditions
     load_conditions = LoadCondition.objects.all().order_by('id')
     
@@ -1990,7 +2043,7 @@ def load_condition_view(request):
             record['Set_No'] = record.get('Set No.', 'Unknown')
         
         factored_loads_by_condition = {}
-        group_wise_factored_loads = {}  # NEW: Store factored loads by group
+        group_wise_factored_loads = {}
 
         # PRIORITY 1: Use group-wise buffered sums if available (Select Set Max Resultant Within Groups)
         if group_wise_buffered_sums:
@@ -1998,7 +2051,37 @@ def load_condition_view(request):
             for group_name, group_data in group_wise_buffered_sums.items():
                 group_factored_loads = {}
                 
-                for condition in load_conditions:
+                # Get selected conditions for this group (if any)
+                # Handle None case and empty dict
+                group_selections = {}
+                if selected_conditions and isinstance(selected_conditions, dict):
+                    group_selections = selected_conditions.get(group_name, {})
+                
+                # If no specific selections for this group, use all conditions
+                if not group_selections:
+                    conditions_to_process = load_conditions
+                else:
+                    # Filter to only selected conditions
+                    conditions_to_process = []
+                    for condition in load_conditions:
+                        # Try both string and integer keys
+                        condition_id_str = str(condition.id)
+                        is_selected = False
+                        
+                        # Check if condition is in selections
+                        if condition_id_str in group_selections:
+                            is_selected = bool(group_selections[condition_id_str])
+                        elif condition.id in group_selections:
+                            is_selected = bool(group_selections[condition.id])
+                        
+                        if is_selected:
+                            conditions_to_process.append(condition)
+                
+                # If no conditions selected after filtering, skip this group
+                if not conditions_to_process:
+                    continue
+                
+                for condition in conditions_to_process:
                     from decimal import Decimal
                     
                     # Use group-wise buffered sums as base loads
@@ -2039,20 +2122,19 @@ def load_condition_view(request):
                         'group_name': group_name
                     }
                 
-                # Store factored loads for this group
-                group_wise_factored_loads[group_name] = group_factored_loads
+                # Store factored loads for this group only if we have results
+                if group_factored_loads:
+                    group_wise_factored_loads[group_name] = group_factored_loads
 
-        # PRIORITY 2: Use processed sums if available (Select Group Max Resultant with Buffer)
+        # PRIORITY 2: Use processed sums if available
         elif processed_sums and processed_sums.get('totalVert') is not None:  
             for condition in load_conditions:
                 from decimal import Decimal
                 
-                # Use processed sums as base loads
                 base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
                 base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
                 base_long = Decimal(str(processed_sums.get('totalLong', 0)))
                 
-                # Apply overload factors
                 factored_vert = base_vert * Decimal(str(condition.vertical_factor))
                 factored_trans = base_trans * Decimal(str(condition.transverse_factor))
                 factored_long = base_long * Decimal(str(condition.longitudinal_factor))
@@ -2084,7 +2166,7 @@ def load_condition_view(request):
                     'calculation_type': 'processed_sums',
                 }
         
-        # PRIORITY 3: Fallback to individual records calculation
+        # PRIORITY 3: Fallback to individual records
         elif calculation_data:
             for condition in load_conditions:
                 factored_loads_by_condition[condition.description] = {
@@ -2096,22 +2178,101 @@ def load_condition_view(request):
                     'calculation_type': 'individual_records'
                 }
     
+    # Prepare template data for checkboxes
+    # Create a list of conditions with selection info for each group
+    condition_selection_data = {}
+    if group_wise_buffered_sums:
+        for group_name in group_wise_buffered_sums.keys():
+            group_selections = selected_conditions.get(group_name, {}) if selected_conditions else {}
+            
+            # Create a dictionary with condition_id as key for easy template access
+            group_condition_data = {}
+            for condition in load_conditions:
+                condition_id_str = str(condition.id)
+                is_selected = (
+                    group_selections.get(condition_id_str, False) or 
+                    group_selections.get(condition.id, False)
+                )
+                
+                group_condition_data[condition.id] = {
+                    'id': condition.id,
+                    'description': condition.description,
+                    'vertical_factor': condition.vertical_factor,
+                    'transverse_factor': condition.transverse_factor,
+                    'longitudinal_factor': condition.longitudinal_factor,
+                    'is_selected': is_selected
+                }
+            
+            condition_selection_data[group_name] = group_condition_data
+    
     context = {
         'load_conditions': load_conditions,
         'attachment_loads': attachment_loads,
         'calculation_data': calculation_data,
         'calculation_data_json': json.dumps(calculation_data),
         'factored_loads_by_condition': factored_loads_by_condition,
-        'group_wise_factored_loads': group_wise_factored_loads,  # NEW: Add to context
+        'group_wise_factored_loads': group_wise_factored_loads,
         'has_factored_loads': bool(factored_loads_by_condition) or bool(group_wise_factored_loads),
         'processed_sums': processed_sums,
         'using_processed_sums': bool(processed_sums),
         'group_wise_buffered_sums': group_wise_buffered_sums,
         'using_group_wise_sums': bool(group_wise_buffered_sums),
-        'has_group_wise_factored_loads': bool(group_wise_factored_loads)  # NEW: Flag for template
+        'has_group_wise_factored_loads': bool(group_wise_factored_loads),
+        'selected_conditions': selected_conditions,
+        'condition_selection_data': condition_selection_data,  # New: Pre-processed selection data
     }
     
     return render(request, 'app1/load_condition.html', context)
+
+from django.http import JsonResponse
+import json
+
+def get_current_selections(request):
+    """Return current selections from session"""
+    selected_conditions = request.session.get('selected_conditions', {})
+    return JsonResponse(selected_conditions)
+
+import logging
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+def save_condition_selections(request):
+    """Save user's condition selections"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            group_name = data.get('group_name')
+            selections = data.get('selections', {})
+            
+            logger.info(f"Received selections for group {group_name}: {selections}")
+            
+            # Get current selections from session
+            selected_conditions = request.session.get('selected_conditions', {})
+            if selected_conditions is None:
+                selected_conditions = {}
+            
+            # Update selections for this group
+            selected_conditions[group_name] = selections
+            
+            # Save to session
+            request.session['selected_conditions'] = selected_conditions
+            request.session.modified = True
+            
+            logger.info(f"Saved selections to session: {selected_conditions}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Selections saved for {group_name}',
+                'selections_saved': selections
+            })
+        except Exception as e:
+            logger.error(f"Error saving selections: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages

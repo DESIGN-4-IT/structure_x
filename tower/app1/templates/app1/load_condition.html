@@ -520,6 +520,43 @@
     padding-bottom: 10px;
     border-bottom: 1px solid #dee2e6;
 }
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.checkbox-item label {
+    margin: 0;
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.checkbox-item small {
+    color: #6c757d;
+    margin-left: 5px;
+}
+
+.group-selection-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
     </style>
 </head>
 <body>
@@ -657,6 +694,57 @@
     {% endfor %}
 </div>
 {% endif %}
+
+
+
+<!-- Add this after the group-wise buffered sums display -->
+{% if using_group_wise_sums %}
+<div class="card">
+    <h3><i class="fas fa-check-circle"></i> Select Load Conditions for Each Group</h3>
+    
+    {% for group_name, group_data in group_wise_buffered_sums.items %}
+    <div class="group-selection-section">
+        <h4>Group: {{ group_name }}</h4>
+        <div class="selection-form" data-group="{{ group_name }}">
+            <div class="checkbox-grid">
+                {% for condition in load_conditions %}
+                <div class="checkbox-item">
+                    <input type="checkbox" 
+                           id="condition_{{ group_name }}_{{ condition.id }}"
+                           class="condition-checkbox"
+                           data-group="{{ group_name }}"
+                           data-condition-id="{{ condition.id }}">
+                    <label for="condition_{{ group_name }}_{{ condition.id }}">
+                        {{ condition.description }}
+                        <small>(×{{ condition.vertical_factor }}, ×{{ condition.transverse_factor }}, ×{{ condition.longitudinal_factor }})</small>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" 
+                    class="btn btn-sm btn-primary apply-selection"
+                    data-group="{{ group_name }}">
+                <i class="fas fa-check"></i> Apply Selection for {{ group_name }}
+            </button>
+            <button type="button" 
+                    class="btn btn-sm btn-outline-secondary select-all"
+                    data-group="{{ group_name }}">
+                <i class="fas fa-check-double"></i> Select All
+            </button>
+            <button type="button" 
+                    class="btn btn-sm btn-outline-secondary clear-all"
+                    data-group="{{ group_name }}">
+                <i class="fas fa-times"></i> Clear All
+            </button>
+        </div>
+    </div>
+    {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+
 
    <!-- Factored Loads Display - MULTIPLE SECTIONS FOR GROUPS -->
 {% if has_group_wise_factored_loads %}
@@ -840,6 +928,115 @@
 </footer>
 
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle "Select All" for each group
+    document.querySelectorAll('.select-all').forEach(button => {
+        button.addEventListener('click', function() {
+            const groupName = this.dataset.group;
+            const checkboxes = document.querySelectorAll(
+                `.selection-form[data-group="${groupName}"] .condition-checkbox`
+            );
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+    });
+    
+    // Handle "Clear All" for each group
+    document.querySelectorAll('.clear-all').forEach(button => {
+        button.addEventListener('click', function() {
+            const groupName = this.dataset.group;
+            const checkboxes = document.querySelectorAll(
+                `.selection-form[data-group="${groupName}"] .condition-checkbox`
+            );
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+    });
+    
+    // Handle "Apply Selection" for each group
+    document.querySelectorAll('.apply-selection').forEach(button => {
+        button.addEventListener('click', function() {
+            const groupName = this.dataset.group;
+            const form = this.closest('.selection-form');
+            const checkboxes = form.querySelectorAll('.condition-checkbox');
+            
+            // Collect selections
+            const selections = {};
+            checkboxes.forEach(checkbox => {
+                const conditionId = checkbox.dataset.conditionId;
+                const isChecked = checkbox.checked;
+                selections[conditionId] = isChecked;
+                console.log(`Condition ${conditionId}: ${isChecked}`);
+            });
+            
+            console.log('Sending selections:', selections);
+            
+            // Prepare data to send
+            const data = {
+                group_name: groupName,
+                selections: selections
+            };
+            
+            // Show loading state
+            const originalText = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            // Send AJAX request to save selections
+            fetch('{% url "save_condition_selections" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    // Reload the page to show updated calculations
+                    window.location.reload();
+                } else {
+                    alert('Error saving selections: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving selections.');
+            })
+            .finally(() => {
+                // Reset button
+                this.disabled = false;
+                this.innerHTML = originalText;
+            });
+        });
+    });
+
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle buffer settings visibility

@@ -982,149 +982,147 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load Custom Groups - MODIFIED to enhance "Select All" functionality
     function loadCustomGroups() {
-        if (!structureId) {
-            loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
+    if (!structureId) {
+        loadCasesResults.innerHTML = '<div class="alert alert-warning">No structure selected</div>';
+        return;
+    }
+    
+    fetch(`/load-cases/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
             return;
         }
         
-        fetch(`/load-cases/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                loadCasesResults.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                return;
-            }
+        let html = '<h5>Custom Groups</h5>';
+        if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+            // NEW: Add "Select All Custom Groups" master checkbox
+            html += `
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="select-all-custom-groups">
+                    <label class="form-check-label fw-bold" for="select-all-custom-groups">
+                        Select All Custom Groups
+                    </label>
+                </div>
+            `;
             
-            let html = '<h5>Custom Groups</h5>';
-            if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
-                // NEW: Add "Select All Custom Groups" master checkbox
+            for (const [groupName, cases] of Object.entries(data.custom_groups)) {
                 html += `
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="select-all-custom-groups">
-                        <label class="form-check-label fw-bold" for="select-all-custom-groups">
-                            Select All Custom Groups
-                        </label>
-                    </div>
-                `;
-                
-                for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                    html += `
-                        <div class="load-case-group mb-3 p-3 border rounded" id="custom-group-${groupName.replace(/\s+/g, '-')}">
-                            <h6 class="d-flex align-items-center">
-                                <span class="group-name-display">${groupName}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-sm btn-outline-primary edit-group" data-group="${groupName}">Rename</button>
-                                    <button class="btn btn-sm btn-outline-warning edit-group-members" data-group="${groupName}">Edit</button>
-                                    <button class="btn btn-sm btn-outline-danger delete-group" data-group="${groupName}">Delete</button>
-                                </div>
-                                <div class="form-check ms-2">
-                                    <input class="form-check-input select-all-custom-group" type="checkbox" 
-                                           id="select-all-custom-${groupName.replace(/\s+/g, '-')}">
-                                    <label class="form-check-label small" for="select-all-custom-${groupName.replace(/\s+/g, '-')}">
-                                        Select All in Group
-                                    </label>
-                                </div>
-                            </h6>
-                            <div class="group-edit-form mt-2" style="display: none;">
-                                <div class="d-flex gap-2">
-                                    <input type="text" class="form-control form-control-sm edit-group-input" value="${groupName}">
-                                    <button class="btn btn-sm btn-success save-edit" data-group="${groupName}">Save</button>
-                                    <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}">Cancel</button>
-                                </div>
+                    <div class="load-case-group mb-3 p-3 border rounded" id="custom-group-${groupName.replace(/\s+/g, '-')}" data-group="${groupName}">  <!-- **MODIFIED: Added data-group to store original name** -->
+                        <h6 class="d-flex align-items-center">
+                            <span class="group-name-display">${groupName}</span>
+                            <div class="ms-2">
+                                <button class="btn btn-sm btn-outline-primary edit-group" data-group="${groupName}">Rename</button>
+                                <button class="btn btn-sm btn-outline-warning edit-group-members" data-group="${groupName}">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger delete-group" data-group="${groupName}">Delete</button>
                             </div>
-                            <div class="group-cases ms-3 mt-2">`;
-                    
-                    cases.forEach(caseName => {
-                        const isChecked = selectedLoadCases.has(caseName);
-                        html += `
-                            <div class="form-check">
-                                <input class="form-check-input custom-group-case-checkbox" type="checkbox" 
-                                       value="${caseName}" data-group="${groupName}"
-                                       id="custom-${caseName.replace(/\s+/g, '-')}" 
-                                       ${isChecked ? 'checked' : ''}>
-                                <label class="form-check-label" for="custom-${caseName.replace(/\s+/g, '-')}">
-                                    ${caseName}
+                            <div class="form-check ms-2">
+                                <input class="form-check-input select-all-custom-group" type="checkbox" 
+                                       id="select-all-custom-${groupName.replace(/\s+/g, '-')}" data-group="${groupName}">  <!-- **MODIFIED: Added data-group to store original name** -->
+                                <label class="form-check-label small" for="select-all-custom-${groupName.replace(/\s+/g, '-')}">
+                                    Select All in Group
                                 </label>
                             </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
-                }
-            } else {
-                html += '<p class="text-muted">No custom groups found</p>';
+                        </h6>
+                        <div class="group-edit-form mt-2" style="display: none;">
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control form-control-sm edit-group-input" value="${groupName}">
+                                <button class="btn btn-sm btn-success save-edit" data-group="${groupName}">Save</button>
+                                <button class="btn btn-sm btn-secondary cancel-edit" data-group="${groupName}">Cancel</button>
+                            </div>
+                        </div>
+                        <div class="group-cases ms-3 mt-2">`;
+                
+                cases.forEach(caseName => {
+                    const isChecked = selectedLoadCases.has(caseName);
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input custom-group-case-checkbox" type="checkbox" 
+                                   value="${caseName}" data-group="${groupName}"
+                                   id="custom-${caseName.replace(/\s+/g, '-')}" 
+                                   ${isChecked ? 'checked' : ''}>
+                            <label class="form-check-label" for="custom-${caseName.replace(/\s+/g, '-')}">
+                                ${caseName}
+                            </label>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
             }
-            loadCasesResults.innerHTML = html;
-            
-            // Add custom group functionality
-            setupCustomGroupFunctionality();
-        })
-        .catch(error => {
-            loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
-        });
-    }
+        } else {
+            html += '<p class="text-muted">No custom groups found</p>';
+        }
+        loadCasesResults.innerHTML = html;
+        
+        // Add custom group functionality
+        setupCustomGroupFunctionality();
+    })
+    .catch(error => {
+        loadCasesResults.innerHTML = `<div class="alert alert-danger">Error loading data: ${error}</div>`;
+    });
+}
     
     // Setup custom group functionality (edit, delete, select all) - MODIFIED
     function setupCustomGroupFunctionality() {
-        // NEW: Add master "Select All Custom Groups" functionality
-        const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
-        if (selectAllCustomGroups) {
-            selectAllCustomGroups.addEventListener('change', function() {
-                const groupSelectAlls = document.querySelectorAll('.select-all-custom-group');
-                const customGroupCaseCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
-                
-                groupSelectAlls.forEach(cb => {
-                    cb.checked = this.checked;
-                });
-                
-                customGroupCaseCheckboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedLoadCases.add(cb.value);
-                    } else {
-                        selectedLoadCases.delete(cb.value);
-                    }
-                });
-                
-                // NEW: Update selectedGroups
-                if (this.checked) {
-                    // Add all custom group names to selectedGroups
-                    const allGroupElements = document.querySelectorAll('.load-case-group[id^="custom-group-"]');
-                    allGroupElements.forEach(el => {
-                        const groupName = el.id.replace('custom-group-', '');
-                        selectedGroups.add(groupName);
-                    });
-                } else {
-                    // Clear selectedGroups
-                    selectedGroups.clear();
-                }
-                
-                updateSelectedLoadCases();
+    // NEW: Add master "Select All Custom Groups" functionality
+    const selectAllCustomGroups = document.getElementById('select-all-custom-groups');
+    if (selectAllCustomGroups) {
+        selectAllCustomGroups.addEventListener('change', function() {
+            const groupSelectAlls = document.querySelectorAll('.select-all-custom-group');
+            const customGroupCaseCheckboxes = document.querySelectorAll('.custom-group-case-checkbox');
+            
+            groupSelectAlls.forEach(cb => {
+                cb.checked = this.checked;
             });
-        }
+            
+            customGroupCaseCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+                if (this.checked) {
+                    selectedLoadCases.add(cb.value);
+                } else {
+                    selectedLoadCases.delete(cb.value);
+                }
+            });
+            
+            // NEW: Update selectedGroups
+            if (this.checked) {
+                // Add all custom group names to selectedGroups
+                const allGroupElements = document.querySelectorAll('.load-case-group[id^="custom-group-"]');
+                allGroupElements.forEach(el => {
+                    const groupName = el.dataset.group;  // **MODIFIED: Use dataset.group instead of manipulating ID**
+                    selectedGroups.add(groupName);
+                });
+            } else {
+                // Clear selectedGroups
+                selectedGroups.clear();
+            }
+            
+            updateSelectedLoadCases();
+        });
+    }
         
-        // Select all functionality for individual custom groups
+        // In setupCustomGroupFunctionality() - make sure selectedGroups is updated
         document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                const groupName = this.id.replace('select-all-custom-', '');
+                const groupName = this.dataset.group;
                 const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
                 caseCheckboxes.forEach(cb => {
                     cb.checked = this.checked;
                     if (this.checked) {
                         selectedLoadCases.add(cb.value);
-                        selectedGroups.add(groupName);  // NEW: Add to selected groups
+                        selectedGroups.add(groupName);  // This should add the group
                     } else {
                         selectedLoadCases.delete(cb.value);
-                        selectedGroups.delete(groupName);  // NEW: Remove from selected groups
+                        selectedGroups.delete(groupName);  // This should remove the group
                     }
                 });
                 updateSelectedLoadCases();
-                
-                // Update master "Select All Custom Groups" checkbox
                 updateMasterSelectAllCustomGroups();
             });
         });
@@ -1890,7 +1888,17 @@ document.getElementById('calculate-btn').addEventListener('click', function() {
         console.log('Selection Source:', selectionSource);
         console.log('Custom Groups Data:', customGroupsData);
         console.log('Records to calculate:', calculationData.length);
+        console.log('Selected Groups:', Array.from(selectedGroups));
         console.log('======================');
+
+        if (selectionSource === 'custom' && Object.keys(customGroupsData).length === 0) {
+            console.warn('WARNING: No custom groups data found!');
+            // Fallback: try to get from selectedGroups
+            if (selectedGroups.size > 0) {
+                console.log('Attempting fallback using selectedGroups:', Array.from(selectedGroups));
+                // You might need additional logic here to map selectedGroups to customGroupsData
+            }
+        }
         
         const form = document.createElement('form');
         form.method = 'POST';
@@ -1940,57 +1948,90 @@ function getCurrentCustomGroupsData() {
     const groupHeaders = document.querySelectorAll('.group-header-row');
     
     if (groupHeaders.length > 0) {
+        console.log('DEBUG: Found grouped data, extracting custom groups...');
+        
+        // Find the "Load Case Description" column index dynamically
+        const table = document.querySelector('#load-table');
+        if (!table) {
+            console.warn('DEBUG: Table not found');
+            return customGroupsData;
+        }
+        
+        const headers = table.querySelectorAll('thead th');
+        let loadCaseColumnIndex = -1;
+        headers.forEach((th, index) => {
+            if (th.textContent.trim() === 'Load Case Description') {
+                loadCaseColumnIndex = index;
+            }
+        });
+        
+        if (loadCaseColumnIndex === -1) {
+            console.warn('DEBUG: Load Case Description column not found. Checking all columns...');
+            // Fallback: try to find any column that might contain load case info
+            headers.forEach((th, index) => {
+                if (th.textContent.toLowerCase().includes('load') || 
+                    th.textContent.toLowerCase().includes('case') ||
+                    th.textContent.toLowerCase().includes('description')) {
+                    loadCaseColumnIndex = index;
+                    console.log('DEBUG: Using fallback column:', th.textContent, 'at index', index);
+                }
+            });
+        }
+        
+        if (loadCaseColumnIndex === -1) {
+            console.warn('DEBUG: No suitable column found for load cases');
+            return customGroupsData;
+        }
+        
+        console.log('DEBUG: Load Case Column Index:', loadCaseColumnIndex);
+        
         // We have grouped data, extract group information
         groupHeaders.forEach(header => {
             const headerText = header.textContent.trim();
-            // Extract group name from header text (e.g., "📁 hurri1 (18 records)" -> "hurri1")
-            const groupMatch = headerText.match(/📁\s*([^\s(]+)/);
+            console.log('DEBUG: Processing header:', headerText);
+            
+            // Extract group name from header text (e.g., "📁 RULE (18 records)" -> "RULE")
+            const groupMatch = headerText.match(/📁\s*([^(]+?)\s*\(\d+/);
             if (groupMatch && groupMatch[1]) {
-                const groupName = groupMatch[1];
-                const groupRows = [];
+                const groupName = groupMatch[1].trim();
+                const loadCases = new Set();
+                
+                console.log('DEBUG: Found group:', groupName);
                 
                 // Find all rows belonging to this group
                 let nextRow = header.nextElementSibling;
-                while (nextRow && (nextRow.classList.contains('group-data-row') || nextRow.classList.contains('group-spacer-row'))) {
+                let recordsProcessed = 0;
+                
+                while (nextRow && (nextRow.classList.contains('group-data-row') || 
+                                 (nextRow.classList.contains('group-spacer-row') && !nextRow.querySelector('td[colspan]')))) {
+                    
                     if (nextRow.classList.contains('group-data-row')) {
-                        // Extract load case description from this row
+                        // Get the load case from the correct column
                         const cells = nextRow.querySelectorAll('td');
-                        // Assuming Load Case Description is in a specific column - adjust index as needed
-                        let loadCaseDesc = '';
-                        
-                        // Try to find the Load Case Description cell
-                        cells.forEach((cell, index) => {
-                            if (cell.textContent.includes('Hurricane') || cell.textContent.includes('NESC')) {
-                                loadCaseDesc = cell.textContent.trim();
+                        if (cells.length > loadCaseColumnIndex) {
+                            const loadCaseDesc = cells[loadCaseColumnIndex].textContent.trim();
+                            if (loadCaseDesc) {
+                                loadCases.add(loadCaseDesc);
+                                recordsProcessed++;
                             }
-                        });
-                        
-                        // Alternative: look for specific patterns
-                        if (!loadCaseDesc) {
-                            for (let i = 0; i < cells.length; i++) {
-                                const text = cells[i].textContent.trim();
-                                if (text && (text.includes('Hurricane') || text.includes('NESC'))) {
-                                    loadCaseDesc = text;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (loadCaseDesc) {
-                            groupRows.push(loadCaseDesc);
                         }
                     }
                     nextRow = nextRow.nextElementSibling;
                 }
                 
-                // Remove duplicates and store
-                if (groupRows.length > 0) {
-                    const uniqueLoadCases = [...new Set(groupRows)];
-                    customGroupsData[groupName] = uniqueLoadCases;
+                // Store unique load cases for this group
+                if (loadCases.size > 0) {
+                    customGroupsData[groupName] = Array.from(loadCases);
+                    console.log('DEBUG: Group', groupName, 'has', loadCases.size, 'load cases from', recordsProcessed, 'records');
+                } else {
+                    console.warn('DEBUG: No load cases found for group:', groupName);
                 }
+            } else {
+                console.warn('DEBUG: Could not extract group name from header:', headerText);
             }
         });
     } else {
+        console.log('DEBUG: No grouped data found, falling back to UI selection');
         // Fallback: get custom groups from the custom groups selection UI
         const customGroupElements = document.querySelectorAll('.load-case-group[id^="custom-group-"]');
         
@@ -2008,7 +2049,7 @@ function getCurrentCustomGroupsData() {
         });
     }
     
-    console.log('Extracted Custom Groups Data:', customGroupsData);
+    console.log('DEBUG: Final Custom Groups Data:', customGroupsData);
     return customGroupsData;
 }
 

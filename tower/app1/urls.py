@@ -124,6 +124,8 @@ urlpatterns = [
 
    path('calculation/', views.calculation_view, name='calculation'),
    path('load-condition/', views.load_condition_view, name='load_condition'),
+   path('get-current-selections/', views.get_current_selections, name='get_current_selections'),
+   path('save-condition-selections/', views.save_condition_selections, name='save_condition_selections'),
    path('calculate-final-loads/', views.calculate_final_loads, name='calculate_final_loads'),
    path('load-condition/create/', views.create_load_condition, name='create_load_condition'),
    path('load-condition/<int:pk>/edit/', views.edit_load_condition, name='edit_load_condition'),
