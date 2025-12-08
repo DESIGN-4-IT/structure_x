@@ -1614,12 +1614,11 @@
             window.location.href = '/hdeadend1/'; // Change this URL to the destination page
         });
     
-        // Functionality for the Horizontal button in the second popup
-        document.getElementById('horizontal-btn').addEventListener('click', function () {
-            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
-            // Add redirection or any action needed for horizontal
-        window.location.href = '/hdeadend3/'; // Change this URL to the destination page
-
+        document.getElementById('horizontal-btn').addEventListener('click', function() {
+            hframePopups[1].style.display = 'none';
+            const structureId = sessionStorage.getItem('selectedStructureId');
+            const structureType = sessionStorage.getItem('selectedStructureType');
+            window.location.href = `/hdeadend3/?structure_id=${structureId}&structure_type=${structureType}`;
         });
     
         // Functionality for the configuration buttons in the third popup
@@ -1642,14 +1641,15 @@
             window.location.href = '/hdeadend2/';
             // Add any additional action or redirect if needed
         });
-    
-        // Functionality for the V-String button in the fourth popup
-        document.getElementById('v-string-btn').addEventListener('click', function () {
-            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
-            // Handle post insulator action here
-            window.location.href = '/hdeadend4/';
-            // Add any additional action or redirect if needed
+
+        document.getElementById('v-string-btn').addEventListener('click', function() {
+            hframePopups[3].style.display = 'none';
+            const structureId = sessionStorage.getItem('selectedStructureId');
+            const structureType = sessionStorage.getItem('selectedStructureType');
+            window.location.href = `/hdeadend4/?structure_id=${structureId}&structure_type=${structureType}`;
         });
+    
+      
     </script>
     
      <script>

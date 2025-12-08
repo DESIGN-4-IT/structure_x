@@ -408,15 +408,15 @@ class BufferConfiguration(models.Model):
     def __str__(self):
         return self.name
         
-class HDeadend2(models.Model):
+class HDeadend2(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='h_deadends2',                 # ************Here**********
+        related_name='h_deadends2',             # **************
         unique=True
     )
 
@@ -430,11 +430,12 @@ class HDeadend2(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure2')
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure2')  # **************
         ]
+
         
 class hUploadedFile2(models.Model):
-    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files2')
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files2')  # **************
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -443,19 +444,19 @@ class hUploadedFile2(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure2')
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure2')   # **************
         ]
         
         
-class HDeadend3(models.Model):
+class HDeadend3(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='h_deadends3',                 # ************Here**********
+        related_name='h_deadends3',             # **************
         unique=True
     )
 
@@ -469,13 +470,12 @@ class HDeadend3(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure3')
-        ]      
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure3')  # **************
+        ]
 
-
-
+        
 class hUploadedFile3(models.Model):
-    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files3')
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files3')  # **************
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -484,19 +484,19 @@ class hUploadedFile3(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure3')
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure3')   # **************
         ]
         
         
-class HDeadend4(models.Model):
+class HDeadend4(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='h_deadends4',                 # ************Here**********
+        related_name='h_deadends4',             # **************
         unique=True
     )
 
@@ -510,13 +510,12 @@ class HDeadend4(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure4')
-        ]      
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure4')  # **************
+        ]
 
-
-
+        
 class hUploadedFile4(models.Model):
-    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files4')
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files4')  # **************
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -525,7 +524,7 @@ class hUploadedFile4(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure4')
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure4')   # **************
         ]
         
         

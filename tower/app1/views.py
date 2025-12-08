@@ -1365,7 +1365,17 @@ def handle_load_cases_ajax(request):
             
             # Get custom groups
             elif request.GET.get('get_custom_groups_for_selection'):
-                return get_custom_groups(structure)
+                structure_id = request.GET.get('structure_id')
+                print(f"DEBUG: Handling get_custom_groups_for_selection for structure_id: {structure_id}")  # NEW: Debug log
+                if not structure_id:
+                    return JsonResponse({'error': 'Structure ID is required'}, status=400)
+                
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    return get_custom_groups(structure)
+                except ListOfStructure.DoesNotExist:
+                    print(f"DEBUG: Structure with ID {structure_id} not found")  # NEW: Debug log
+                    return JsonResponse({'error': 'Structure not found'}, status=404)
             
             elif request.GET.get('get_all_load_cases'):
                 return get_all_load_cases(structure)
@@ -1435,16 +1445,19 @@ def get_grouped_load_cases(structure):
     return JsonResponse({'error': 'No grouped load cases found'}, status=404)
 
 def get_custom_groups(structure):
-    """Get custom groups from database"""
+    print(f"DEBUG: Getting custom groups for structure ID {structure.id} - Name: {structure.structure}")  # NEW: Debug log
     custom_groups = LoadCaseGroup.objects.filter(
         structure=structure, 
         is_custom=True
     ).prefetch_related('load_cases')
     
+    print(f"DEBUG: Found {custom_groups.count()} custom groups for structure {structure.id}")  # NEW: Debug log
     groups_data = {}
     for group in custom_groups:
         groups_data[group.name] = [case.name for case in group.load_cases.all()]
+        print(f"DEBUG: Group '{group.name}' has {len(groups_data[group.name])} load cases")  # NEW: Debug log
     
+    print(f"DEBUG: Returning groups_data: {groups_data}")  # NEW: Debug log
     return JsonResponse({'custom_groups': groups_data})
 
 
@@ -1566,43 +1579,6 @@ def calculation_view(request):
                     
                 request.session['group_wise_set_max_sums'] = group_wise_set_max_sums
                 
-                global_set_max_resultants = {}
-                all_records = []
-                
-                # Collect all records from all groups
-                for group_name, records in grouped_data.items():
-                    all_records.extend(records)
-                
-                # Group all records by Set No. globally
-                global_set_records = {}
-                for record in all_records:
-                    set_no = record.get('Set_No', 'Unknown')
-                    if set_no not in global_set_records:
-                        global_set_records[set_no] = []
-                    global_set_records[set_no].append(record)
-                
-                # Find max resultant for each set across all groups
-                for set_no, records in global_set_records.items():
-                    resultant_values = [record['Resultant'] for record in records]
-                    max_resultant = max(resultant_values)
-                    max_index = resultant_values.index(max_resultant)
-                    
-                    global_set_max_resultants[set_no] = {
-                        'vert': records[max_index]['Structure_Loads_Vert'],
-                        'trans': records[max_index]['Structure_Loads_Trans'],
-                        'long': records[max_index]['Structure_Loads_Long'],
-                        'resultant': max_resultant,
-                        'record_id': records[max_index]['record_id'],
-                        'group_name': None  # We don't track which group it came from for global max
-                    }
-                    
-                    # Add global max resultant flag to ALL records (not just within groups)
-                    for record in records:
-                        if record['Resultant'] == max_resultant:
-                            record['global_set_max_resultant_flag'] = 'yes'
-                        else:
-                            record['global_set_max_resultant_flag'] = 'no'
-                
                 # Calculate max values for each group and flag max resultant rows
                 group_max_values = {}
                 max_resultant_values = {}  # Store the actual values that created the max resultant
@@ -1658,7 +1634,6 @@ def calculation_view(request):
                     'grouped_data': grouped_data,
                     'group_max_values': group_max_values,
                     'max_resultant_values': max_resultant_values,
-                    'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
                     'group_wise_set_max_sums': group_wise_set_max_sums,  # NEW: Group-wise sums
@@ -1811,43 +1786,6 @@ def calculation_view(request):
                     }
                 request.session['group_wise_set_max_sums'] = group_wise_set_max_sums
                     
-                global_set_max_resultants = {}
-                all_records = []
-                
-                # Collect all records from all groups
-                for group_name, records in grouped_data.items():
-                    all_records.extend(records)
-                
-                # Group all records by Set No. globally
-                global_set_records = {}
-                for record in all_records:
-                    set_no = record.get('Set_No', 'Unknown')
-                    if set_no not in global_set_records:
-                        global_set_records[set_no] = []
-                    global_set_records[set_no].append(record)
-                
-                # Find max resultant for each set across all groups
-                for set_no, records in global_set_records.items():
-                    resultant_values = [record['Resultant'] for record in records]
-                    max_resultant = max(resultant_values)
-                    max_index = resultant_values.index(max_resultant)
-                    
-                    global_set_max_resultants[set_no] = {
-                        'vert': records[max_index]['Structure_Loads_Vert'],
-                        'trans': records[max_index]['Structure_Loads_Trans'],
-                        'long': records[max_index]['Structure_Loads_Long'],
-                        'resultant': max_resultant,
-                        'record_id': records[max_index]['record_id'],
-                        'group_name': None
-                    }
-                    
-                    # Add global max resultant flag to ALL records
-                    for record in records:
-                        if record['Resultant'] == max_resultant:
-                            record['global_set_max_resultant_flag'] = 'yes'
-                        else:
-                            record['global_set_max_resultant_flag'] = 'no'
-                
                 # Calculate combined values
                 combined_vert = sum([values['vert'] for values in max_resultant_values.values()])
                 combined_trans = sum([values['trans'] for values in max_resultant_values.values()])
@@ -1858,7 +1796,6 @@ def calculation_view(request):
                     'grouped_data': grouped_data,
                     'group_max_values': group_max_values,
                     'max_resultant_values': max_resultant_values,
-                    'global_set_max_resultants': global_set_max_resultants,
                     'set_wise_data': set_wise_data,  # NEW: Set-wise grouped data
                     'set_max_resultants': set_max_resultants,  # NEW: Set max resultants
                     'group_wise_set_max_sums': group_wise_set_max_sums,  # NEW: Group-wise sums for GET
@@ -5848,163 +5785,213 @@ def hdrop1(request):
 
 
 
-def hdeadend2(request):
-    if request.method == 'POST':
-        form = HDeadendForm2(request.POST)    # ********** Here **********
-        if form.is_valid():
-            try:
-                form.save()
-                return HttpResponseRedirect('/hupload2/')  # ********** Here **********
-            except IntegrityError:
-                form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
-    else:
-        form = HDeadendForm2()                    # ********** Here **********
-
-    return render(request, 'app1/hdeadend2.html', {'form': form})      # ********** Here **********
-
-def hdeadend2_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(HDeadend2, pk=pk)  # Here
+def hdeadend2(request):     # ****************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = HDeadend2.objects.filter(structure=structure).exists()  # ******************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')  # *************************
+        else:
+            return redirect('home')
     
     if request.method == 'POST':
-        form = HDeadendForm2UpdateForm(request.POST, instance=hdeadend)  # Here
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/hdeadend2.html', {       # ***************
+                'form': HDeadendForm2(),                         # ***************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data
+            })
+        
+        form = HDeadendForm2(request.POST)                      # ***************
+        if form.is_valid():
+            try:
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')     # ***************
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+    else:
+        # GET request - create empty form
+        form = HDeadendForm2()                   # ***************
+
+    return render(request, 'app1/hdeadend2.html', {               # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data
+    })
+
+
+def hdeadend2_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(HDeadend2, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fetch TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
+    if request.method == 'POST':
+        form = HDeadendForm2UpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/h_deadend_view2/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = HDeadendForm2UpdateForm(instance=hdeadend)   # Here
+        form = HDeadendForm2UpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/hdeadend2_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/hdeadend2_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
-def hupload2(request):
+
+def hupload2(request):           # ****************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if circuit data exists
+            circuit_data_exists = HDeadend2.objects.filter(structure=structure).exists() # ****************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        return HttpResponseRedirect(f'/hdeadend2/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = HUDeadendForm2(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = hUploadedFile2.objects.filter(structure=structure).exists()  # ****************
+            
+            if existing_file_check:
+                return render(request, 'app1/hupload2.html', {       # ****************
+                    'form': HUDeadendForm2(),                        # ****************
+                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files2__isnull=False).distinct(),  # ****************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = HUDeadendForm2(request.POST, request.FILES)       # ****************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    extract_load_cases2(uploaded_file)
+                    extract_load_cases2(instance)    # *****************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload2')
-                except IntegrityError:
+                    # Clear session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    request.session.pop('circuit_structure_id', None)
+                    
+                    # Redirect to show updated state
+                    return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
-                    
-        elif 'create_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    
-                    # Create custom group
-                    custom_group = LoadCaseGroup.objects.create(
-                        name=group_name,
-                        structure=structure,
-                        is_custom=True
-                    )
-                    
-                    # Add selected cases to the custom group
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=custom_group,
-                            structure=structure
-                        )
-                    
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
-                    return JsonResponse({'success': True})
                 except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-        
-        # ADD: Handle custom group deletion (POST)
-        elif 'delete_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
+                    form.add_error(None, f'Error uploading file: {str(e)}')
             else:
-                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # ADD: Handle custom group update (POST)
-        elif 'update_custom_group' in request.POST:
-            old_group_name = request.POST.get('old_group_name')
-            new_group_name = request.POST.get('new_group_name')
-            structure_id = request.POST.get('structure_id')  # Optional
-            
-            if not old_group_name or not new_group_name:
-                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
-            
-            try:
-                if structure_id:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    groups = LoadCaseGroup.objects.filter(
-                        structure=structure,
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                else:
-                    groups = LoadCaseGroup.objects.filter(
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                
-                if not groups.exists():
-                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
-                
-                for group in groups:
-                    group.name = new_group_name
-                    group.save()
-                
-                return JsonResponse({'success': True})
-                
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
-            
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
+        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
             selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
+                'button_type': 'set_phase',
+                'structure_id': structure_id
             }
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
-    else:
-        form = HUDeadendForm2()
-
-    structures_with_files2 = ListOfStructure.objects.filter(huploaded_files2__isnull=False).distinct()
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
     
-    # Handle AJAX requests for data
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = hUploadedFile2.objects.filter(structure=structure).exists()  # ****************
+        form = HUDeadendForm2()                  # ****************
+        
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files2__isnull=False).distinct()  # ****************
+
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -6012,7 +5999,7 @@ def hupload2(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = hUploadedFile2.objects.filter(structure=structure).latest('uploaded_at')  # ****************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -6027,114 +6014,64 @@ def hupload2(request):
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
                 
-            elif request.GET.get('get_load_cases'):
-                # Process load cases - extract unique load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    return JsonResponse({'values': load_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-                    
-            elif request.GET.get('get_grouped_load_cases'):
-                # Process grouped load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    
-                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
-                    grouped_cases = {}
-                    for case in load_cases:
-                        # Extract the prefix (first word before space)
-                        if ' ' in case:
-                            prefix = case.split(' ')[0]
-                        else:
-                            prefix = case
-                            
-                        if prefix not in grouped_cases:
-                            grouped_cases[prefix] = []
-                        grouped_cases[prefix].append(case)
-                    
-                    return JsonResponse({'groups': grouped_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-            
-            # New: Get custom groups for a structure
-            elif request.GET.get('get_custom_groups_for_selection'):
-                custom_groups = LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    is_custom=True
-                ).prefetch_related('load_cases')
-                
-                groups_data = {}
-                for group in custom_groups:
-                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
-                
-                return JsonResponse({'custom_groups': groups_data})
-                
-            # REMOVE: Delete custom group via GET (we use POST now)
-            # elif request.GET.get('delete_custom_group'):
-            #     group_name = request.GET.get('group_name')
-            #     if group_name:
-            #         LoadCaseGroup.objects.filter(
-            #             structure=structure, 
-            #             name=group_name, 
-            #             is_custom=True
-            #         ).delete()
-            #         return JsonResponse({'success': True})
-            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/hupload2.html', {
+    return render(request, 'app1/hupload2.html', {          # ****************
         'form': form,
-        'structures_with_files2': structures_with_files2
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
-    
-    
-from django.contrib.messages import get_messages
-  
-def hupload2_update(request):   # Change here 
+
+def hupload2_update(request):      # **************
     """
     Single page update view with structure selection and file upload
     """
-
     if request.method == 'POST':
-        form = HUDeadendUpdateForm2(request.POST, request.FILES)   # Change here 
+        form = HUDeadendUpdateForm2(request.POST, request.FILES)  # **************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = hUploadedFile2.objects.get(structure=structure)  # Change here 
+                uploaded_file = hUploadedFile2.objects.get(structure=structure)  # **************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                extract_load_cases2(uploaded_file)       # Change here 
+                extract_load_cases2(uploaded_file)    # **************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('hupload2_update')    # Change here 
-                
-            except hUploadedFile2.DoesNotExist:       # Change here 
+                return redirect('hupload2_update')     # **************
+                  
+            except hUploadedFile2.DoesNotExist:         # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = HUDeadendUpdateForm2()         # Change here 
+        form = HUDeadendUpdateForm2()             # **************
 
-    return render(request, 'app1/hupload2_update.html', {         # Change here 
+    return render(request, 'app1/hupload2_update.html', {         # **************
         'form': form
     })
     
-    
-def extract_load_cases2(uploaded_file):
+def extract_load_cases2(uploaded_file):              # **************
+    """Extract load cases from the uploaded Excel file and save to database"""
     try:
+        # Delete only non-custom load cases for this structure
         LoadCase.objects.filter(
             structure=uploaded_file.structure, 
             group__is_custom=False
@@ -6151,186 +6088,243 @@ def extract_load_cases2(uploaded_file):
             
         load_cases = df['Load Case Description'].dropna().unique().tolist()
         
+        # Group load cases by their prefix
         grouped_cases = {}
         for case in load_cases:
-            prefix = case.split(' ')[0] if ' ' in case else case
-            grouped_cases.setdefault(prefix, []).append(case)
+            if ' ' in case:
+                prefix = case.split(' ')[0]
+            else:
+                prefix = case
+                
+            if prefix not in grouped_cases:
+                grouped_cases[prefix] = []
+            grouped_cases[prefix].append(case)
         
+        # Save to database
         for group_name, cases in grouped_cases.items():
             group = LoadCaseGroup.objects.create(
                 name=group_name,
                 structure=uploaded_file.structure,
                 is_custom=False
             )
+            
             for case_name in cases:
                 LoadCase.objects.create(
                     name=case_name,
                     group=group,
                     structure=uploaded_file.structure
                 )
+                
     except Exception as e:
         print(f"Error extracting load cases: {e}")
 
 
 def hdeadend3(request):
-    if request.method == 'POST':
-        form = HDeadendForm3(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                return HttpResponseRedirect('/hupload3/')  # Redirect after successful save
-            except IntegrityError:
-                form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
-    else:
-        form = HDeadendForm3()
-
-    return render(request, 'app1/hdeadend3.html', {'form': form})
-
-def hdeadend3_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(HDeadend3, pk=pk)  # Here
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = HDeadend3.objects.filter(structure=structure).exists()  # ***************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')  # ***************
+        else:
+            return redirect('home')
     
     if request.method == 'POST':
-        form = HDeadendForm3UpdateForm(request.POST, instance=hdeadend)  # Here
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/hdeadend3.html', {    # ***************
+                'form': HDeadendForm3(),                     # ***************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data
+            })
+        
+        form = HDeadendForm3(request.POST)            # ***************
+        if form.is_valid():
+            try:
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')   # ***************
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+    else:
+        # GET request - create empty form  
+        form = HDeadendForm3()           # ***************
+
+    return render(request, 'app1/hdeadend3.html', {       # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data
+    })
+
+def hdeadend3_update(request, pk):
+    hdeadend = get_object_or_404(HDeadend3, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fetch TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
+    if request.method == 'POST':
+        form = HDeadendForm3UpdateForm(request.POST, instance=hdeadend)        # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/h_deadend_view3/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}'     # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = HDeadendForm3UpdateForm(instance=hdeadend)   # Here
+        form = HDeadendForm3UpdateForm(instance=hdeadend)        # ***************
 
-    return render(request, 'app1/hdeadend3_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/hdeadend3_update.html', {          # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def hupload3(request):
+def hupload3(request):           # ****************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if circuit data exists
+            circuit_data_exists = HDeadend3.objects.filter(structure=structure).exists() # ****************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        return HttpResponseRedirect(f'/hdeadend3/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = HUDeadendForm3(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = hUploadedFile3.objects.filter(structure=structure).exists()  # ****************
+            
+            if existing_file_check:
+                return render(request, 'app1/hupload3.html', {       # ****************
+                    'form': HUDeadendForm3(),                        # ****************
+                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files3__isnull=False).distinct(),  # ****************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = HUDeadendForm3(request.POST, request.FILES)       # ****************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    hextract_load_cases3(uploaded_file)
+                    hextract_load_cases3(instance)    # *****************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload3')
-                except IntegrityError:
+                    # Clear session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    request.session.pop('circuit_structure_id', None)
+                    
+                    # Redirect to show updated state
+                    return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
-        
-        # Handle custom group creation
-        elif 'create_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    
-                    # Create custom group
-                    custom_group = LoadCaseGroup.objects.create(
-                        name=group_name,
-                        structure=structure,
-                        is_custom=True
-                    )
-                    
-                    # Add selected cases to the custom group
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=custom_group,
-                            structure=structure
-                        )
-                    
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
-                    return JsonResponse({'success': True})
                 except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle custom group deletion (POST) - ADD THIS
-        elif 'delete_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
+                    form.add_error(None, f'Error uploading file: {str(e)}')
             else:
-                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group update (POST) - ADD THIS
-        elif 'update_custom_group' in request.POST:
-            old_group_name = request.POST.get('old_group_name')
-            new_group_name = request.POST.get('new_group_name')
-            structure_id = request.POST.get('structure_id')  # Optional
-            
-            if not old_group_name or not new_group_name:
-                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
-            
-            try:
-                if structure_id:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    groups = LoadCaseGroup.objects.filter(
-                        structure=structure,
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                else:
-                    groups = LoadCaseGroup.objects.filter(
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                
-                if not groups.exists():
-                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
-                
-                for group in groups:
-                    group.name = new_group_name
-                    group.save()
-                
-                return JsonResponse({'success': True})
-                
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
-            
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
+        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
             selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
+                'button_type': 'set_phase',
+                'structure_id': structure_id
             }
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
-    else:
-        form = HUDeadendForm3()
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = hUploadedFile3.objects.filter(structure=structure).exists()  # ****************
+        form = HUDeadendForm3()                  # ****************
+        
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files3__isnull=False).distinct()  # ****************
 
-    structures_with_files = ListOfStructure.objects.filter(huploaded_files3__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -6338,7 +6332,7 @@ def hupload3(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')  # ****************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -6353,109 +6347,61 @@ def hupload3(request):
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
                 
-            elif request.GET.get('get_load_cases'):
-                # Process load cases - extract unique load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    return JsonResponse({'values': load_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-                    
-            elif request.GET.get('get_grouped_load_cases'):
-                # Process grouped load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    
-                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
-                    grouped_cases = {}
-                    for case in load_cases:
-                        # Extract the prefix (first word before space)
-                        if ' ' in case:
-                            prefix = case.split(' ')[0]
-                        else:
-                            prefix = case
-                            
-                        if prefix not in grouped_cases:
-                            grouped_cases[prefix] = []
-                        grouped_cases[prefix].append(case)
-                    
-                    return JsonResponse({'groups': grouped_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-            
-            # New: Get custom groups for a structure
-            elif request.GET.get('get_custom_groups_for_selection'):
-                custom_groups = LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    is_custom=True
-                ).prefetch_related('load_cases')
-                
-                groups_data = {}
-                for group in custom_groups:
-                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
-                
-                return JsonResponse({'custom_groups': groups_data})
-                
-            # Remove the GET-based delete functionality since we're using POST now
-            # elif request.GET.get('delete_custom_group'):
-            #     group_name = request.GET.get('group_name')
-            #     if group_name:
-            #         LoadCaseGroup.objects.filter(
-            #             structure=structure, 
-            #             name=group_name, 
-            #             is_custom=True
-            #         ).delete()
-            #         return JsonResponse({'success': True})
-            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/hupload3.html', {
+    return render(request, 'app1/hupload3.html', {          # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
-    
-    
-def hupload3_update(request):   # Change here 
+
+def hupload3_update(request):      # **************
     """
     Single page update view with structure selection and file upload
     """
     if request.method == 'POST':
-        form = HUDeadendUpdateForm3(request.POST, request.FILES)   # Change here 
+        form = HUDeadendUpdateForm3(request.POST, request.FILES)  # **************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = hUploadedFile3.objects.get(structure=structure)  # Change here 
+                uploaded_file = hUploadedFile3.objects.get(structure=structure)  # **************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                hextract_load_cases3(uploaded_file)       # Change here 
+                hextract_load_cases3(uploaded_file)    # **************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('hupload3_update')    # Change here 
-                
-            except hUploadedFile3.DoesNotExist:       # Change here 
+                return redirect('hupload3_update')     # **************
+                  
+            except hUploadedFile3.DoesNotExist:         # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = HUDeadendUpdateForm3()         # Change here 
+        form = HUDeadendUpdateForm3()             # **************
 
-    return render(request, 'app1/hupload3_update.html', {         # Change here 
+    return render(request, 'app1/hupload3_update.html', {         # **************
         'form': form
     })
     
-def hextract_load_cases3(uploaded_file):
+def hextract_load_cases3(uploaded_file):              # **************
     """Extract load cases from the uploaded Excel file and save to database"""
     try:
         # Delete only non-custom load cases for this structure
@@ -6507,163 +6453,210 @@ def hextract_load_cases3(uploaded_file):
         
         
 def hdeadend4(request):
-    if request.method == 'POST':
-        form = HDeadendForm4(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                return HttpResponseRedirect('/hupload4/')  # Redirect after successful save
-            except IntegrityError:
-                form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
-    else:
-        form = HDeadendForm4()
-
-    return render(request, 'app1/hdeadend4.html', {'form': form})
-
-def hdeadend4_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(HDeadend4, pk=pk)  # Here
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = HDeadend4.objects.filter(structure=structure).exists()  # ***************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')  # ***************
+        else:
+            return redirect('home')
     
     if request.method == 'POST':
-        form = HDeadendForm4UpdateForm(request.POST, instance=hdeadend)  # Here
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/hdeadend4.html', {    # ***************
+                'form': HDeadendForm4(),                     # ***************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data
+            })
+        
+        form = HDeadendForm4(request.POST)            # ***************
+        if form.is_valid():
+            try:
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')   # ***************
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+    else:
+        # GET request - create empty form  
+        form = HDeadendForm4()           # ***************
+
+    return render(request, 'app1/hdeadend4.html', {       # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data
+    })
+
+def hdeadend4_update(request, pk):
+    hdeadend = get_object_or_404(HDeadend4, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fetch TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
+    if request.method == 'POST':
+        form = HDeadendForm4UpdateForm(request.POST, instance=hdeadend)        # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/h_deadend_view4/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}'     # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = HDeadendForm4UpdateForm(instance=hdeadend)   # Here
+        form = HDeadendForm4UpdateForm(instance=hdeadend)        # ***************
 
-    return render(request, 'app1/hdeadend4_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/hdeadend4_update.html', {          # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
-def hupload4(request):
+def hupload4(request):           # ****************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if circuit data exists
+            circuit_data_exists = HDeadend4.objects.filter(structure=structure).exists() # ****************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        return HttpResponseRedirect(f'/hdeadend4/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = HUDeadendForm4(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = hUploadedFile4.objects.filter(structure=structure).exists()  # ****************
+            
+            if existing_file_check:
+                return render(request, 'app1/hupload4.html', {       # ****************
+                    'form': HUDeadendForm4(),                        # ****************
+                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files4__isnull=False).distinct(),  # ****************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = HUDeadendForm4(request.POST, request.FILES)       # ****************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    hextract_load_cases4(uploaded_file)
+                    hextract_load_cases4(instance)    # *****************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('hupload4')
-                except IntegrityError:
+                    # Clear session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    request.session.pop('circuit_structure_id', None)
+                    
+                    # Redirect to show updated state
+                    return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')  # ****************
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
-        
-        # Handle custom group creation
-        elif 'create_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            selected_cases = request.POST.getlist('selected_cases')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    
-                    # Create custom group
-                    custom_group = LoadCaseGroup.objects.create(
-                        name=group_name,
-                        structure=structure,
-                        is_custom=True
-                    )
-                    
-                    # Add selected cases to the custom group
-                    for case_name in selected_cases:
-                        LoadCase.objects.create(
-                            name=case_name,
-                            group=custom_group,
-                            structure=structure
-                        )
-                    
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
-                    return JsonResponse({'success': True})
                 except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
-        
-        # ADD: Handle custom group deletion (POST)
-        elif 'delete_custom_group' in request.POST:
-            structure_id = request.POST.get('structure_id')
-            group_name = request.POST.get('group_name')
-            
-            if structure_id and group_name:
-                try:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': str(e)})
+                    form.add_error(None, f'Error uploading file: {str(e)}')
             else:
-                return JsonResponse({'success': False, 'error': 'Structure ID and group name are required for deletion'})
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # ADD: Handle custom group update (POST)
-        elif 'update_custom_group' in request.POST:
-            old_group_name = request.POST.get('old_group_name')
-            new_group_name = request.POST.get('new_group_name')
-            structure_id = request.POST.get('structure_id')  # Optional
-            
-            if not old_group_name or not new_group_name:
-                return JsonResponse({'success': False, 'error': 'Old and new group names are required'})
-            
-            try:
-                if structure_id:
-                    structure = ListOfStructure.objects.get(id=structure_id)
-                    groups = LoadCaseGroup.objects.filter(
-                        structure=structure,
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                else:
-                    groups = LoadCaseGroup.objects.filter(
-                        name=old_group_name,
-                        is_custom=True
-                    )
-                
-                if not groups.exists():
-                    return JsonResponse({'success': False, 'error': f'Group "{old_group_name}" not found'})
-                
-                for group in groups:
-                    group.name = new_group_name
-                    group.save()
-                
-                return JsonResponse({'success': True})
-                
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)})
-        
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
-            
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
+        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
             selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
+                'button_type': 'set_phase',
+                'structure_id': structure_id
             }
             request.session['selected_values'] = selected_values
             return redirect('hdata1')
-    else:
-        form = HUDeadendForm4()
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = hUploadedFile4.objects.filter(structure=structure).exists()  # ****************
+        form = HUDeadendForm4()                  # ****************
+        
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files4__isnull=False).distinct()  # ****************
 
-    structures_with_files = ListOfStructure.objects.filter(huploaded_files4__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -6671,7 +6664,7 @@ def hupload4(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile4.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = hUploadedFile3.objects.filter(structure=structure).latest('uploaded_at')  # ****************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -6686,109 +6679,61 @@ def hupload4(request):
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
                 
-            elif request.GET.get('get_load_cases'):
-                # Process load cases - extract unique load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    return JsonResponse({'values': load_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-                    
-            elif request.GET.get('get_grouped_load_cases'):
-                # Process grouped load cases
-                if 'Load Case Description' in df.columns:
-                    load_cases = df['Load Case Description'].dropna().unique().tolist()
-                    
-                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
-                    grouped_cases = {}
-                    for case in load_cases:
-                        # Extract the prefix (first word before space)
-                        if ' ' in case:
-                            prefix = case.split(' ')[0]
-                        else:
-                            prefix = case
-                            
-                        if prefix not in grouped_cases:
-                            grouped_cases[prefix] = []
-                        grouped_cases[prefix].append(case)
-                    
-                    return JsonResponse({'groups': grouped_cases})
-                else:
-                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
-            
-            # New: Get custom groups for a structure
-            elif request.GET.get('get_custom_groups_for_selection'):
-                custom_groups = LoadCaseGroup.objects.filter(
-                    structure=structure, 
-                    is_custom=True
-                ).prefetch_related('load_cases')
-                
-                groups_data = {}
-                for group in custom_groups:
-                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
-                
-                return JsonResponse({'custom_groups': groups_data})
-                
-            # REMOVE: Delete custom group via GET (we use POST now)
-            # elif request.GET.get('delete_custom_group'):
-            #     group_name = request.GET.get('group_name')
-            #     if group_name:
-            #         LoadCaseGroup.objects.filter(
-            #             structure=structure, 
-            #             name=group_name, 
-            #             is_custom=True
-            #         ).delete()
-            #         return JsonResponse({'success': True})
-            #     return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/hupload4.html', {
+    return render(request, 'app1/hupload4.html', {          # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
-    
-    
-def hupload4_update(request):   # Change here 
+
+def hupload4_update(request):      # **************
     """
     Single page update view with structure selection and file upload
     """
     if request.method == 'POST':
-        form = HUDeadendUpdateForm4(request.POST, request.FILES)   # Change here 
+        form = HUDeadendUpdateForm4(request.POST, request.FILES)  # **************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = hUploadedFile4.objects.get(structure=structure)  # Change here 
+                uploaded_file = hUploadedFile4.objects.get(structure=structure)  # **************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                hextract_load_cases4(uploaded_file)       # Change here 
+                hextract_load_cases4(uploaded_file)    # **************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('hupload4_update')    # Change here 
-                
-            except hUploadedFile4.DoesNotExist:       # Change here 
+                return redirect('hupload4_update')     # **************
+                  
+            except hUploadedFile4.DoesNotExist:         # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = HUDeadendUpdateForm4()         # Change here 
+        form = HUDeadendUpdateForm4()             # **************
 
-    return render(request, 'app1/hupload4_update.html', {         # Change here 
+    return render(request, 'app1/hupload4_update.html', {         # **************
         'form': form
     })
-
-def hextract_load_cases4(uploaded_file):
+    
+def hextract_load_cases4(uploaded_file):              # **************
     """Extract load cases from the uploaded Excel file and save to database"""
     try:
         # Delete only non-custom load cases for this structure

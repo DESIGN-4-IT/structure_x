@@ -1,728 +1,2831 @@
-Read the entire code carefully and act as an experienced developer.
+Read the entire codebase carefully and act as a full-stack developer with 10+ years of experience, as well as a transmission line domain expert.
 
-On the Load Condition page, we fetch buffer results from the previous page under the "Using Group-wise Set Max Resultant Calculations" section.
+Your first task is to understand the functionality implemented in the canvas container on Page 4.
 
-We also use the available Custom Group values (Base Vert, Base Trans, Base Long, Base Resultant) to calculate the Load Factor for each available Load Condition Parameter.
+Goal
 
-The Problem
+Display the correct 3D structure on Page 4 based on all user selections from Pages 1–3.
 
-Currently, the system calculates the Load Factor for all Load Condition Parameters using all available Custom Groups.
-But the user does not want to calculate load factors for all combinations.
+User Flow
+Page 1
 
-Required Functionality
+The user selects a structure type (e.g., H-Frame, Tower, Monopole) from 3 main links.
+Then the user selects additional options from popups (e.g., Deadend, Vertical, etc.).
 
-The user must be able to choose which Load Condition Parameters should be used to calculate the Load Factor for a specific Custom Group.
+Page 2
 
-Example:
+The user fills and saves the Circuit Definition form by selecting:
 
-In the database, we have 3 Load Condition Parameters:
+Number of 3-phase circuits
 
-NESC LIGHT (250B) — 30.0, 0.0, 9.0, 1.65, 2.5, 1.5, 1.65
+Number of shield wires
 
-NESC EXTREME WIND (250C) — 60.0, 0.0, 28.22, 1.1, 1.1, 1.1, 1.2
+Number of 1-phase circuits
 
-NESC COMBINED ICE & WIND (250D) — 15.0, 0.5, 2.3, 1.0, 1.0, 1.0, 1.0
+Number of communication cables
 
-Suppose the Custom Group is "crack".
+And other fields in the circuit definition form
 
-The user wants to calculate the Load Factor only for:
+Based on the selected values, we determine which 3D GLB model should be loaded.
 
-NESC LIGHT (250B)
+Also, note:
 
-NESC COMBINED ICE & WIND (250D)
+Each button in H-Frame (Deadend, Vertical, etc.) redirects to a separate Circuit Definition form.
 
-and not for NESC EXTREME WIND (250C).
+Based on whichever Circuit Definition form is submitted, Page 4 must show the correct 3D model.
 
-Expected Behavior
+Page 3
 
-Show a list of all Load Condition Parameters with checkboxes.
+The user uploads an Excel file and then clicks Set/Phase or Attachment Joint Label, which redirects to Page 4.
 
-User selects which parameters to include.
+Page 4
 
-Load Factor calculations must be performed only for the selected parameters of the chosen Custom Group.
-note : give correct hint where to modify/add code 
+Render the correct 3D model inside the canvas container using:
 
-this is model 
-"class LoadCondition(models.Model):
-    description = models.CharField(max_length=100)
-    temperature = models.FloatField(verbose_name="°F")
-    ice_radial = models.FloatField(verbose_name="Radial (in)")
-    wind_pressure = models.FloatField(verbose_name="Pressure (psf)")
-    angle_factor = models.FloatField()
-    transverse_factor = models.FloatField()
-    vertical_factor = models.FloatField()
-    longitudinal_factor = models.FloatField()
+Selected structure type + popup option from Page 1
+
+Circuit Definition values from Page 2
+
+Uploaded Excel file from Page 3 (if needed)
+
+Current Challenge
+
+I need Page 4 to always display the correct 3D model based on:
+
+The structure type and popup selection from Page 1
+
+The configuration values saved on Page 2
+
+Currently, there are multiple popups for Towers, H-Frames, and Monopoles.
+For now, focus only on H-Frame.
+Later, the same approach will be applied to Tower and Monopole.
+
+What I Need From You
+
+Please provide:
+
+1. The simplest and most scalable implementation approach
+
+How should we design the logic for mapping selections → correct GLB model?
+
+2. Exact locations where code must be modified/added
+
+Please give clear beginner-friendly hints such as:
+
+Which view file to update
+
+Which model to modify
+
+Where to store the selected data
+
+Where to load the GLB model on Page 4
+
+3. How to pass selected data from Pages 1–3 to Page 4
+
+Explain the best method to send data across pages (session, database, hidden fields, etc.) so Page 4 always knows which 3D model to render.
+
+
+this is first page code 
+
+class ListOfStructure(models.Model):
+    structure = models.CharField(max_length=100,unique=True)
+
+    def __str__(self):
+        return self.structure
+
+class StructureGroup(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    structures = models.ManyToManyField(ListOfStructure, related_name='groups')
+
+    def __str__(self):
+        return self.name
+
+def list_structures(request):
+    structures = ListOfStructure.objects.all()
+    groups = StructureGroup.objects.all()
+    return render(request, 'app1/home.html', {'structures': structures, 'groups': groups})
+
+class TowerModel(models.Model):
+    name = models.CharField(max_length=255)
+    model_file = models.FileField(upload_to='tower_models/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return self.description
+        return self.name
+    
+    def get_file_url(self):
+        if self.model_file and hasattr(self.model_file, 'url'):
+            return self.model_file.url
+        return ''
 
-class AttachmentLoad(models.Model):
-    LOAD_CASE_CHOICES = [
-        ('LC1', 'LC1, NESC LIGHT (250B)'),
-        ('LC2', 'LC2, NESC EXTREME WIND (250C)'),
-        ('LC3', 'LC3, NESC COMBINED ICE AND WIND (250D)'),
-        ('LC4', 'LC4, NORMAL EVERYDAY'),
-        ('LC5', 'LC5, 2% POLE DEFLECTION'),
-        ('LC6', 'LC6, FULL BREAK (250B)'),
-        ('LC7', 'LC7, Full Break (250D)'),
-    ]
-    
-    ATTACHMENT_CHOICES = [
-        ('S1', 'S1'),
-        ('P1,A', 'P1,A'),
-        ('P1,B', 'P1,B'),
-        ('P1,C', 'P1,C'),
-        ('F1', 'F1'),
-        ('D1,A & D2,A', 'D1,A & D2,A'),
-        ('D1,B & D2,B', 'D1,B & D2,B'),
-        ('D1,C & D2,C', 'D1,C & D2,C'),
-        ('N1 & N2', 'N1 & N2'),
-        ('C1', 'C1'),
-        ('C2', 'C2'),
-        ('C3', 'C3'),
-        ('C4', 'C4'),
-    ]
-    
-    load_case = models.CharField(max_length=3, choices=LOAD_CASE_CHOICES)
-    attachment = models.CharField(max_length=20, choices=ATTACHMENT_CHOICES)
-    vertical_load = models.FloatField(verbose_name="V")
-    transverse_load = models.FloatField(verbose_name="T")
-    longitudinal_load = models.FloatField(verbose_name="L")
-    
-    class Meta:
-        unique_together = ('load_case', 'attachment')
-    
-    def __str__(self):
-        return f"{self.get_load_case_display()} - {self.attachment}"
-"
-
-this is view 
-"def load_condition_view(request):
-    calculation_data = []
-    processed_sums = {}
-    group_wise_buffered_sums = {}
-    
-    # Try to get calculation data from multiple sources
-    if request.method == 'POST':
-        calculation_data_json = request.POST.get('calculation_data')
-        processed_sums_json = request.POST.get('processed_sums')
-        group_wise_buffered_sums_json = request.POST.get('group_wise_buffered_sums')
-        
-        if calculation_data_json:
-            try:
-                calculation_data = json.loads(calculation_data_json)
-                request.session['calculation_data'] = calculation_data
-                
-                if processed_sums_json:
-                    processed_sums = json.loads(processed_sums_json)
-                    request.session['processed_sums'] = processed_sums
-                
-                # Handle group-wise buffered sums
-                if group_wise_buffered_sums_json:
-                    group_wise_buffered_sums = json.loads(group_wise_buffered_sums_json)
-                    request.session['group_wise_buffered_sums'] = group_wise_buffered_sums
-                    
-            except json.JSONDecodeError:
-                calculation_data = request.session.get('calculation_data', [])
-                processed_sums = request.session.get('processed_sums', {})
-                group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
-    else:
-        calculation_data = request.session.get('calculation_data', [])
-        processed_sums = request.session.get('processed_sums', {})
-        group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
-    
-    # Get all load conditions
-    load_conditions = LoadCondition.objects.all().order_by('id')
-    
-    # Get all attachment loads grouped by load case
-    attachment_loads = {}
-    for lc in AttachmentLoad.LOAD_CASE_CHOICES:
-        loads = AttachmentLoad.objects.filter(load_case=lc[0]).order_by('attachment')
-        if loads.exists():
-            attachment_loads[lc[0]] = {
-                'name': lc[1],
-                'loads': loads
-            }
-    
-    # Process calculation data only if it exists
-    if calculation_data:
-        # Add record_id and clean keys to calculation data for template access
-        for index, record in enumerate(calculation_data):
-            record['record_id'] = f"record_{index}"
-            record['Structure_Loads_Vert'] = float(record.get('Structure Loads Vert. (lbs)', 0) or 0)
-            record['Structure_Loads_Trans'] = float(record.get('Structure Loads Trans. (lbs)', 0) or 0)
-            record['Structure_Loads_Long'] = float(record.get('Structure Loads Long. (lbs)', 0) or 0)
-            record['Resultant'] = float(record.get('Resultant (lbs)', 0) or 0)
-            record['Set_No'] = record.get('Set No.', 'Unknown')
-        
-        factored_loads_by_condition = {}
-        group_wise_factored_loads = {}  # NEW: Store factored loads by group
-
-        # PRIORITY 1: Use group-wise buffered sums if available (Select Set Max Resultant Within Groups)
-        if group_wise_buffered_sums:
-            # Process EACH group separately
-            for group_name, group_data in group_wise_buffered_sums.items():
-                group_factored_loads = {}
-                
-                for condition in load_conditions:
-                    from decimal import Decimal
-                    
-                    # Use group-wise buffered sums as base loads
-                    base_vert = Decimal(str(group_data.get('vert', 0)))
-                    base_trans = Decimal(str(group_data.get('trans', 0)))
-                    base_long = Decimal(str(group_data.get('long', 0)))
-                    
-                    # Apply overload factors
-                    factored_vert = base_vert * Decimal(str(condition.vertical_factor))
-                    factored_trans = base_trans * Decimal(str(condition.transverse_factor))
-                    factored_long = base_long * Decimal(str(condition.longitudinal_factor))
-                    
-                    factored_vert = float(factored_vert)
-                    factored_trans = float(factored_trans)
-                    factored_long = float(factored_long)
-                    
-                    factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
-
-                    group_factored_loads[condition.description] = {
-                        'base_loads': {
-                            'vert': float(base_vert),
-                            'trans': float(base_trans),
-                            'long': float(base_long),
-                            'resultant': group_data.get('resultant', 0)
-                        },
-                        'factored_loads': {
-                            'vert': factored_vert,
-                            'trans': factored_trans,
-                            'long': factored_long,
-                            'resultant': factored_resultant
-                        },
-                        'factors': {
-                            'vertical': condition.vertical_factor,
-                            'transverse': condition.transverse_factor,
-                            'longitudinal': condition.longitudinal_factor
-                        },
-                        'calculation_type': 'group_wise_buffered',
-                        'group_name': group_name
-                    }
-                
-                # Store factored loads for this group
-                group_wise_factored_loads[group_name] = group_factored_loads
-
-        # PRIORITY 2: Use processed sums if available (Select Group Max Resultant with Buffer)
-        elif processed_sums and processed_sums.get('totalVert') is not None:  
-            for condition in load_conditions:
-                from decimal import Decimal
-                
-                # Use processed sums as base loads
-                base_vert = Decimal(str(processed_sums.get('totalVert', 0)))
-                base_trans = Decimal(str(processed_sums.get('totalTrans', 0)))
-                base_long = Decimal(str(processed_sums.get('totalLong', 0)))
-                
-                # Apply overload factors
-                factored_vert = base_vert * Decimal(str(condition.vertical_factor))
-                factored_trans = base_trans * Decimal(str(condition.transverse_factor))
-                factored_long = base_long * Decimal(str(condition.longitudinal_factor))
-                
-                factored_vert = float(factored_vert)
-                factored_trans = float(factored_trans)
-                factored_long = float(factored_long)
-                
-                factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
-
-                factored_loads_by_condition[condition.description] = {
-                    'base_loads': {
-                        'vert': float(base_vert),
-                        'trans': float(base_trans),
-                        'long': float(base_long),
-                        'resultant': processed_sums.get('finalResultant', 0)
-                    },
-                    'factored_loads': {
-                        'vert': factored_vert,
-                        'trans': factored_trans,
-                        'long': factored_long,
-                        'resultant': factored_resultant
-                    },
-                    'factors': {
-                        'vertical': condition.vertical_factor,
-                        'transverse': condition.transverse_factor,
-                        'longitudinal': condition.longitudinal_factor
-                    },
-                    'calculation_type': 'processed_sums',
-                }
-        
-        # PRIORITY 3: Fallback to individual records calculation
-        elif calculation_data:
-            for condition in load_conditions:
-                factored_loads_by_condition[condition.description] = {
-                    'factors': {
-                        'vertical': condition.vertical_factor,
-                        'transverse': condition.transverse_factor,
-                        'longitudinal': condition.longitudinal_factor
-                    },
-                    'calculation_type': 'individual_records'
-                }
-    
-    context = {
-        'load_conditions': load_conditions,
-        'attachment_loads': attachment_loads,
-        'calculation_data': calculation_data,
-        'calculation_data_json': json.dumps(calculation_data),
-        'factored_loads_by_condition': factored_loads_by_condition,
-        'group_wise_factored_loads': group_wise_factored_loads,  # NEW: Add to context
-        'has_factored_loads': bool(factored_loads_by_condition) or bool(group_wise_factored_loads),
-        'processed_sums': processed_sums,
-        'using_processed_sums': bool(processed_sums),
-        'group_wise_buffered_sums': group_wise_buffered_sums,
-        'using_group_wise_sums': bool(group_wise_buffered_sums),
-        'has_group_wise_factored_loads': bool(group_wise_factored_loads)  # NEW: Flag for template
-    }
-    
-    return render(request, 'app1/load_condition.html', context)"
-
-this is load_condition.html 
-"<div class="container">
-    <header>
-        <h2><i class="fas fa-table"></i> Load Conditions</h2>
-        <p>Configure and apply load conditions to your calculations</p>
-    </header>
-
-    {% if calculation_data %}
-
-    <div class="card">
-        <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
-        
-        <!-- Add Parameter Button -->
-        <div class="action-buttons" style="justify-content: flex-start; margin-bottom: 20px;">
-            <a href="{% url 'create_load_condition' %}" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> Add New Parameter
-            </a>
+home.html 
+"   <div class="content">
+        <div class="panel">
+        <div class="panel-header">
+            <i class="fas fa-list panel-icon"></i>
+            List All Structures
         </div>
-        
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th>°F</th>
-                        <th>Radial (in)</th>
-                        <th>Pressure (psf)</th>
-                        <th>ANGLE</th>
-                        <th>TRANSVERSE</th>
-                        <th>VERTICAL</th>
-                        <th>LONGITUDINAL</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for condition in load_conditions %}
-                    <tr>
-                        <td>{{ condition.description }}</td>
-                        <td>{{ condition.temperature }}</td>
-                        <td>{{ condition.ice_radial }}</td>
-                        <td>{{ condition.wind_pressure }}</td>
-                        <td>{{ condition.angle_factor }}</td>
-                        <td>{{ condition.transverse_factor }}</td>
-                        <td>{{ condition.vertical_factor }}</td>
-                        <td>{{ condition.longitudinal_factor }}</td>
-                        <td>
-                            <div style="display: flex; gap: 5px;">
-                                <a href="{% url 'edit_load_condition' condition.pk %}" 
-                                class="btn btn-sm btn-outline-primary" 
-                                style="padding: 5px 10px; font-size: 0.8rem;">
+        <div class="panel-body">
+            <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">
+                <i class="fas fa-plus-circle"></i> Add Structure
+            </button>
+            <div class="structure-list">
+                {% for structure in structures %}
+                    <div class="structure-item-container">
+                        <div class="structure-item" data-structure-id="{{ structure.id }}">
+                            <div>{{ structure.structure }}</div>
+                            <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                        <div class="structure-dropdown" id="dropdown-{{ structure.id }}">
+                            <select class="structure-type-select">
+                                <option value="">Select Structure Type</option>
+                                <option value="towers">Towers</option>
+                                <option value="hframes">H-Frames</option>
+                                <option value="monopoles">Monopoles</option>
+                            </select>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty-state">No structures found. Add your first structure!</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-header">
+            <i class="fas fa-layer-group panel-icon"></i>
+            Group Structures
+        </div>
+        <div class="panel-body">
+            <select id="structure-select">
+                <option value="">Select Structure Type For Group</option>
+                <option value="towers">Towers</option>
+                <option value="hframes">H-Frames</option>
+                <option value="monopoles">Monopoles</option>
+            </select>
+            
+            <div class="group-list-container" id="groupListContainer">
+                {% for group in groups %}
+                    <div class="group-item" id="group-{{ group.id }}">
+                        <div class="group-header">
+                            <span class="group-name-text">{{ group.name }}</span>
+                            <div class="group-actions">
+                                <button type="button" class="group-edit-btn" title="Edit Group Name" data-group-id="{{ group.id }}">
                                     <i class="fas fa-edit"></i>
-                                </a>
-                                <button onclick="deleteLoadCondition({{ condition.pk }})" 
-                                        class="btn btn-sm btn-outline-danger" 
-                                        style="padding: 5px 10px; font-size: 0.8rem;">
-                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button type="button" class="group-delete-btn" title="Delete Group" data-group-id="{{ group.id }}">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" style="text-align: center; color: #6c757d;">
-                            <i class="fas fa-info-circle"></i> No load conditions configured yet.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <!-- Processed Sums Display -->
-    {% if using_processed_sums %}
-    <div class="card alert alert-info">
-        <h3><i class="fas fa-info-circle"></i> Using Processed Sums as Base Loads</h3>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Base Vert</div>
-                <div class="stat-value">{{ processed_sums.totalVert|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
+                        </div>
+                        <div class="group-edit-form" style="display: none;">
+                            <input type="text" class="group-edit-input" value="{{ group.name }}" style="display: inline-block; width: auto; margin-right: 5px;">
+                            <button type="button" class="group-save-btn btn btn-sm btn-success" data-group-id="{{ group.id }}">Save</button>
+                            <button type="button" class="group-cancel-btn btn btn-sm btn-secondary" data-group-id="{{ group.id }}">Cancel</button>
+                        </div>
+                        <div class="group-structures-tags">
+                            {% for structure in group.structures.all %}
+                                <span class="structure-tag">{{ structure.structure }}</span>
+                            {% empty %}
+                                <span class="empty-state">No structures in this group.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty-state" id="noGroupsState">No groups created yet.</div>
+                {% endfor %}
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Trans</div>
-                <div class="stat-value">{{ processed_sums.totalTrans|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Long</div>
-                <div class="stat-value">{{ processed_sums.totalLong|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Resultant</div>
-                <div class="stat-value">{{ processed_sums.finalResultant|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
-    {% if using_group_wise_sums %}
-<div class="card alert alert-warning">
-    <h3><i class="fas fa-layer-group"></i> Using Group-wise Set Max Resultant Calculations</h3>
-    
-    {% for group_name, group_data in group_wise_buffered_sums.items %}
-    <div class="group-section" style="margin-bottom: 15px;">
-        <h4>Group: {{ group_name }}</h4>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Base Vert</div>
-                <div class="stat-value">{{ group_data.vert|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Trans</div>
-                <div class="stat-value">{{ group_data.trans|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Long</div>
-                <div class="stat-value">{{ group_data.long|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Resultant</div>
-                <div class="stat-value">{{ group_data.resultant|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
+            <button class="btn" onclick="window.location.href='{% url 'add_group' %}'">
+                <i class="fas fa-plus-circle"></i> Create Structure Group
+            </button>
         </div>
     </div>
-    {% endfor %}
 </div>
-{% endif %}
 
-   <!-- Factored Loads Display - MULTIPLE SECTIONS FOR GROUPS -->
-{% if has_group_wise_factored_loads %}
-    <!-- Display factored loads for EACH group separately -->
-    {% for group_name, group_data in group_wise_factored_loads.items %}
-    <div class="card group-factored-loads-section">
-        <h3><i class="fas fa-calculator"></i> Factored Loads for Group: {{ group_name }}</h3>
+<!-- H-Frame Popup -->
+<div class="popup-overlay" id="hframe-popup-overlay">
+    <!-- H-Frame First Popup -->
+    <div class="popup" id="hframe-popup1">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>What are the majority of the attachment points on each structure in the group?</h3>
+        </div>
+        <button class="popup-btn blue" id="hframe-deadend-btn">Deadend</button>
+        <button class="popup-btn green" id="hframe-tangent-btn">Tangent</button>
+
+        <p class="popup-note">Note: Individual attachments can be modified later</p>
+    </div>
+
+    <!-- H-Frame Second Popup for Insulator Type -->
+    <div class="popup" id="hframe-popup2" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Configuration</h3>
+        </div>
+        <button class="popup-btn blue" id="vertical-btn">Vertical</button>
+        <button class="popup-btn red" id="horizontal-btn">Horizontal</button>
+    </div>
+
+    <!-- H-Frame Third Popup for Configuration -->
+    <div class="popup" id="hframe-popup3" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Configuration</h3>
+        </div>
+        <button class="popup-btn blue" id="configuration-vertical-btn">Vertical</button>
+        <button class="popup-btn red" id="configuration-horizontal-btn">Horizontal</button>
+    </div>
+
+    <!-- H-Frame Fourth Popup for Insulator Type -->
+    <div class="popup" id="hframe-popup4" style="display: none;">
+        <div class="popup-header">
+            <span class="popup-close">&times;</span>
+            <h3>Select Configuration</h3>
+        </div>
+        <button class="popup-btn blue" id="post-insulator-btn">Post Insulator</button>
+        <button class="popup-btn red" id="v-string-btn">V-String</button>
+    </div>
+</div>
+
+<script>
+        const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
+        const hframePopups = document.querySelectorAll('#hframe-popup-overlay .popup'); // Scope to h-frame popups only
+        let hframePopupStack = [];
+    
+        document.getElementById('structure-select').addEventListener('change', function () {
+            if (this.value === 'hframes') {
+                hframePopupOverlay.style.display = 'flex';
+                hframePopups.forEach((popup) => popup.style.display = 'none');
+                hframePopups[0].style.display = 'block'; // Show the first h-frame popup
+                mainContent.classList.add('blur');
+                hframePopupStack = [0];
+            } else {
+                hframePopupOverlay.style.display = 'none';
+                mainContent.classList.remove('blur');
+                hframePopupStack = [];
+            }
+        });
+    
+        document.querySelectorAll('#hframe-popup-overlay .popup-close').forEach((closeBtn, index) => {
+            closeBtn.addEventListener('click', function () {
+                hframePopups[index].style.display = 'none';
+                hframePopupStack.pop();
+                if (hframePopupStack.length > 0) {
+                    hframePopups[hframePopupStack[hframePopupStack.length - 1]].style.display = 'block';
+                } else {
+                    hframePopupOverlay.style.display = 'none';
+                    mainContent.classList.remove('blur');
+                }
+            });
+        });
+    
+        // Functionality for the Deadend button
+        document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
+            hframePopups[0].style.display = 'none';
+            hframePopups[1].style.display = 'block'; // Show the second popup for insulator type
+            hframePopupStack.push(1);
+        });
+    
+        // Functionality for the Tangent button
+        document.getElementById('hframe-tangent-btn').addEventListener('click', function () {
+            hframePopups[0].style.display = 'none'; // Hide the first popup
+            hframePopups[2].style.display = 'block'; // Show the third popup for configuration
+            hframePopupStack.push(2);
+        });
+    
+        // Functionality for the Vertical button in the second popup
+        document.getElementById('vertical-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            // Redirect to the specified URL for deadend
+            window.location.href = '/hdeadend1/'; // Change this URL to the destination page
+        });
+    
+        // Functionality for the Horizontal button in the second popup
+        document.getElementById('horizontal-btn').addEventListener('click', function () {
+            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            // Add redirection or any action needed for horizontal
+        window.location.href = '/hdeadend3/'; // Change this URL to the destination page
+
+        });
+    
+        // Functionality for the configuration buttons in the third popup
+        document.getElementById('configuration-vertical-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3); // Add the fourth popup to the stack
+        });
+    
+        document.getElementById('configuration-horizontal-btn').addEventListener('click', function () {
+            hframePopups[2].style.display = 'none'; // Hide the configuration popup
+            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
+            hframePopupStack.push(3);
+        });
+    
+        // Functionality for the Post Insulator button in the fourth popup
+        document.getElementById('post-insulator-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            // Handle post insulator action here
+            window.location.href = '/hdeadend2/';
+            // Add any additional action or redirect if needed
+        });
+    
+        // Functionality for the V-String button in the fourth popup
+        document.getElementById('v-string-btn').addEventListener('click', function () {
+            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            // Handle post insulator action here
+            window.location.href = '/hdeadend4/';
+            // Add any additional action or redirect if needed
+        });
+    </script>
+    
+"
+this is second page circuit defination form code same functionality for other buttons circuit defination form also 
+
+class HDeadend1(models.Model):
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='h_deadends1',
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"HDeadend {self.id} - Structure: {self.structure}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure1')
+        ]
+
+def hdeadend1(request):
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = HDeadend1.objects.filter(structure=structure).exists()
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+        else:
+            return redirect('home')
+    
+    if request.method == 'POST':
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/hdeadend1.html', {
+                'form': HDeadendForm1(),
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data
+            })
         
-        {% for condition_name, condition_data in group_data.items %}
-        <div class="factored-loads-group">
-            <h4><i class="fas fa-bolt"></i> {{ condition_name }}</h4>
-            
-            <!-- Show base and factored loads comparison -->
-            <div class="loads-comparison">
-                <div class="base-loads">
-                    <h5>Base Loads (Group: {{ group_name }})</h5>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Vert</div>
-                            <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Trans</div>
-                            <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Long</div>
-                            <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Resultant</div>
-                            <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                    </div>
-                </div>
+        form = HDeadendForm1(request.POST)
+        if form.is_valid():
+            try:
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
                 
-                <div class="factored-loads">
-                    <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
-                    <div class="stats-grid">
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Vert</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.vert|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Trans</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.trans|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Long</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.long|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Resultant</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.resultant|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                    </div>
-                </div>
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+    else:
+        # GET request - create empty form
+        form = HDeadendForm1()
+
+    return render(request, 'app1/hdeadend1.html', {
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data
+    })
+
+this is hdeadend1.html 
+"    
+ <div class="content">
+    <div class="form-container">
+        {% comment %} <h2>Circuit Definition - {{ structure_type|title }}</h2> {% endcomment %}
+        <h2>Circuit Definition</h2>
+        <!-- Display selected structure info -->
+        {% if selected_structure %}
+        <div class="selected-structure-info">
+            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
+            {% if existing_data %}
+            <span class="existing-data-badge">Data Exists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if existing_data %}
+        <!-- Show view options when data exists -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>Circuit definition already exists for this structure.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'h_deadend_view1' %}" class="btn btn-primary">View Existing Data</a>
+                <a href="{% url 'hupload1' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-next">Continue to Upload</a>
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
             </div>
         </div>
-        {% if not forloop.last %}<hr class="condition-divider">{% endif %}
-        {% endfor %}
-    </div>
-    {% if not forloop.last %}<hr class="group-divider">{% endif %}
-    {% endfor %}
-
-{% elif has_factored_loads %}
-    <!-- Original single section for processed sums -->
-    {% for condition_name, condition_data in factored_loads_by_condition.items %}
-    <div class="card factored-loads-section">
-        <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
-        
-        <!-- Show base and factored loads comparison -->
-        <div class="loads-comparison">
-            {% if condition_data.calculation_type == 'processed_sums' %}
-            <div class="base-loads">
-                <h5>Base Loads (Processed Sums)</h5>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Vert</div>
-                        <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
+        {% else %}
+        <!-- Show form only if no existing data -->
+        <form method="POST" id="circuit-form">
+            {% csrf_token %}
+            
+            <!-- Hidden field for structure -->
+            {% if selected_structure %}
+            <input type="hidden" name="structure" value="{{ selected_structure.id }}">
+            {% endif %}
+            
+            <!-- Display form fields -->
+            <div class="form-group">
+                <label>Define number of 3-phase circuits</label>
+                {{ form.num_3_phase_circuits }}
+                {% if form.num_3_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_3_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Trans</div>
-                        <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of shield wires</label>
+                {{ form.num_shield_wires }}
+                {% if form.num_shield_wires.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_shield_wires.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Long</div>
-                        <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of 1-phase circuits</label>
+                {{ form.num_1_phase_circuits }}
+                {% if form.num_1_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_1_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Resultant</div>
-                        <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of communication cables</label>
+                {{ form.num_communication_cables }}
+                {% if form.num_communication_cables.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_communication_cables.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
                     </div>
+                {% endif %}
+            </div>
+            
+            <!-- Display any other form fields -->
+            {% for field in form %}
+                {% if field.name not in 'structure,num_3_phase_circuits,num_shield_wires,num_1_phase_circuits,num_communication_cables' and field.name != 'csrfmiddlewaretoken' %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="error-message">
+                            {% for error in field.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <small class="help-text">{{ field.help_text }}</small>
+                    {% endif %}
                 </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Display non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="error-message">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
             </div>
             {% endif %}
             
-            <div class="factored-loads">
-                <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
-                <div class="stats-grid">
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Vert</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.vert|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
+            <div class="form-buttons">
+                <button class="save-button" type="submit">Save & Continue</button>
+                <a href="{% url 'home' %}" class="cancel-button">Cancel</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>"
+
+this is 3rd page code 
+
+class hUploadedFile1(models.Model):
+    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files1')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} ({self.structure.structure})"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
+        ]
+
+def hupload1(request):
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if circuit data exists
+            circuit_data_exists = HDeadend1.objects.filter(structure=structure).exists()
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        return HttpResponseRedirect(f'/hdeadend1/?structure_id={structure_id}&structure_type={structure_type}')
+    
+    if request.method == 'POST':
+        # Handle file upload
+        if 'file' in request.FILES:
+            # Check if file already exists for this structure
+            existing_file_check = hUploadedFile1.objects.filter(structure=structure).exists()
+            
+            if existing_file_check:
+                return render(request, 'app1/hupload1.html', {
+                    'form': HUDeadendForm1(),
+                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct(),
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = HUDeadendForm1(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
+                    
+                    extract_load_cases(instance)
+                    
+                    # Clear session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    request.session.pop('circuit_structure_id', None)
+                    
+                    # Redirect to show updated state
+                    return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+                    
+                except IntegrityError as e:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+        
+        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = hUploadedFile1.objects.filter(structure=structure).exists()
+        form = HUDeadendForm1()
+        
+    structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
+
+    # Handle AJAX requests for data (GET requests only)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
+
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+                
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return render(request, 'app1/hupload1.html', {
+        'form': form,
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
+    })
+
+hupload1.html 
+"<div class="content">
+    <div class="form-container">
+        <h2>File Upload</h2>
+        
+        <!-- Display selected structure info -->
+        {% if selected_structure %}
+        <div class="selected-structure-info">
+            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
+            {% if existing_file %}
+            <span class="existing-data-badge">File Exists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not circuit_data_exists %}
+        <!-- Show message if circuit data doesn't exist -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>Please complete circuit definition first.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'hdeadend1' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">
+                    Go to Circuit Definition
+                </a>
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+        
+        {% elif existing_file %}
+        <!-- Show options when file exists -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>File already exists for this structure.</strong>
+            </div>
+            
+            <!-- NEW: Simplified selection buttons -->
+            <div class="selection-buttons">
+                <h3>Select Data Type to Continue</h3>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
+                    <button type="submit" name="set_phase_button" class="btn btn-primary btn-lg">
+                        Set / Phase
+                    </button>
+                </form>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
+                    <button type="submit" name="joint_labels_button" class="btn btn-success btn-lg">
+                        Attachment Joint Labels
+                    </button>
+                </form>
+            </div>
+            
+            <div class="update-link">
+                <a href="{% url 'hupload1_update' %}" class="btn btn-secondary">Update Existing File</a>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Show upload form if no file exists -->
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+            {% csrf_token %}
+            
+            <!-- Hide the structure dropdown since it's hardcoded -->
+            <div style="display: none;">
+                {{ form.structure }}
+            </div>
+            
+            <div class="upload-section">
+                <div class="upload-box">
+                    <p>Upload File for: <strong>{{ selected_structure.structure }}</strong></p>
+                    
+                    <div class="file-input-container">
+                        <input type="file" name="file" id="file-input" accept=".xls,.xlsx" required>
+                        <label for="file-input" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Choose Excel File (.xls, .xlsx)
+                        </label>
+                        <span id="file-name">No file chosen</span>
                     </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Trans</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.trans|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
+
+                    <button type="submit" class="upload-button">Upload File</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="update-link">
+            <p>Need to update an existing file?</p>
+            <a href="{% url 'hupload1_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">
+                Update Existing File
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+ <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const structureSelect = document.getElementById('structure-select');
+        const loadCasesSection = document.getElementById('load-cases-section');
+        const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
+        const groupLoadCasesLink = document.getElementById('group-load-cases-link');
+        const customGroupsLink = document.getElementById('custom-groups-link');
+        const loadCasesResults = document.getElementById('load-cases-results');
+
+        const selectedLoadCases = new Set();
+        const selectedLoadCasesSection = document.getElementById('selected-load-cases');
+        const selectedCasesList = document.getElementById('selected-cases-list');
+        const loadCaseValuesInput = document.getElementById('load-case-values-input');
+        const loadCaseValuesInputJoint = document.getElementById('load-case-values-input-joint');
+        const setPhaseForm = document.getElementById('set-phase-form');
+        const jointLabelsForm = document.getElementById('joint-labels-form');
+        const createCustomGroupSection = document.getElementById('create-custom-group');
+        const customGroupNameInput = document.getElementById('custom-group-name');
+        const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
+
+        
+        // Show load cases section when a structure is selected
+        structureSelect.addEventListener('change', function() {
+            if (this.value) {
+                loadCasesSection.style.display = 'block';
+            } else {
+                loadCasesSection.style.display = 'none';
+                loadCasesResults.innerHTML = '';
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
+            }
+        });
+
+        function updateSelectedLoadCases() {
+            if (selectedLoadCases.size > 0) {
+                selectedLoadCasesSection.style.display = 'block';
+                selectedCasesList.innerHTML = '';
+                
+                selectedLoadCases.forEach(caseName => {
+                    const caseElement = document.createElement('div');
+                    caseElement.className = 'selected-case';
+                    caseElement.innerHTML = `
+                        ${caseName}
+                        <span class="remove-case" data-case="${caseName}">×</span>
+                    `;
+                    selectedCasesList.appendChild(caseElement);
+                });
+                
+                // Show create custom group option
+                createCustomGroupSection.style.display = 'block';
+                
+                // Add remove event listeners
+                document.querySelectorAll('.remove-case').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const caseName = this.dataset.case;
+                        selectedLoadCases.delete(caseName);
+                        updateSelectedLoadCases();
+                    });
+                });
+            } else {
+                selectedLoadCasesSection.style.display = 'none';
+                createCustomGroupSection.style.display = 'none';
+            }
+        
+            // Update hidden inputs
+            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
+            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
+        }
+
+        function clearAllSelections() {
+            selectedLoadCases.clear();
+            updateSelectedLoadCases();
+
+            // Uncheck all checkboxes in loadCasesResults
+            loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        // Handle Imported Load Cases link click
+        importedLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            clearAllSelections();
+
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Imported Load Cases</h4>';
+                if (data.values && data.values.length > 0) {
+                    html += '<form id="load-cases-form">';
+                    html += '<ul class="load-cases-list">';
+                    data.values.forEach(caseName => {
+                        const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                        html += `<li>
+                            <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
+                            ${caseName}
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    html += '</form>';
+                } else {
+                    html += '<p>No load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add event listener for checkbox changes
+                document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+        // Handle Group Load Cases link click
+        groupLoadCasesLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            clearAllSelections();
+
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+
+            fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<h4>Group Load Cases</h4>';
+                if (data.groups && Object.keys(data.groups).length > 0) {
+                    html += '<form id="grouped-load-cases-form">';
+                    
+                    for (const [groupName, cases] of Object.entries(data.groups)) {
+                        html += `<div class="load-case-group">
+                            <h5>${groupName}</h5>
+                            <div class="group-select-all">
+                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
+                                <label for="select-all-${groupName}">Select All</label>
+                            </div>
+                            <ul class="group-load-cases-list">`;
+                        
+                        cases.forEach(caseName => {
+                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                            html += `<li>
+                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                                ${caseName}
+                            </li>`;
+                        });
+                        
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</form>';
+                } else {
+                    html += '<p>No grouped load cases found</p>';
+                }
+                loadCasesResults.innerHTML = html;
+
+                // Add select all functionality
+                document.querySelectorAll('.select-all-group').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const groupName = this.id.replace('select-all-', '');
+                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
+                        caseCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                            if (this.checked) {
+                                selectedLoadCases.add(cb.value);
+                            } else {
+                                selectedLoadCases.delete(cb.value);
+                            }
+                        });
+                        updateSelectedLoadCases();
+                    });
+                });
+
+                // Add event listener for individual checkbox changes
+                document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedLoadCases.add(this.value);
+                        } else {
+                            selectedLoadCases.delete(this.value);
+                            // Uncheck select-all if any checkbox is unchecked
+                            const groupName = this.dataset.group;
+                            const selectAll = document.getElementById(`select-all-${groupName}`);
+                            if (selectAll) {
+                                selectAll.checked = false;
+                            }
+                        }
+                        updateSelectedLoadCases();
+                    });
+                });
+            })
+            .catch(error => {
+                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+            });
+        });
+
+// Handle Custom Groups link click
+customGroupsLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    clearAllSelections();
+
+    const structureId = structureSelect.value;
+    if (!structureId) {
+        alert('Please select a structure first');
+        return;
+    }
+
+    fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
+            return;
+        }
+
+        let html = '<h4>Custom Groups - Select Load Cases</h4>';
+        if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
+            html += '<form id="custom-groups-form">';
+            
+            for (const [groupName, cases] of Object.entries(data.custom_groups)) {
+                html += `<div class="load-case-group" id="group-${groupName.replace(/\s+/g, '-')}">
+                    <h5>
+                        <span class="group-name-display">${groupName}</span>
+                        <button class="btn btn-responsive btn-primary edit-group d-inline-block" data-group="${groupName}" style="margin-left: 10px;">Rename</button>
+                        <button class="btn btn-responsive btn-danger delete-group d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
+                    </h5>
+                    <div class="group-edit-form" style="display: none; margin-bottom: 10px;">
+                        <input type="text" class="form-control-responsive edit-group-input" value="${groupName}" style="display: inline-block;">
+                        <button class="btn btn-responsive btn-success save-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Save</button>
+                        <button class="btn btn-responsive btn-secondary cancel-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
                     </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Long</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.long|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
+                    <div class="group-select-all">
+                        <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
+                        <label for="select-all-custom-${groupName}">Select All</label>
                     </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Resultant</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.resultant|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
+                    <ul class="custom-group-load-cases-list">`;
+                
+                cases.forEach(caseName => {
+                    const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
+                    html += `<li>
+                        <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
+                        ${caseName}
+                    </li>`;
+                });
+                
+                html += '</ul></div>';
+            }
+            
+            html += '</form>';
+        } else {
+            html += '<p>No custom groups found</p>';
+        }
+        loadCasesResults.innerHTML = html;
+
+        // Add select all functionality for custom groups
+        document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const groupName = this.id.replace('select-all-custom-', '');
+                const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
+                caseCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                    if (this.checked) {
+                        selectedLoadCases.add(cb.value);
+                    } else {
+                        selectedLoadCases.delete(cb.value);
+                    }
+                });
+                updateSelectedLoadCases();
+            });
+        });
+
+        // Add edit functionality - FIXED: Use current structureId
+        document.querySelectorAll('.edit-group').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                // Show edit form, hide display
+                displayElement.style.display = 'none';
+                this.style.display = 'none';
+                groupElement.querySelector('.delete-group').style.display = 'none';
+                editForm.style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.cancel-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                const groupElement = this.closest('.load-case-group');
+                const displayElement = groupElement.querySelector('.group-name-display');
+                const editForm = groupElement.querySelector('.group-edit-form');
+                
+                // Hide edit form, show display
+                editForm.style.display = 'none';
+                displayElement.style.display = 'inline';
+                groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                groupElement.querySelector('.delete-group').style.display = 'inline-block';
+            });
+        });
+
+        document.querySelectorAll('.save-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const oldGroupName = this.dataset.group;
+                const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
+                
+                if (!newGroupName) {
+                    alert('Group name cannot be empty');
+                    return;
+                }
+                
+                if (newGroupName === oldGroupName) {
+                    // Just cancel if name didn't change
+                    this.closest('.group-edit-form').querySelector('.cancel-edit').click();
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('update_custom_group', 'true');
+                formData.append('old_group_name', oldGroupName);
+                formData.append('new_group_name', newGroupName);
+                
+                // Make structure_id optional - only include if available
+                const currentStructureId = structureSelect.value;
+                if (currentStructureId) {
+                    formData.append('structure_id', currentStructureId);
+                }
+                
+                fetch('/hupload1/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the UI
+                        const groupElement = this.closest('.load-case-group');
+                        groupElement.querySelector('.group-name-display').textContent = newGroupName;
+                        groupElement.querySelector('.edit-group').dataset.group = newGroupName;
+                        groupElement.querySelector('.delete-group').dataset.group = newGroupName;
+                        groupElement.querySelector('.save-edit').dataset.group = newGroupName;
+                        groupElement.querySelector('.cancel-edit').dataset.group = newGroupName;
+                        
+                        // Also update all checkboxes in this group
+                        groupElement.querySelectorAll('.custom-group-case-checkbox').forEach(cb => {
+                            cb.dataset.group = newGroupName;
+                        });
+                        
+                        // Update the group ID
+                        groupElement.id = `group-${newGroupName.replace(/\s+/g, '-')}`;
+                        
+                        // Update select-all checkbox ID if it exists
+                        const selectAllCheckbox = groupElement.querySelector('.select-all-custom-group');
+                        if (selectAllCheckbox) {
+                            selectAllCheckbox.id = `select-all-custom-${newGroupName}`;
+                            const selectAllLabel = groupElement.querySelector('label[for="select-all-custom-' + oldGroupName + '"]');
+                            if (selectAllLabel) {
+                                selectAllLabel.setAttribute('for', `select-all-custom-${newGroupName}`);
+                            }
+                        }
+                        
+                        // Hide edit form
+                        groupElement.querySelector('.group-edit-form').style.display = 'none';
+                        groupElement.querySelector('.group-name-display').style.display = 'inline';
+                        groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                        groupElement.querySelector('.delete-group').style.display = 'inline-block';
+                        
+                    } else {
+                        alert('Error updating group: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating group: ' + error);
+                });
+            });
+        });
+
+        // Add event listener for individual checkbox changes in custom groups
+        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedLoadCases.add(this.value);
+                } else {
+                    selectedLoadCases.delete(this.value);
+                    // Uncheck select-all if any checkbox is unchecked
+                    const groupName = this.dataset.group;
+                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
+                    if (selectAll) {
+                        selectAll.checked = false;
+                    }
+                }
+                updateSelectedLoadCases();
+            });
+        });
+
+        // Add delete functionality - FIXED: Use current structureId
+        document.querySelectorAll('.delete-group').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const groupName = this.dataset.group;
+                if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+                    // Get the current structure ID directly from the select element
+                    const currentStructureId = structureSelect.value;
+                    if (!currentStructureId) {
+                        alert('Please select a structure first');
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('delete_custom_group', 'true');
+                    formData.append('structure_id', currentStructureId); // Use current value
+                    formData.append('group_name', groupName);
+                    
+                    fetch('/hupload1/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the group from UI without refreshing
+                            this.closest('.load-case-group').remove();
+                            // If no groups left, show message
+                            if (!document.querySelector('.load-case-group')) {
+                                loadCasesResults.innerHTML = '<p>No custom groups found</p>';
+                            }
+                        } else {
+                            alert('Error deleting group: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error deleting group: ' + error);
+                    });
+                }
+            });
+        });
+    })
+    .catch(error => {
+        loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
+    });
+});
+
+
+        // Handle Create Custom Group button
+        createCustomGroupBtn.addEventListener('click', function() {
+            const structureId = structureSelect.value;
+            const groupName = customGroupNameInput.value.trim();
+            
+            if (!structureId) {
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (!groupName) {
+                alert('Please enter a group name');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('create_custom_group', 'true');
+            formData.append('structure_id', structureId);
+            formData.append('group_name', groupName);
+            selectedLoadCases.forEach(caseName => {
+                formData.append('selected_cases', caseName);
+            });
+            
+            // Send request
+            fetch('/hupload1/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Custom group "${groupName}" created successfully!`);
+                    customGroupNameInput.value = '';
+                    clearAllSelections();  // <-- clear selections and checkboxes
+                } else {
+                    alert('Error creating custom group: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error creating custom group: ' + error);
+            });
+        });
+
+
+
+
+        // Handle form submissions
+        setPhaseForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input').value = structureId;
+            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        jointLabelsForm.addEventListener('submit', function(e) {
+            const structureId = structureSelect.value;
+            if (!structureId) {
+                e.preventDefault();
+                alert('Please select a structure first');
+                return;
+            }
+            
+            if (selectedLoadCases.size === 0) {
+                e.preventDefault();
+                alert('Please select at least one load case');
+                return;
+            }
+            
+            document.getElementById('structure-id-input-joint').value = structureId;
+            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
+        });
+
+        // Auto-hide messages
+        setTimeout(function() {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000); 
+    });
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const structureId = '{{ structure_id }}';
+    
+    // File input handling
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    
+    if (fileInput && fileName) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
+            } else {
+                fileName.textContent = 'No file chosen';
+            }
+        });
+    }
+});
+</script>
+
+"
+
+now this is 4th page code 
+
+def hdata1(request):
+                               # **********8
+    available_models = TowerModel.objects.all().order_by('name')
+    selected_model_id = request.session.get('selected_model_id')
+    
+    if request.method == 'POST' and 'selected_model' in request.POST:
+        selected_model_id = request.POST.get('selected_model')
+        if selected_model_id:
+            request.session['selected_model_id'] = selected_model_id
+        else:
+            # Clear selection if "None" is selected
+            request.session.pop('selected_model_id', None)
+    
+    # Handle new model upload
+    if request.method == 'POST' and 'tower_model_file' in request.FILES:
+        model_name = request.POST.get('model_name', 'Unnamed Model')
+        model_file = request.FILES['tower_model_file']
+        
+        # Validate file type
+        if model_file.name.endswith(('.glb', '.gltf')):
+            new_model = TowerModel.objects.create(
+                name=model_name,
+                model_file=model_file
+            )
+            # Optionally select the newly uploaded model
+            request.session['selected_model_id'] = new_model.id
+    
+    # Get selected model if any
+    selected_model = None
+    if selected_model_id:
+        try:
+            selected_model = TowerModel.objects.get(id=selected_model_id)
+        except TowerModel.DoesNotExist:
+            pass                                       # **********8
+    # Get selected values from session
+    selected_values = request.session.get('selected_values', {})
+    active_combinations = selected_values.get('active_combinations', [])
+    structure_id = selected_values.get('structure_id')
+    button_type = selected_values.get('button_type', '')
+    
+    
+    # Keep only the canvas container logic
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # Try to get the latest file from different models
+            latest_file = None
+            file_models = [
+                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
+                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
+            ]
+            
+            for model in file_models:
+                if model.objects.filter(structure=structure).exists():
+                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
+                    break
+            
+            if not latest_file:
+                raise Exception("No uploaded file found for this structure")
+                
+            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+
+            # Get selected load cases from session to filter data
+            selected_load_cases = selected_values.get('load_cases', [])
+            if selected_load_cases and 'Load Case Description' in df.columns:
+                df = df[df['Load Case Description'].isin(selected_load_cases)]
+
+            # Prepare complete data for table display
+            load_data = []
+            for _, row in df.iterrows():
+                row_data = {}
+                for col in df.columns:
+                    if pd.notna(row[col]):
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            row_data[col] = float(row[col])
+                        else:
+                            row_data[col] = str(row[col])
+                    else:
+                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
+                load_data.append(row_data)
+
+            # Get unique values for display
+            joint_labels = [str(label) for label in df['Attach. Joint Labels'].unique()] if 'Attach. Joint Labels' in df.columns else []
+            set_numbers = [str(num) for num in df['Set No.'].dropna().unique()] if 'Set No.' in df.columns else []
+            phase_numbers = [str(num) for num in df['Phase No.'].dropna().unique()] if 'Phase No.' in df.columns else []
+
+        except Exception as e:
+            joint_labels = []
+            set_numbers = []
+            phase_numbers = []
+            load_data = []
+            print(f"Error processing Excel file: {str(e)}")
+    else:
+        joint_labels = []
+        set_numbers = []
+        phase_numbers = []
+        load_data = []
+    
+    # NEW: Initialize session storage for selections
+    if 'selected_values' not in request.session:
+        request.session['selected_values'] = {}
+    
+    # Initialize empty arrays if they don't exist
+    if 'selected_joints' not in request.session['selected_values']:
+        request.session['selected_values']['selected_joints'] = []
+    
+    if 'active_combinations' not in request.session['selected_values']:
+        request.session['selected_values']['active_combinations'] = []
+    
+    # Get current selections from session
+    selected_joints = request.session['selected_values'].get('selected_joints', [])
+    # IMPORTANT: The active_combinations now includes the 'Ahead'/'Back' status
+    active_combinations = request.session['selected_values'].get('active_combinations', [])
+    
+    # Build filter criteria
+    filter_criteria = {}
+    
+    # Store joint labels if any are selected
+    if selected_joints:
+        filter_criteria['joint_labels'] = selected_joints
+    
+    # Store set-phase combinations if any are active
+    set_phase_pairs = []
+    if active_combinations:
+        for combo in active_combinations:
+            if isinstance(combo, str):
+                # New, correct format: "1-2-Ahead"
+                # We need the first two parts ("1" and "2")
+                set_phase_pairs.append(combo.split('-')[:2])
+            elif isinstance(combo, dict):
+                # Handle potential LEGACY dictionary format (e.g., {'set': 1, 'phase': 2})
+                # If your old format was different, adjust this logic.
+                set_val = str(combo.get('set'))
+                phase_val = str(combo.get('phase'))
+                if set_val and phase_val:
+                    set_phase_pairs.append([set_val, phase_val])
+                # NOTE: If you don't need to support the legacy dict format, you can
+                # just add a 'pass' or continue to skip it.
+            # else: skip other unexpected data types
+
+    if set_phase_pairs:
+        filter_criteria['set_phase_combinations'] = set_phase_pairs
+    
+    # Store filter criteria in session
+    request.session['selected_values']['filter_criteria'] = filter_criteria
+    request.session.modified = True
+
+    return render(request, 'app1/hdata1.html', {
+        'available_models': available_models,   # **********8
+        'selected_model': selected_model,        # **********8
+        'joint_labels': joint_labels,
+        'set_numbers': set_numbers,
+        'phase_numbers': phase_numbers,
+        'load_data': load_data,
+        'load_data_json': json.dumps(load_data),
+        'selected_values': selected_values,
+        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
+        'button_type': button_type,
+        'structure_id': structure_id,
+        'filter_criteria': filter_criteria,
+        'selected_joints': selected_joints,  # NEW: Pass to template
+        'active_combinations': active_combinations,  # NEW: Pass to template
+        
+    })
+
+this is hdata.html 
+"<div class="container">
+        <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
+        
+        <div class="row">
+            <!-- Left side - Selection Options (reduced width) -->
+            <div class="col-md-4">
+                {% if button_type == 'joint_labels' %}
+                <!-- Show only joint labels section when joint labels button was clicked -->
+                <div class="form-group">
+                    <label for="joint-labels">Attachment Joint Labels:</label>
+                    <div class="checkbox-list" id="joint-labels">
+                        {% for label in joint_labels %}
+                            <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
+                                <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
+                            </label>
+                        {% endfor %}
                     </div>
+                </div>
+                {% elif button_type == 'set_phase' %}
+                <!-- Show only set/phase sections when set/phase button was clicked -->
+                <div class="form-group">
+                    <label for="set-select">Set No.:</label>
+                    <select id="set-select" class="form-control" multiple size="4">
+                        {% for num in set_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="phase-select">Phase No.:</label>
+                    <select id="phase-select" class="form-control" multiple size="4">
+                        {% for num in phase_numbers %}
+                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
+                </div>
+                <!-- Combination Builder Section -->
+                <div class="form-group">
+                    <label>Create Set-Phase Combinations:</label>
+                    <div class="combination-builder">
+                        <div class="selected-items mb-2">
+                            <strong>Selected Sets:</strong> 
+                            <span id="selected-sets-display">None</span>
+                        </div>
+                        <div class="selected-items mb-2">
+                            <strong>Selected Phases:</strong> 
+                            <span id="selected-phases-display">None</span>
+                        </div>
+                        <button id="create-all-combinations" class="btn btn-primary btn-sm">
+                            Create All Combinations
+                        </button>
+                        <button id="create-single-combination" class="btn btn-success btn-sm">
+                            Create Single Combination
+                        </button>
+                        <button id="clear-combinations" class="btn btn-secondary btn-sm">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Combinations Display -->
+                <div class="form-group">
+                    <label>Active Combinations:</label>
+                    <div id="active-combinations" class="active-combinations-list">
+                        <!-- Combinations will be displayed here -->
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right side - 3D Model Viewer (increased width) -->
+            <div class="col-md-8">
+                <div class="model-viewer-container">
+                    <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                        <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
+                            Hide Grid
+                        </button>
+                        <!-- Enhanced Control Panel -->
+                        <div class="movement-controls-panel">
+                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
+
+                        {% comment %} <!-- Drop Mode Selection -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
+                                <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="precise">Precise Placement</option>
+                                    <option value="free">Free Placement</option>
+                                </select>
+                            </div>
+
+                            <!-- Grid Snapping -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
+                                <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
+                                    <option value="0.1">Fine (0.1)</option>
+                                    <option value="0.25" selected>Medium (0.25)</option>
+                                    <option value="0.5">Coarse (0.5)</option>
+                                    <option value="0">Off</option>
+                                </select>
+                            </div> {% endcomment %}
+                        
+                        <!-- Movement Controls -->
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
+                            
+                            <!-- Up/Down Controls -->
+                            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
+                                <button class="movement-btn" data-axis="y" data-direction="1" style="margin: 0 5px;">↑</button>
+                            </div>
+                            
+                            <!-- Left/Right/Front/Back Controls -->
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <button class="movement-btn" data-axis="x" data-direction="-1" style="margin: 0 2px;">←</button>
+                                
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <button class="movement-btn" data-axis="z" data-direction="-1" style="margin: 2px 0; font-size: 10px;">Front</button>
+                                    <button class="movement-btn" data-axis="z" data-direction="1" style="margin: 2px 0; font-size: 10px;">Back</button>
+                                </div>
+                                
+                                <button class="movement-btn" data-axis="x" data-direction="1" style="margin: 0 2px;">→</button>
+                            </div>
+                            
+                            <!-- Down Control -->
+                            <div style="display: flex; justify-content: center; margin-top: 5px;">
+                                <button class="movement-btn" data-axis="y" data-direction="-1" style="margin: 0 5px;">↓</button>
+                            </div>
+                        </div>
+
+                        <!-- Step Size -->
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Step Size:</label>
+                            <input type="range" id="step-size" min="0.05" max="1" step="0.05" value="0.25" style="width: 100%;">
+                            <span id="step-size-value" style="font-size: 11px; text-align: center; display: block;">0.25 units</span>
+                        </div>
+
+                        <!-- Selected Object Info -->
+                        <div id="selected-info" style="font-size: 11px; color: #666; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                            No object selected
+                        </div>
+                    </div>
+                </div>
+                    <canvas id="model-canvas"></canvas>
+                    <div id="joint-markers-container"></div>
+                    <div id="set-markers-container"></div>
+                    <div id="phase-markers-container"></div>
+                    <div id="load-displays-container"></div>
                 </div>
             </div>
         </div>
+
+        <div class="mb-3">
+            <a href="{% url 'load_cases' %}" class="btn btn-outline-primary">
+                ⚡ Go to Load Cases Selection
+            </a>
+        </div>
+
+        <!-- NEW: Compact Model Selection & Upload Section -->
+        <div class="model-controls-container">
+            <!-- Model Selection Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Select 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-group-compact">
+                            <label for="model-select">Model:</label>
+                            <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
+                                <option value="">-- Default Model --</option>
+                                {% for model in available_models %}
+                                    <option value="{{ model.id }}" 
+                                        {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
+                                        {{ model.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="model-status">
+                            {% if selected_model %}
+                                Currently viewing: <strong>{{ selected_model.name }}</strong>
+                            {% else %}
+                                Using default tower model
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Model Upload Card -->
+            <div class="model-control-card">
+                <div class="model-control-header">
+                    <h6>Upload New 3D Tower Model</h6>
+                </div>
+                <div class="model-control-body">
+                    <form method="post" enctype="multipart/form-data" class="compact-form">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group-compact">
+                                <label for="model_name">Model Name:</label>
+                                <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
+                            </div>
+                            <div class="form-group-compact">
+                                <label for="tower_model_file">3D Model File:</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
+                                    <div class="file-input-display">
+                                        <span>Choose file...</span>
+                                        <span class="file-input-icon">📁</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group-compact">
+                                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Load Display Table - now placed below and full width -->
+        <div id="load-display">
+            <h5>Load Values</h5>
+            <div class="btn-container">
+                <button id="calculate-btn" class="calculation-btn" disabled>
+                    <span>Calculate Selected Records</span>
+                </button>
+                <span id="selected-count" class="selected-count">0 selected</span>
+            </div>
+
+            <div class="table-container">
+                <table class="table table-bordered" id="load-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            {% for column in all_columns %}
+                                <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    {% endfor %}
-{% endif %}
 
-    <!-- REMOVED: Custom Selection Results (tied to removed sections) -->
-
-    <div class="action-buttons">
-        <button class="btn btn-secondary" onclick="window.history.back()">
-            <i class="fas fa-arrow-left"></i> Back to Previous
-        </button>
-        <button class="btn btn-primary" onclick="window.print()">
-            <i class="fas fa-print"></i> Print Report
-        </button>
-        <button class="btn btn-info" onclick="window.location.href='/'">
-            <i class="fas fa-home"></i> Back to Home
-        </button>
+    <div class="modal fade" id="aheadBackModal" tabindex="-1" role="dialog" aria-labelledby="aheadBackModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aheadBackModalLabel">Select Combination Direction</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Please select the direction for the following newly created Set-Phase combinations:</p>
+                <ul id="new-combinations-list" class="list-group mb-3">
+                    <!-- Combinations will be listed here -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <!-- MODIFIED: Added Both button and updated styling -->
+                <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
+                <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
+            </div>
+        </div>
     </div>
-    {% endif %}
+</div>
 
-<footer>
-    <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
-</footer>
+<!-- Include Three.js library -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle buffer settings visibility
-    const applyBufferCheckbox = document.getElementById('applyBuffer');
-    const bufferSettings = document.getElementById('bufferSettings');
+    // Load data passed from Django
+    const loadData = JSON.parse('{{ load_data_json|escapejs }}');
     
-    applyBufferCheckbox.addEventListener('change', function() {
-        bufferSettings.style.display = this.checked ? 'block' : 'none';
-    });
+    // Three.js variables
+    let scene, camera, renderer, model, controls, raycaster, mouse;
+    const jointMarkers = {};
+    const selectedJoints = new Set();
+    const loadDisplays = {};
+    const setMarkers = {};
+    const phaseMarkers = {};
+    const selectedSets = new Set();
+    const selectedPhases = new Set();
+    let activeJoint = null;
+    const selectedRecords = new Set();
+    let allTableData = [];
+    const setPhaseCombinations = new Map(); // Track all active combinations
+    let combinationCounter = 0; // Counter to make each combination unique
+    const activeCombinations = new Map();
+    let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
+    let combinationsToConfirm = []; 
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    let gridHelpers = []; // Array to store all grid helpers
+    let isGridVisible = true;
+    let transformControls;
+    let selectedObject = null;
+
+    // NEW: Enhanced movement and drag variables
+    let isDragging = false;
+    let dragStartPosition = new THREE.Vector3();
+    let currentDragObject = null;
+    let dropMode = 'precise'; // 'precise' or 'free'
+    let gridSnapValue = 0.25;
+    let movementStep = 0.25;
+    let isDragOverCanvas = false;
     
-    // Handle final calculation
-    const calculateButton = document.getElementById('calculateFinalLoads');
-    calculateButton.addEventListener('click', function() {
-        // Get calculation data from previous step (you'll need to pass this from the previous view)
-        const calculationData = JSON.parse('{{ calculation_data_json|escapejs }}' || '[]');
-        
-        // Get form data
-        const formData = new FormData(document.getElementById('finalCalculationForm'));
-        
-        // Add calculation data to form data
-        formData.append('calculation_data', JSON.stringify(calculationData));
-        
-        // Show loading indicator
-        calculateButton.disabled = true;
-        calculateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
-        
-        // Send AJAX request
-        fetch('{% url "calculate_final_loads" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Display results
-                displayFinalResults(data.max_resultant_values);
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        })
-        .finally(() => {
-            // Reset button
-            calculateButton.disabled = false;
-            calculateButton.innerHTML = '<i class="fas fa-calculator"></i> Calculate Final Loads';
-        });
-    });
+    document.addEventListener('DOMContentLoaded', function() {
+    // Ensure the canvas container is visible and properly sized
+    const canvasContainer = document.querySelector('.model-viewer-container');
+    const canvas = document.getElementById('model-canvas');
     
-    function displayFinalResults(results) {
-        const tableBody = document.querySelector('#finalLoadsTable tbody');
-        tableBody.innerHTML = '';
+    if (canvasContainer && canvas) {
+        // Force the container to be visible and properly sized
+        canvasContainer.style.display = 'block';
+        canvas.style.display = 'block';
         
-        let totalVert = 0;
-        let totalTrans = 0;
-        let totalLong = 0;
+        // Initialize the model viewer regardless of button type
+        initModelViewer();
+        updateTable();
         
-        for (const [setNo, values] of Object.entries(results)) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${setNo}</td>
-                <td>${values.vert.toFixed(2)}</td>
-                <td>${values.trans.toFixed(2)}</td>
-                <td>${values.long.toFixed(2)}</td>
-                <td>${values.resultant.toFixed(2)}</td>
-            `;
-            tableBody.appendChild(row);
-            
-            totalVert += values.vert;
-            totalTrans += values.trans;
-            totalLong += values.long;
-        }
-        
-        // Add total row
-        const totalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
-        const totalRow = document.createElement('tr');
-        totalRow.classList.add('highlight');
-        totalRow.innerHTML = `
-            <td><strong>Total</strong></td>
-            <td><strong>${totalVert.toFixed(2)}</strong></td>
-            <td><strong>${totalTrans.toFixed(2)}</strong></td>
-            <td><strong>${totalLong.toFixed(2)}</strong></td>
-            <td><strong>${totalResultant.toFixed(2)}</strong></td>
-        `;
-        tableBody.appendChild(totalRow);
-        
-        // Show results section
-        document.getElementById('finalResults').style.display = 'block';
+        // Initialize the appropriate selection based on button type
+        {% if button_type == 'set_phase' %}
+            initSetPhaseSelection();
+        {% elif button_type == 'joint_labels' %}
+            // Ensure joint labels functionality is initialized
+            initJointLabelsSelection();
+        {% endif %}
     }
 });
-</script>
 
-<script>
-
-
-// Custom Selection Logic for Load Conditions Page
-document.addEventListener('DOMContentLoaded', function() {
-    initializeSelection();
-});
-
-
-
-function deleteLoadCondition(pk) {
-    if (confirm('Are you sure you want to delete this load condition?')) {
-        // Create a form and submit it via POST
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/load-condition/${pk}/delete/`;
-        
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfToken) {
-            form.appendChild(csrfToken.cloneNode(true));
-        } else {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = '{{ csrf_token }}';
-            form.appendChild(csrfInput);
-        }
-        
-        document.body.appendChild(form);
-        form.submit();
+// Add this function if it doesn't exist
+function initJointLabelsSelection() {
+    const jointContainer = document.getElementById('joint-labels');
+    if (jointContainer) {
+        jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const jointValue = this.value;
+                if (this.checked) {
+                    selectedJoints.add(jointValue);
+                    if (!jointMarkers[jointValue]) {
+                        addJointMarker(jointValue);
+                    }
+                } else {
+                    selectedJoints.delete(jointValue);
+                    removeJointMarker(jointValue);
+                }
+                updateTable();
+                syncSelectionsWithSession();
+            });
+        });
     }
 }
-</script>
-"
+    // Initialize the 3D model viewer
+        // Initialize the 3D model viewer
+    function initModelViewer() {
+        // Existing scene setup code remains the same until after renderer creation...
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+
+        const canvas = document.getElementById('model-canvas');
+        renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: true
+        });
+
+        updateRendererSize();
+        initTransformControls();
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        directionalLight2.position.set(-1, -1, -1);
+        scene.add(directionalLight2);
+
+        // Load GLB model
+        const loader = new THREE.GLTFLoader();
+        function loadTowerModel(modelUrl) {
+    // Remove existing model if any
+    if (model) {
+        scene.remove(model);
+        model = null;
+    }
+    
+    loader.load(
+        modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
+
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
+
+            // Initialize enhanced event listeners
+            initEnhancedEventListeners();
+            
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading model:', error);
+            // Fallback to default model
+            loadDefaultModel();
+        }
+    );
+}
+
+{% if selected_model %}
+        const selectedModelUrl = "{{ selected_model.get_file_url }}";
+        console.log('Selected Model URL:', selectedModelUrl); // ADD THIS LINE
+        loadTowerModel(selectedModelUrl);
+    {% else %}
+        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+        console.log('Default Model URL:', defaultModelUrl); // ADD THIS LINE
+        loadDefaultModel(defaultModelUrl);
+    {% endif %}
+
+// Function to load default model
+function loadDefaultModel() {
+    loader.load(
+       modelUrl,
+        function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
+
+            create3DGridCage(box);
+            model.rotation.y = Math.PI / 4;
+
+            initEnhancedEventListeners();
+            animate();
+        },
+        undefined,
+        function (error) {
+            console.error('Error loading default model:', error);
+        }
+    );
+}
+
+
+        window.addEventListener('resize', onWindowResize);
+        renderer.domElement.addEventListener('click', onCanvasClick);
+        
+        // NEW: Add enhanced mouse event listeners for smooth dragging
+        initEnhancedDragListeners();
+    }
+
+    function initEnhancedEventListeners() {
+        // Drop mode selection
+        const dropModeSelect = document.getElementById('drop-mode');
+        if (dropModeSelect) {
+            dropModeSelect.addEventListener('change', function(e) {
+                dropMode = e.target.value;
+            });
+        }
+
+        // Grid snapping
+        const gridSnapSelect = document.getElementById('grid-snap');
+        if (gridSnapSelect) {
+            gridSnapSelect.addEventListener('change', function(e) {
+                gridSnapValue = parseFloat(e.target.value);
+            });
+        }
+
+        // Step size control
+        const stepSizeInput = document.getElementById('step-size');
+        const stepSizeValue = document.getElementById('step-size-value');
+        if (stepSizeInput && stepSizeValue) {
+            stepSizeInput.addEventListener('input', function(e) {
+                movementStep = parseFloat(e.target.value);
+                stepSizeValue.textContent = movementStep.toFixed(2) + ' units';
+            });
+        }
+
+        // Movement buttons
+        document.querySelectorAll('.movement-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (selectedObject) {
+                    const axis = this.dataset.axis;
+                    const direction = parseInt(this.dataset.direction);
+                    moveSelectedObject(axis, direction * movementStep);
+                }
+            });
+        });
+
+        // Keyboard arrow key support
+        document.addEventListener('keydown', function(event) {
+            if (!selectedObject) return;
+            
+            const step = movementStep;
+            switch(event.key) {
+                case 'ArrowUp':
+                    event.preventDefault();
+                    moveSelectedObject('y', step);
+                    break;
+                case 'ArrowDown':
+                    event.preventDefault();
+                    moveSelectedObject('y', -step);
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    moveSelectedObject('x', -step);
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    moveSelectedObject('x', step);
+                    break;
+                case 'PageUp':
+                    event.preventDefault();
+                    moveSelectedObject('z', step);
+                    break;
+                case 'PageDown':
+                    event.preventDefault();
+                    moveSelectedObject('z', -step);
+                    break;
+            }
+        });
+    }
+
+    // NEW: Enhanced drag listeners for smooth dragging
+    function initEnhancedDragListeners() {
+        const canvas = renderer.domElement;
+        
+        // Improved drag start for markers
+        document.addEventListener('mousedown', function(e) {
+            if (e.target.classList.contains('value-marker')) {
+                startMarkerDrag(e);
+            }
+        });
+
+        // Enhanced canvas drag events
+        canvas.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            isDragOverCanvas = true;
+            canvas.classList.add('drag-over');
+            
+            if (currentDroppingItem && dropMode === 'free') {
+                // Update visual feedback for free placement
+                updateDragPosition(e);
+            }
+        });
+
+        canvas.addEventListener('dragleave', function() {
+            isDragOverCanvas = false;
+            canvas.classList.remove('drag-over');
+        });
+
+        canvas.addEventListener('drop', function(e) {
+            e.preventDefault();
+            isDragOverCanvas = false;
+            canvas.classList.remove('drag-over');
+            
+            handleCanvasDrop(e);
+        });
+    }
+
+    // NEW: Start dragging marker
+    function startMarkerDrag(e) {
+        const marker = e.target;
+        const jointLabel = marker.dataset.jointLabel;
+        const combinedId = marker.dataset.combinedId;
+        
+        if (jointLabel && jointMarkers[jointLabel]) {
+            currentDragObject = jointMarkers[jointLabel].mesh;
+        } else if (combinedId && setMarkers[combinedId]) {
+            currentDragObject = setMarkers[combinedId].mesh;
+        }
+        
+        if (currentDragObject) {
+            isDragging = true;
+            dragStartPosition.copy(currentDragObject.position);
+            marker.classList.add('dragging');
+            
+            document.addEventListener('mousemove', onMarkerDrag);
+            document.addEventListener('mouseup', stopMarkerDrag);
+        }
+    }
+
+    // NEW: Handle marker dragging
+    function onMarkerDrag(e) {
+        if (!isDragging || !currentDragObject) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Create a plane at the object's current height for smooth dragging
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentDragObject.position.y);
+        const intersectionPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
+        
+        if (intersectionPoint) {
+            // Apply grid snapping if enabled
+            if (gridSnapValue > 0) {
+                intersectionPoint.x = Math.round(intersectionPoint.x / gridSnapValue) * gridSnapValue;
+                intersectionPoint.y = Math.round(intersectionPoint.y / gridSnapValue) * gridSnapValue;
+                intersectionPoint.z = Math.round(intersectionPoint.z / gridSnapValue) * gridSnapValue;
+            }
+            
+            currentDragObject.position.copy(intersectionPoint);
+        }
+    }
+
+    // NEW: Stop marker dragging
+    function stopMarkerDrag() {
+        isDragging = false;
+        currentDragObject = null;
+        
+        document.querySelectorAll('.value-marker').forEach(marker => {
+            marker.classList.remove('dragging');
+        });
+        
+        document.removeEventListener('mousemove', onMarkerDrag);
+        document.removeEventListener('mouseup', stopMarkerDrag);
+    }
+
+    // NEW: Move selected object with arrow controls
+    function moveSelectedObject(axis, distance) {
+        if (!selectedObject) return;
+        
+        const newPosition = selectedObject.object.position.clone();
+        
+        switch(axis) {
+            case 'x':
+                newPosition.x += distance;
+                break;
+            case 'y':
+                newPosition.y += distance;
+                break;
+            case 'z':
+                newPosition.z += distance;
+                break;
+        }
+        
+        // Apply grid snapping
+        if (gridSnapValue > 0) {
+            newPosition.x = Math.round(newPosition.x / gridSnapValue) * gridSnapValue;
+            newPosition.y = Math.round(newPosition.y / gridSnapValue) * gridSnapValue;
+            newPosition.z = Math.round(newPosition.z / gridSnapValue) * gridSnapValue;
+        }
+        
+        selectedObject.object.position.copy(newPosition);
+        
+        // Update associated HTML elements
+        updateObjectUI(selectedObject);
+    }
+
+    // NEW: Update UI when object moves
+    function updateObjectUI(selectedObj) {
+        const object = selectedObj.object;
+        const value = selectedObj.value;
+        const type = selectedObj.type;
+        
+        if (type === 'joint' && jointMarkers[value]) {
+            updateMarkerPosition(object, jointMarkers[value].div);
+            if (loadDisplays[value]) {
+                updateLoadDisplayPosition(loadDisplays[value].div, object.position);
+            }
+        } else if (type === 'set-phase' && setMarkers[value]) {
+            updateMarkerPosition(object, setMarkers[value].div);
+        }
+        
+        updateSelectedInfo(selectedObj);
+    }
+
+    // NEW: Update selected object info panel
+    function updateSelectedInfo(selectedObj) {
+        const infoDiv = document.getElementById('selected-info');
+        if (!infoDiv) return;
+        
+        const pos = selectedObj.object.position;
+        infoDiv.innerHTML = `
+            <strong>Selected:</strong> ${selectedObj.value}<br>
+            <strong>Position:</strong><br>
+            X: ${pos.x.toFixed(2)}<br>
+            Y: ${pos.y.toFixed(2)}<br>
+            Z: ${pos.z.toFixed(2)}
+        `;
+    }
+
+    // NEW: Enhanced canvas drop handler
+    function handleCanvasDrop(e) {
+        let droppedData;
+        try {
+            droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
+        } catch (error) {
+            console.error('Error parsing dropped data:', error);
+            return;
+        }
+        
+        if (!droppedData) return;
+        
+        const itemType = droppedData.type;
+        const itemValue = droppedData.value;
+        
+        if (dropMode === 'precise') {
+            // Original precise placement logic
+            handlePrecisePlacement(e, itemType, itemValue);
+        } else {
+            // NEW: Free placement logic
+            handleFreePlacement(e, itemType, itemValue);
+        }
+        
+        currentDroppingItem = null;
+        renderer.domElement.style.cursor = 'grab';
+    }
+
+    // NEW: Handle free placement
+    function handleFreePlacement(e, itemType, itemValue) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Convert screen coordinates to 3D position
+        const position = screenToWorldPosition(mouseX, mouseY);
+        
+        if (position) {
+            placeItemAtPosition(itemType, itemValue, position);
+            checkAndSelectSource(itemType, itemValue);
+        }
+    }
+
+    // NEW: Convert screen coordinates to 3D world position
+    function screenToWorldPosition(screenX, screenY) {
+        const vector = new THREE.Vector3(
+            (screenX / renderer.domElement.clientWidth) * 2 - 1,
+            -(screenY / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        
+        // Create a plane at a reasonable height for new objects
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const direction = vector.sub(camera.position).normalize();
+        const raycaster = new THREE.Raycaster(camera.position, direction);
+        const intersectionPoint = new THREE.Vector3();
+        
+        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
+            return intersectionPoint;
+        }
+        
+        return null;
+    }
+
+    // NEW: Update drag position visual feedback
+    function updateDragPosition(e) {
+        // This can be enhanced to show a preview of where the item will be placed
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Could add a temporary preview object here
+    }
+
+    // NEW: Generic function to place items at specific positions
+    function placeItemAtPosition(itemType, itemValue, position) {
+        if (itemType === 'joint') {
+            addJointMarker(itemValue, position);
+        } else if (itemType === 'set' || itemType === 'phase') {
+            if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                showSelectionRequiredMessage();
+                return;
+            }
+            const currentSet = Array.from(selectedSets).pop();
+            const currentPhase = Array.from(selectedPhases).pop();
+            addSetPhaseMarker(currentSet, currentPhase, position);
+        }
+    }
+
+    // NEW: Check and select source checkbox
+    function checkAndSelectSource(itemType, itemValue) {
+        const checkbox = document.querySelector(`input[name="${getCheckboxName(itemType)}"][value="${itemValue}"]`);
+        if (checkbox && !checkbox.checked) {
+            checkbox.checked = true;
+            const changeEvent = new Event('change');
+            checkbox.dispatchEvent(changeEvent);
+        }
+    }
+
+    // NEW: Helper function to get checkbox name
+    function getCheckboxName(itemType) {
+        switch(itemType) {
+            case 'joint': return 'joint-labels';
+            case 'set': return 'set-numbers';
+            case 'phase': return 'phase-numbers';
+            default: return '';
+        }
+    }
+
+    function initTransformControls() {
+        // Create transform controls
+        transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        transformControls.setSize(0.8);
+        transformControls.addEventListener('dragging-changed', function(event) {
+            controls.enabled = !event.value;
+        });
+        
+        // Hide initially
+        transformControls.visible = false;
+        scene.add(transformControls);
+    }
+
+    function toggleGrid() {
+        isGridVisible = !isGridVisible;
+        
+        gridHelpers.forEach(grid => {
+            grid.visible = isGridVisible;
+        });
+        
+        // Update button text
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+        if (gridToggleBtn) {
+            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
+            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
+        }
+    }
+
+    // Function to clear all grids
+    function clearAllGrids() {
+        gridHelpers.forEach(grid => {
+            scene.remove(grid);
+        });
+        gridHelpers = [];
+    }
+
+    // Function to create 3D grid cage
+    function create3DGridCage(boundingBox) {
+        const size = boundingBox.getSize(new THREE.Vector3());
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        
+        // Make grid slightly larger than model
+        const gridSize = Math.max(size.x, size.y, size.z) * 1.2;
+        const gridDivisions = 20;
+        
+        // Clear any existing grids
+        clearAllGrids();
+        
+        // Create grids on different planes
+        
+        // XY Plane (front/back)
+        const gridXY1 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY1.position.set(center.x, center.y, boundingBox.min.z - 1);
+        gridXY1.rotation.x = Math.PI / 2;
+        scene.add(gridXY1);
+        gridHelpers.push(gridXY1);
+        
+        const gridXY2 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
+        gridXY2.position.set(center.x, center.y, boundingBox.max.z + 1);
+        gridXY2.rotation.x = Math.PI / 2;
+        scene.add(gridXY2);
+        gridHelpers.push(gridXY2);
+        
+        // XZ Plane (ground/top)
+        const gridXZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ1.position.set(center.x, boundingBox.min.y - 1, center.z);
+        scene.add(gridXZ1);
+        gridHelpers.push(gridXZ1);
+        
+        const gridXZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
+        gridXZ2.position.set(center.x, boundingBox.max.y + 1, center.z);
+        scene.add(gridXZ2);
+        gridHelpers.push(gridXZ2);
+        
+        // YZ Plane (left/right)
+        const gridYZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ1.position.set(boundingBox.min.x - 1, center.y, center.z);
+        gridYZ1.rotation.z = Math.PI / 2;
+        scene.add(gridYZ1);
+        gridHelpers.push(gridYZ1);
+        
+        const gridYZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
+        gridYZ2.position.set(boundingBox.max.x + 1, center.y, center.z);
+        gridYZ2.rotation.z = Math.PI / 2;
+        scene.add(gridYZ2);
+        gridHelpers.push(gridYZ2);
+        
+        isGridVisible = true;
+    }
+    
+
+        // NEW: Handle clicks on the 3D canvas for assigning labels
+    function onCanvasClick(event) {
+        event.preventDefault();
+
+        // If we're using transform controls, don't process other clicks
+        if (transformControls.dragging) return;
+
+        const canvas = renderer.domElement;
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // If a label is being dropped from sidebar, place it
+        if (currentDroppingItem) {
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                const intersection = intersects[0];
+                const point = intersection.point;
+
+                const itemType = currentDroppingItem.type;
+                const itemValue = currentDroppingItem.value;
+
+                if (itemType === 'joint') {
+                    addJointMarker(itemValue, point);
+                } else if (itemType === 'set' || itemType === 'phase') {
+                    if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                        showSelectionRequiredMessage();
+                        return;
+                    }
+                    const currentSet = Array.from(selectedSets).pop();
+                    const currentPhase = Array.from(selectedPhases).pop();
+                    addSetPhaseMarker(currentSet, currentPhase, point);
+                }
+
+                // Check the source checkbox after dropping
+                const checkbox = document.querySelector(`input[name="${itemType === 'joint' ? 'joint-labels' : (itemType === 'set' ? 'set-numbers' : 'phase-numbers')}"][value="${itemValue}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    const changeEvent = new Event('change');
+                    checkbox.dispatchEvent(changeEvent);
+                }
+
+                currentDroppingItem = null;
+                renderer.domElement.style.cursor = 'grab';
+            }
+            return;
+        }
+
+        // Handle selection of markers for transform controls
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        
+        // First, check if we clicked on transform controls
+        const transformControlIntersects = raycaster.intersectObject(transformControls, true);
+        if (transformControlIntersects.length > 0) {
+            return; // Let transform controls handle the click
+        }
+
+        // Then check if we clicked on a marker
+        let foundMarker = false;
+        
+        // Check joint markers
+        Object.keys(jointMarkers).forEach(label => {
+            if (jointMarkers[label].mesh === intersects[0]?.object) {
+                selectObjectForTransform(jointMarkers[label].mesh, label, 'joint');
+                foundMarker = true;
+                return;
+            }
+        });
+        
+        // Check set-phase markers
+        if (!foundMarker) {
+            Object.keys(setMarkers).forEach(id => {
+                if (setMarkers[id].mesh === intersects[0]?.object) {
+                    selectObjectForTransform(setMarkers[id].mesh, id, 'set-phase');
+                    foundMarker = true;
+                    return;
+                }
+            });
+        }
+
+        // If clicked on empty space, deselect
+        if (!foundMarker && intersects.length > 0) {
+            deselectObject();
+        }
+    }
+
+    function deselectObject() {
+        if (selectedObject) {
+            transformControls.detach();
+            transformControls.visible = false;
+            hideSelectionHighlight(selectedObject.object);
+            selectedObject = null;
+        }
+    }
+
+    // NEW: Show selection highlight
+    function showSelectionHighlight(object) {
+        // You can add visual feedback here, like changing color or adding outline
+        if (object.material) {
+            object.userData.originalColor = object.material.color.clone();
+            object.material.color.set(0xffff00); // Yellow highlight
+        }
+    }
+
+    // NEW: Hide selection highlight
+    function hideSelectionHighlight(object) {
+            if (object.material && object.userData.originalColor) {
+                object.material.color.copy(object.userData.originalColor);
+            }
+        }
+
+        // NEW: Select object for transform controls
+        function selectObjectForTransform(object, value, type) {
+        deselectObject();
+        
+        selectedObject = { object, value, type };
+        transformControls.attach(object);
+        transformControls.visible = true;
+        
+        transformControls.addEventListener('change', function() {
+            updateObjectUI(selectedObject);
+        });
+        
+        showSelectionHighlight(object);
+        updateSelectedInfo(selectedObject);
+    }
+    
+   
+
+    // Setup part selection for the tower model
+    function updateRendererSize() {
+        const canvasContainer = document.querySelector('.model-viewer-container');
+        if (canvasContainer && renderer) {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            console.log('Canvas container size:', width, height); // Add this line
+
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+    }
+
+        // Add a marker for a joint on the 3D model
+    function addJointMarker(jointLabel, position = null) {
+        if (jointMarkers[jointLabel]) return;
+
+        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Same size as set/phase markers
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, // Red color for joints
+            transparent: true,
+            opacity: 0.7
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        if (position) {
+            sphere.position.copy(position);
+        } else {
+            // Improved default positioning
+            const markerCount = Object.keys(jointMarkers).length;
+            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+            const row = Math.floor(markerCount / gridSize);
+            const col = markerCount % gridSize;
+
+            sphere.position.set(
+                (col - gridSize / 2) * 0.8,
+                2 + row * 0.4,
+                (row - gridSize / 2) * 0.4
+            );
+        }
+
+        // Create marker div - similar to set/phase markers
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'value-marker joint-marker';
+        markerDiv.textContent = jointLabel;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.color = 'black';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.cursor = 'pointer';
+        markerDiv.style.fontWeight = 'bold';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.jointLabel = jointLabel;
+        document.getElementById('joint-markers-container').appendChild(markerDiv);
+
+        // Click handler for selection - same as set/phase markers
+        markerDiv.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectObjectForTransform(sphere, jointLabel, 'joint');
+        });
+
+        jointMarkers[jointLabel] = {
+            mesh: sphere,
+            div: markerDiv,
+            originalScale: 1
+        };
+
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+    }
+
+    // MODIFIED: addSetPhaseMarker - add selection capability
+    function addSetPhaseMarker(setNumber, phaseNumber, position = null) {
+    const combination = Array.from(activeCombinations.values()).find(comb => 
+        comb.set === setNumber && comb.phase === phaseNumber
+    );
+    
+    if (!combination) return null;
+
+    const uniqueId = `${combination.id}_${Date.now()}`;
+    
+    // Your existing marker creation code here (keep the same)
+    const geometry = new THREE.SphereGeometry(0.06, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ 
+        color: 0x0000ff,
+        transparent: true,
+        opacity: 0.7
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    if (position) {
+        sphere.position.copy(position);
+    } else {
+        const markerCount = Object.keys(setMarkers).length;
+        const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+        const row = Math.floor(markerCount / gridSize);
+        const col = markerCount % gridSize;
+
+        sphere.position.set(
+            (col - gridSize / 2) * 0.8,
+            2 + row * 0.4,
+            (row - gridSize / 2) * 0.4
+        );
+    }
+
+    // Create HTML marker (your existing code)
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'value-marker set-phase-marker';
+    markerDiv.textContent = `${setNumber}:${phaseNumber}`;
+    markerDiv.style.position = 'absolute';
+    markerDiv.style.color = 'black';
+    markerDiv.style.padding = '2px 5px';
+    markerDiv.style.cursor = 'pointer';
+    markerDiv.style.fontWeight = 'bold';
+    markerDiv.style.pointerEvents = 'auto';
+    markerDiv.dataset.combinedId = uniqueId;
+    markerDiv.dataset.baseCombination = `${setNumber}:${phaseNumber}`;
+    document.getElementById('set-markers-container').appendChild(markerDiv);
+
+    markerDiv.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectObjectForTransform(sphere, uniqueId, 'set-phase');
+    });
+
+    // Store the marker
+    setMarkers[uniqueId] = {
+        mesh: sphere,
+        div: markerDiv,
+        setNumber: setNumber,
+        phaseNumber: phaseNumber,
+        baseCombination: `${setNumber}:${phaseNumber}`,
+        uniqueId: uniqueId,
+        combinationId: combination.id,
+        originalScale: 1
+    };
+
+    scene.add(sphere);
+    updateMarkerPosition(sphere, markerDiv);
+    
+    return uniqueId;
+}
+
+    // Add CSS for better cursor feedback
+    const style = document.createElement('style');
+    style.textContent = `
+        .value-marker:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        
+        #model-canvas.grabbing {
+            cursor: grabbing !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+   
+</script>"

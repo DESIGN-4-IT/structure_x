@@ -377,16 +377,18 @@ class HDeadendForm2UpdateForm(forms.ModelForm):   # here
         # Make structure field read-only for update
         self.fields['structure'].disabled = True
     
-class HUDeadendForm2(forms.ModelForm):
+class HUDeadendForm2(forms.ModelForm):     # *****************
     class Meta:
-        model = hUploadedFile2  # Change here
+        model = hUploadedFile2               # *****************
         fields = ('structure', 'file')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
+        
+        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)       # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
+        self.fields['structure'].required = False
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -394,8 +396,8 @@ class HUDeadendForm2(forms.ModelForm):
         if ext not in ['.xls', '.xlsx']:
             raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
         return uploaded_file
-   
-class HUDeadendUpdateForm2(forms.Form):       # Change here
+
+class HUDeadendUpdateForm2(forms.Form):        # *****************
     structure = forms.ModelChoiceField(
         queryset=ListOfStructure.objects.none(),
         empty_label="Select Structure to Update",
@@ -410,8 +412,17 @@ class HUDeadendUpdateForm2(forms.Form):       # Change here
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show structures that have uploaded files
-        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)  # Change here
+        used_structures = hUploadedFile2.objects.values_list('structure_id', flat=True)    # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        structure = cleaned_data.get('structure')
+        
+        if structure and not hUploadedFile2.objects.filter(structure=structure).exists():   # *****************
+            raise ValidationError("No uploaded file found for this structure.")
+        
+        return cleaned_data
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -419,7 +430,7 @@ class HUDeadendUpdateForm2(forms.Form):       # Change here
             ext = os.path.splitext(uploaded_file.name)[1].lower()
             if ext not in ['.xls', '.xlsx']:
                 raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
-        return uploaded_file 
+        return uploaded_file
     
 class HDeadendForm3(forms.ModelForm):
     class Meta:
@@ -445,16 +456,18 @@ class HDeadendForm3UpdateForm(forms.ModelForm):   # here
         # Make structure field read-only for update
         self.fields['structure'].disabled = True
         
-class HUDeadendForm3(forms.ModelForm):
+class HUDeadendForm3(forms.ModelForm):     # *****************
     class Meta:
-        model = hUploadedFile3
+        model = hUploadedFile3               # *****************
         fields = ('structure', 'file')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        used_structures = hUploadedFile3.objects.values_list('structure_id', flat=True)
+        
+        used_structures = hUploadedFile3.objects.values_list('structure_id', flat=True)       # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
+        self.fields['structure'].required = False
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -462,8 +475,8 @@ class HUDeadendForm3(forms.ModelForm):
         if ext not in ['.xls', '.xlsx']:
             raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
         return uploaded_file
-    
-class HUDeadendUpdateForm3(forms.Form):       # Change here
+
+class HUDeadendUpdateForm3(forms.Form):        # *****************
     structure = forms.ModelChoiceField(
         queryset=ListOfStructure.objects.none(),
         empty_label="Select Structure to Update",
@@ -478,8 +491,17 @@ class HUDeadendUpdateForm3(forms.Form):       # Change here
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show structures that have uploaded files
-        used_structures = hUploadedFile3.objects.values_list('structure_id', flat=True)  # Change here
+        used_structures = hUploadedFile3.objects.values_list('structure_id', flat=True)    # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        structure = cleaned_data.get('structure')
+        
+        if structure and not hUploadedFile3.objects.filter(structure=structure).exists():   # *****************
+            raise ValidationError("No uploaded file found for this structure.")
+        
+        return cleaned_data
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -487,7 +509,7 @@ class HUDeadendUpdateForm3(forms.Form):       # Change here
             ext = os.path.splitext(uploaded_file.name)[1].lower()
             if ext not in ['.xls', '.xlsx']:
                 raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
-        return uploaded_file 
+        return uploaded_file
     
 class HDeadendForm4(forms.ModelForm):
     class Meta:
@@ -513,16 +535,18 @@ class HDeadendForm4UpdateForm(forms.ModelForm):   # here
         # Make structure field read-only for update
         self.fields['structure'].disabled = True
         
-class HUDeadendForm4(forms.ModelForm):
+class HUDeadendForm4(forms.ModelForm):     # *****************
     class Meta:
-        model = hUploadedFile4
+        model = hUploadedFile4               # *****************
         fields = ('structure', 'file')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        used_structures = hUploadedFile4.objects.values_list('structure_id', flat=True)
+        
+        used_structures = hUploadedFile4.objects.values_list('structure_id', flat=True)       # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
         self.fields['structure'].empty_label = "Select Structure"
+        self.fields['structure'].required = False
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -531,7 +555,7 @@ class HUDeadendForm4(forms.ModelForm):
             raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
         return uploaded_file
 
-class HUDeadendUpdateForm4(forms.Form):       # Change here
+class HUDeadendUpdateForm4(forms.Form):        # *****************
     structure = forms.ModelChoiceField(
         queryset=ListOfStructure.objects.none(),
         empty_label="Select Structure to Update",
@@ -546,8 +570,17 @@ class HUDeadendUpdateForm4(forms.Form):       # Change here
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show structures that have uploaded files
-        used_structures = hUploadedFile4.objects.values_list('structure_id', flat=True)  # Change here
+        used_structures = hUploadedFile4.objects.values_list('structure_id', flat=True)    # *****************
         self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        structure = cleaned_data.get('structure')
+        
+        if structure and not hUploadedFile4.objects.filter(structure=structure).exists():   # *****************
+            raise ValidationError("No uploaded file found for this structure.")
+        
+        return cleaned_data
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get('file')
@@ -555,7 +588,7 @@ class HUDeadendUpdateForm4(forms.Form):       # Change here
             ext = os.path.splitext(uploaded_file.name)[1].lower()
             if ext not in ['.xls', '.xlsx']:
                 raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
-        return uploaded_file 
+        return uploaded_file
     
 class TDeadendForm6(forms.ModelForm):
     class Meta:

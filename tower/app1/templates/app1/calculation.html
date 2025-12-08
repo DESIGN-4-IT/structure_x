@@ -610,18 +610,14 @@
                 <button type="button" id="selectSetMaxResultantBtn" class="btn btn-outline-warning">
                     <i class="fas fa-layer-group"></i> Select Set Max Resultant (Within Groups)
                 </button>
-                <button type="button" id="selectGlobalSetMaxResultantBtn" class="btn btn-outline-success">
-                    <i class="fas fa-globe"></i> Select Global Set Max Resultant
-                </button>
+        
                 <button type="button" id="excludeDuplicatesBtn" class="btn btn-outline-danger">
                     <i class="fas fa-filter"></i> Exclude Duplicates
                 </button>
                 <button type="button" id="includeDuplicatesBtn" class="btn btn-outline-info">
                     <i class="fas fa-copy"></i> Include Duplicates
                 </button>
-                <button type="button" id="debugSelectionBtn" class="btn btn-outline-dark">
-                    <i class="fas fa-bug"></i> Debug Selection
-                </button>
+               
                 <span class="selection-count">Selected: <span id="selectedCount">0</span> records</span>
             </div>
         </div>
@@ -665,8 +661,8 @@
                                 </thead>
                                 <tbody>
                                     {% for record in records %}
-                                    <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %} 
-                                            {% if record.global_set_max_resultant_flag == 'yes' %}global-max-resultant-row{% endif %}" 
+                                    <tr class="{% if record.max_resultant_flag == 'yes' %}max-resultant-row{% endif %}"
+                                            
                                         data-record-id="{{ record.record_id }}">
                                         <td>
                                             <input type="checkbox" class="record-checkbox" 
@@ -677,9 +673,7 @@
                                                 data-long="{{ record.Structure_Loads_Long }}"
                                                 data-resultant="{{ record.Resultant }}"
                                                 {% if record.max_resultant_flag == 'yes' %}checked{% endif %}>
-                                            {% if record.global_set_max_resultant_flag == 'yes' %}
-                                            <span class="global-max-badge" title="Global Max for Set {{ record.Set_No }}"></span>
-                                            {% endif %}
+    
                                         </td>
                                         {% for key, value in record.items %}
                                             {% if key != 'max_resultant_flag' and key != 'record_id' and key != 'Structure_Loads_Vert' and key != 'Structure_Loads_Trans' and key != 'Structure_Loads_Long' and key != 'Set_No' and key != 'set_max_resultant_flag' %}
@@ -1041,7 +1035,6 @@
 
 <script>
 
-    document.getElementById('debugSelectionBtn').addEventListener('click', debugSetMaxSelection);
 
     document.addEventListener('DOMContentLoaded', function() {
     // Existing event listeners...
@@ -1271,49 +1264,9 @@ function includeDuplicateRecords() {
             });
         }
         
-    } else if (activeMode === 'global') {
-        // GLOBAL SET MAX MODE: Include duplicates across all groups for each Set No.
-        console.log('GLOBAL SET MAX MODE: Including duplicates across all groups for each Set No.');
+    } 
         
-        // Group selected records by Set No. only (across all groups)
-        const selectedBySet = {};
-        selectedCheckboxes.forEach(checkbox => {
-            const setNo = checkbox.dataset.setNo;
-            if (!selectedBySet[setNo]) {
-                selectedBySet[setNo] = [];
-            }
-            selectedBySet[setNo].push(checkbox);
-        });
-        
-        // For each Set No., find max resultant and include duplicates across all groups
-        for (const [setNo, setRecords] of Object.entries(selectedBySet)) {
-            if (setRecords.length === 0) continue;
-            
-            // Find max resultant for this Set No. across all groups
-            let maxResultant = -1;
-            setRecords.forEach(record => {
-                const resultant = parseFloat(record.dataset.resultant) || 0;
-                if (resultant > maxResultant) {
-                    maxResultant = resultant;
-                }
-            });
-            
-            console.log(`🔍 Global Set ${setNo}: Max resultant = ${maxResultant}`);
-            
-            // Find ALL records with this Set No. (across all groups) with same resultant
-            allCheckboxes.forEach(checkbox => {
-                if (!checkbox.checked && checkbox.dataset.setNo === setNo) {
-                    const resultant = parseFloat(checkbox.dataset.resultant) || 0;
-                    if (Math.abs(resultant - maxResultant) < 0.001) {
-                        checkbox.checked = true;
-                        duplicatesAdded++;
-                        console.log(`✅ ADDED GLOBAL DUPLICATE: Record ${checkbox.dataset.recordId}, Set ${setNo}, Resultant: ${resultant}`);
-                    }
-                }
-            });
-        }
-        
-    } else {
+    else {
         console.log('Unknown mode, using fallback duplicate detection');
         // Fallback to simple Set No. matching
         selectedCheckboxes.forEach(selectedCheckbox => {
@@ -1376,22 +1329,7 @@ function getActiveSelectionMode() {
         return 'unknown';
     }
     
-    // Check for Global Set Max pattern (one record per unique Set No. across all groups)
-    const uniqueSetNos = new Set();
-    selectedCheckboxes.forEach(checkbox => {
-        uniqueSetNos.add(checkbox.dataset.setNo);
-    });
-    
-    if (selectedCheckboxes.length === uniqueSetNos.size) {
-        const allSetNos = new Set();
-        document.querySelectorAll('.record-checkbox').forEach(cb => allSetNos.add(cb.dataset.setNo));
-        
-        // If we have exactly one record per Set No. that exists in the data, it's Global Set Max
-        if (uniqueSetNos.size === allSetNos.size) {
-            return 'global';
-        }
-    }
-    
+
     // Check for Set Max Within Groups pattern (records with set-max-resultant-row class)
     const setMaxCheckboxes = Array.from(selectedCheckboxes).filter(checkbox => {
         const row = checkbox.closest('tr');
@@ -1449,9 +1387,7 @@ function getRecordGroupKey(checkbox, mode) {
     const setNo = checkbox.dataset.setNo || 'Unknown';
     
     switch (mode) {
-        case 'global':
-            // Global Set Max: group only by Set No. across all groups
-            return `GLOBAL_SET_${setNo}`;
+        
             
         case 'set':
             // Set Max Within Groups: group by combination of group and Set No.
@@ -1507,50 +1443,8 @@ function getRecordGroupKey(checkbox, mode) {
     }
 }
 
-// DEBUG: Function to verify grouping logic
-function debugGroupingLogic() {
-    console.log('=== DEBUG: Grouping Logic Verification ===');
-    
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    const activeMode = getActiveSelectionMode();
-    
-    console.log(`Active mode: ${activeMode}`);
-    console.log(`Selected records: ${selectedCheckboxes.length}`);
-    
-    // Show how each selected record is grouped
-    selectedCheckboxes.forEach((checkbox, index) => {
-        const groupKey = getRecordGroupKey(checkbox, activeMode);
-        const resultant = parseFloat(checkbox.dataset.resultant) || 0;
-        const groupContainer = checkbox.closest('.set-container');
-        const groupHeader = groupContainer ? groupContainer.querySelector('.set-header h4') : null;
-        const groupName = groupHeader ? groupHeader.textContent.trim() : 'Unknown';
-        
-        console.log(`Record ${index + 1}:`);
-        console.log(`  - ID: ${checkbox.dataset.recordId}`);
-        console.log(`  - Set: ${checkbox.dataset.setNo}`);
-        console.log(`  - Group: ${groupName}`);
-        console.log(`  - Resultant: ${resultant}`);
-        console.log(`  - Group Key: ${groupKey}`);
-    });
-    
-    // Show grouping
-    const groupedRecords = groupRecordsByActiveMode(selectedCheckboxes, activeMode);
-    console.log('Grouped records:');
-    for (const [groupKey, records] of Object.entries(groupedRecords)) {
-        console.log(`  ${groupKey}: ${records.length} records`);
-        records.forEach(record => {
-            console.log(`    - Record ${record.dataset.recordId}, Resultant: ${record.dataset.resultant}`);
-        });
-    }
-    
-    console.log('=== END GROUPING DEBUG ===');
-}
 
-// Add this to your debug button
-document.getElementById('debugSelectionBtn').addEventListener('click', function() {
-    debugGroupingLogic();
-    debugSelectionState();
-});
+
 
 // ENHANCED: Create a comprehensive unique key for record comparison
 function createRecordKey(checkbox) {
@@ -1708,150 +1602,6 @@ function hasDuplicateRecords() {
     return false;
 }
 
-/// ENHANCED: Function to analyze current selection state
-function debugSelectionState() {
-    console.log('=== DEBUG: Current Selection Analysis ===');
-    
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    const recordMap = new Map();
-    const duplicates = [];
-    const groupsAnalysis = {};
-    
-    console.log(`Total selected: ${selectedCheckboxes.length}`);
-    
-    // Analyze for duplicates
-    selectedCheckboxes.forEach(checkbox => {
-        const key = createRecordKey(checkbox);
-        const row = checkbox.closest('tr');
-        const groupContainer = row.closest('.set-container');
-        const groupHeader = groupContainer.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : 'Unknown Group';
-        
-        if (!groupsAnalysis[groupName]) {
-            groupsAnalysis[groupName] = { count: 0, records: [] };
-        }
-        groupsAnalysis[groupName].count++;
-        groupsAnalysis[groupName].records.push(checkbox.dataset.recordId);
-        
-        if (recordMap.has(key)) {
-            duplicates.push({
-                original: recordMap.get(key),
-                duplicate: checkbox,
-                key: key
-            });
-        } else {
-            recordMap.set(key, checkbox);
-        }
-    });
-    
-    console.log(`Unique records: ${recordMap.size}`);
-    console.log(`Duplicate pairs: ${duplicates.length}`);
-    
-    // Show group distribution
-    console.log('Group distribution:');
-    for (const [groupName, data] of Object.entries(groupsAnalysis)) {
-        console.log(`  ${groupName}: ${data.count} records`);
-    }
-    
-    duplicates.forEach((dup, index) => {
-        console.log(`Duplicate pair ${index + 1}:`);
-        console.log(`  Original: Record ${dup.original.dataset.recordId}, Set ${dup.original.dataset.setNo}`);
-        console.log(`  Duplicate: Record ${dup.duplicate.dataset.recordId}, Set ${dup.duplicate.dataset.setNo}`);
-    });
-    
-    console.log('=== END DEBUG ===');
-}
-
-// Update your debug button to use this function
-document.getElementById('debugSelectionBtn').addEventListener('click', debugSelectionState);
-
-// Enhanced debug function
-function debugGroupAndSetSelection() {
-    console.log('=== DEBUG: Group and Set Analysis ===');
-    
-    // Check all groups in the main section
-    const groups = document.querySelectorAll('.set-container');
-    console.log(`Total groups in main view: ${groups.length}`);
-    
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        // Count total records in this group
-        const totalRecords = group.querySelectorAll('.record-checkbox').length;
-        
-        // Count set-wise sections
-        const setSections = group.querySelectorAll('.set-subgroup');
-        
-        console.log(`Group: ${groupName}`);
-        console.log(`  - Total records: ${totalRecords}`);
-        console.log(`  - Set sections: ${setSections.length}`);
-        
-        // Check each set section
-        setSections.forEach((setSection, setIndex) => {
-            const setHeader = setSection.querySelector('h6');
-            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
-            const setRecords = setSection.querySelectorAll('.record-checkbox');
-            const setMaxRecords = setSection.querySelectorAll('.set-max-resultant-row');
-            
-            console.log(`    ${setInfo}`);
-            console.log(`      - Records: ${setRecords.length}`);
-            console.log(`      - Set max rows: ${setMaxRecords.length}`);
-        });
-    });
-    
-    // Check group-wise calculations section
-    const calculationGroups = document.querySelectorAll('.group-calculation-section');
-    console.log(`Groups in calculations section: ${calculationGroups.length}`);
-    calculationGroups.forEach(group => {
-        const header = group.querySelector('h4');
-        console.log(`  - ${header ? header.textContent.trim() : 'Unknown group'}`);
-    });
-    
-    console.log('=== END DEBUG ===');
-}
-
-// Call this after page load
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(debugGroupAndSetSelection, 1500);
-});
-
-// DEBUG: Function to check set max resultant selection
-function debugSetMaxSelection() {
-    console.log('=== DEBUG: Set Max Resultant Analysis ===');
-    
-    // Check all groups
-    const groups = document.querySelectorAll('.set-container');
-    console.log(`Total groups found: ${groups.length}`);
-    
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        // Count set max rows in this group
-        const setMaxRows = group.querySelectorAll('.set-max-resultant-row');
-        const setMaxCheckboxes = group.querySelectorAll('.record-checkbox[data-set-max-resultant="true"]');
-        
-        console.log(`Group: ${groupName}`);
-        console.log(`  - Set max rows (CSS): ${setMaxRows.length}`);
-        console.log(`  - Set max checkboxes (data): ${setMaxCheckboxes.length}`);
-        
-        // Log each set max record
-        setMaxRows.forEach((row, index) => {
-            const checkbox = row.querySelector('.record-checkbox');
-            if (checkbox) {
-                console.log(`    Record ${index + 1}: ID=${checkbox.dataset.recordId}, Set=${checkbox.dataset.setNo}`);
-            }
-        });
-    });
-    
-    console.log('=== END DEBUG ===');
-}
-
-// Call this after page load to see what's available
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(debugSetMaxSelection, 1000);
-});
 
 // Enhanced page load debugging
 document.addEventListener('DOMContentLoaded', function() {
@@ -1870,44 +1620,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`   - Set subgroups: ${totalSetSubgroups}`);
         console.log(`   - Total records: ${totalRecords}`);
         
-        // Verify template rendering
-        debugTemplateRendering();
         
     }, 2000);
 });
 
-// Debug template rendering
-function debugTemplateRendering() {
-    console.log('=== TEMPLATE RENDERING VERIFICATION ===');
-    
-    const groups = document.querySelectorAll('.set-container');
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        const setSubgroups = group.querySelectorAll('.set-subgroup');
-        console.log(`🔍 ${groupName}: ${setSubgroups.length} set subgroups`);
-        
-        setSubgroups.forEach((subgroup, setIndex) => {
-            const setHeader = subgroup.querySelector('h6');
-            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
-            const records = subgroup.querySelectorAll('.record-checkbox');
-            
-            console.log(`   ${setInfo}: ${records.length} records`);
-            
-            // Check if set max rows are properly styled
-            const setMaxRows = subgroup.querySelectorAll('.set-max-resultant-row');
-            console.log(`      Set max rows (CSS): ${setMaxRows.length}`);
-            
-            setMaxRows.forEach(row => {
-                const checkbox = row.querySelector('.record-checkbox');
-                if (checkbox) {
-                    console.log(`      ✅ Set max: Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
-                }
-            });
-        });
-    });
-}
+
 
 function goToLoadConditions() {
     const calculationData = {{ calculation_data_json|safe }};
@@ -2472,86 +2189,13 @@ function initializeSelection() {
 
     updateSelectionMode('set');
     
-    // Run comprehensive debug
-    debugGuaranteedSelection();
+   
 });
 
 
-// COMPREHENSIVE DEBUG: Verify the guaranteed selection
-function debugGuaranteedSelection() {
-    console.log('=== GUARANTEED SELECTION VERIFICATION ===');
-    
-    const groups = document.querySelectorAll('.set-container');
-    let totalExpected = 0;
-    let totalActual = 0;
-    
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        const setSubgroups = group.querySelectorAll('.set-subgroup');
-        const selectedInGroup = group.querySelectorAll('.record-checkbox:checked');
-        
-        console.log(`📊 ${groupName}:`);
-        console.log(`   - Set subgroups: ${setSubgroups.length}`);
-        console.log(`   - Selected records: ${selectedInGroup.length}`);
-        
-        totalExpected += setSubgroups.length;
-        totalActual += selectedInGroup.length;
-        
-        // Check each set subgroup
-        setSubgroups.forEach((subgroup, setIndex) => {
-            const setHeader = subgroup.querySelector('h6');
-            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
-            const selectedInSet = subgroup.querySelectorAll('.record-checkbox:checked');
-            
-            console.log(`   ${setInfo}: ${selectedInSet.length} selected`);
-            
-            if (selectedInSet.length === 0) {
-                console.log(`   ❌ MISSING SELECTION in ${setInfo}`);
-                
-                // Debug: Show all records in this set
-                const allInSet = subgroup.querySelectorAll('.record-checkbox');
-                console.log(`      All records in ${setInfo}:`);
-                allInSet.forEach((checkbox, idx) => {
-                    console.log(`      [${idx}] Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
-                });
-            } else if (selectedInSet.length > 1) {
-                console.log(`   ⚠️  MULTIPLE SELECTIONS in ${setInfo}`);
-            } else {
-                console.log(`   ✅ CORRECT: 1 selected in ${setInfo}`);
-            }
-        });
-    });
-    
-    console.log(`=== SUMMARY: ${totalActual}/${totalExpected} set max records selected ===`);
-    
-    if (totalActual === totalExpected) {
-        console.log('🎉 SUCCESS: All set max records selected correctly!');
-    } else {
-        console.log(`❌ PROBLEM: Missing ${totalExpected - totalActual} selections`);
-    }
-}
 
 
-    // Select GLOBAL set max resultant (across all groups)
-    selectGlobalSetMaxResultantBtn.addEventListener('click', function() {
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        // Check global set max resultant rows
-        const globalSetMaxResultantRows = document.querySelectorAll('.global-max-resultant-row');
-        globalSetMaxResultantRows.forEach(row => {
-            const checkbox = row.querySelector('.record-checkbox');
-            if (checkbox) {
-                checkbox.checked = true;
-            }
-        });
-        updateSelection();
-        updateSelectionMode('global');
-    });
-    
+
 // CORRECTED: Select max resultant records from ALL groups
 selectMaxResultantBtn.addEventListener('click', function() {
     console.log('=== SELECT GROUP MAX RESULTANT: Starting selection from ALL groups (GROUP-WISE SECTION ONLY) ===');
@@ -2619,8 +2263,7 @@ selectMaxResultantBtn.addEventListener('click', function() {
 
     updateSelectionMode('group');
     
-    // Debug the selection
-    debugSelectionState();
+   
 });
     
     // Add event listeners to checkboxes
@@ -2632,38 +2275,7 @@ selectMaxResultantBtn.addEventListener('click', function() {
     updateSelection();
 }
 
-function debugVerifyGroupSelection() {
-    console.log('=== VERIFY: Group Selection Analysis ===');
-    
-    const groups = document.querySelectorAll('.set-container');
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        // Count selected records in this group
-        const selectedInGroup = group.querySelectorAll('.record-checkbox:checked');
-        const setSubgroups = group.querySelectorAll('.set-subgroup');
-        
-        console.log(`Group: ${groupName}`);
-        console.log(`  - Selected records: ${selectedInGroup.length}`);
-        console.log(`  - Set subgroups: ${setSubgroups.length}`);
-        
-        // Check each set subgroup
-        setSubgroups.forEach((subgroup, setIndex) => {
-            const setHeader = subgroup.querySelector('h6');
-            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
-            const selectedInSet = subgroup.querySelectorAll('.record-checkbox:checked');
-            
-            console.log(`    ${setInfo}: ${selectedInSet.length} selected`);
-            
-            selectedInSet.forEach(checkbox => {
-                console.log(`      - Record ${checkbox.dataset.recordId}, Resultant: ${checkbox.dataset.resultant}`);
-            });
-        });
-    });
-    
-    console.log('=== END VERIFY ===');
-}
+
 
 // NEW: Function to ensure data attributes are properly set
 function ensureSetMaxResultantAttributes() {
@@ -2689,70 +2301,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(ensureSetMaxResultantAttributes, 2000);
 });
 
-// Enhanced debug function for comprehensive analysis
-function debugComprehensiveAnalysis() {
-    console.log('=== COMPREHENSIVE DEBUG: Full Analysis ===');
-    
-    // 1. Check all groups in main view
-    const groups = document.querySelectorAll('.set-container');
-    console.log(`1. Total groups in main view: ${groups.length}`);
-    
-    groups.forEach((group, groupIndex) => {
-        const groupHeader = group.querySelector('.set-header h4');
-        const groupName = groupHeader ? groupHeader.textContent.trim() : `Group ${groupIndex + 1}`;
-        
-        const totalRecords = group.querySelectorAll('.record-checkbox').length;
-        const setSections = group.querySelectorAll('.set-subgroup');
-        const setMaxRows = group.querySelectorAll('.set-max-resultant-row');
-        
-        console.log(`   Group: ${groupName}`);
-        console.log(`     - Total records: ${totalRecords}`);
-        console.log(`     - Set sections: ${setSections.length}`);
-        console.log(`     - Set max rows (CSS): ${setMaxRows.length}`);
-        
-        // Check each set section
-        setSections.forEach((setSection, setIndex) => {
-            const setHeader = setSection.querySelector('h6');
-            const setInfo = setHeader ? setHeader.textContent.trim() : `Set ${setIndex + 1}`;
-            const setRecords = setSection.querySelectorAll('.record-checkbox');
-            const setMaxInSection = setSection.querySelectorAll('.set-max-resultant-row');
-            const setMaxWithDataAttr = setSection.querySelectorAll('.record-checkbox[data-set-max-resultant="true"]');
-            
-            console.log(`       ${setInfo}`);
-            console.log(`         - Total records: ${setRecords.length}`);
-            console.log(`         - Set max rows (CSS): ${setMaxInSection.length}`);
-            console.log(`         - Set max (data attr): ${setMaxWithDataAttr.length}`);
-            
-            // Log details of set max records
-            setMaxInSection.forEach((row, idx) => {
-                const checkbox = row.querySelector('.record-checkbox');
-                if (checkbox) {
-                    const hasDataAttr = checkbox.hasAttribute('data-set-max-resultant');
-                    console.log(`           Set Max ${idx + 1}: ID=${checkbox.dataset.recordId}, Set=${checkbox.dataset.setNo}, DataAttr=${hasDataAttr}, Resultant=${checkbox.dataset.resultant}`);
-                }
-            });
-        });
-    });
-    
-    // 2. Check group-wise calculations section
-    const calculationGroups = document.querySelectorAll('.group-calculation-section');
-    console.log(`2. Groups in calculations section: ${calculationGroups.length}`);
-    calculationGroups.forEach(group => {
-        const header = group.querySelector('h4');
-        console.log(`   - ${header ? header.textContent.trim() : 'Unknown group'}`);
-    });
-    
-    // 3. Check current selection
-    const selectedCount = document.querySelectorAll('.record-checkbox:checked').length;
-    console.log(`3. Currently selected records: ${selectedCount}`);
-    
-    console.log('=== END COMPREHENSIVE DEBUG ===');
-}
-
-// Replace your current debug function call
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(debugComprehensiveAnalysis, 1500);
-});
 
 function updateCustomSelectionDisplay() {
     const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
