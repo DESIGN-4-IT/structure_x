@@ -1172,10 +1172,61 @@ class mUploadedFile13(models.Model):
         ]
         
         
-
+# In models.py - UPDATE your TowerModel class
 class TowerModel(models.Model):
+    STRUCTURE_TYPES = [
+        ('towers', 'Towers'),
+        ('hframes', 'H-Frames'),
+        ('monopoles', 'Monopoles')
+    ]
+    
+    ATTACHMENT_TYPES = [
+        ('deadend', 'Deadend'),
+        ('tangent', 'Tangent')
+    ]
+    
+    CONFIGURATION_TYPES = [
+        ('vertical', 'Vertical'),
+        ('horizontal', 'Horizontal'),
+        ('delta', 'Delta'),
+        ('hetic', 'Hetic')
+    ]
+    
+    CIRCUIT_TYPES = [
+        ('sc', 'Single Circuit'),
+        ('dc', 'Double Circuit'),
+        ('tc', 'Triple Circuit')
+    ]
+    
     name = models.CharField(max_length=255)
     model_file = models.FileField(upload_to='tower_models/')
+    
+    # ADD THESE FIELDS
+    structure_type = models.CharField(
+        max_length=20, 
+        choices=STRUCTURE_TYPES, 
+        blank=True, 
+        null=True
+    )
+    attachment_points = models.CharField(
+        max_length=20, 
+        choices=ATTACHMENT_TYPES, 
+        blank=True, 
+        null=True
+    )
+    configuration = models.CharField(
+        max_length=20, 
+        choices=CONFIGURATION_TYPES, 
+        blank=True, 
+        null=True
+    )
+    circuit_type = models.CharField(
+        max_length=10, 
+        choices=CIRCUIT_TYPES, 
+        blank=True, 
+        null=True
+    )
+    
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -1185,3 +1236,4 @@ class TowerModel(models.Model):
         if self.model_file and hasattr(self.model_file, 'url'):
             return self.model_file.url
         return ''
+    

@@ -142,12 +142,14 @@ urlpatterns = [
    path('chart/',views.chart,name='chart'),
    path('data/',views.data,name='data'),
    path('', views.list_structures, name='home'),
+   path('clear-session-data/', views.clear_session_data, name='clear_session_data'),
    path('rename-structure-group/<int:group_id>/', views.rename_structure_group, name='rename_structure_group'),
    path('add_structures/', views.add_structure, name='add_structure'),
    path('add_group/', views.add_group, name='add_group'),
    path('str_delete/<int:structure_id>/', views.delete_structure, name='delete_structure'),
    path('delete_structure_group/<int:group_id>/', views.delete_structure_group, name='delete_structure_group'),
-
+   path('store-structure-selection/', views.store_structure_selection, name='store_structure_selection'),
+   path('store-popup-selection/', views.store_popup_selection, name='store_popup_selection'),
    
    path('mdeadend5/',views.mdeadend5,name='mdeadend5'),
    path('mupload5/',views.mupload5,name='mupload5'),

@@ -417,6 +417,33 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Add this to hdeadend2.html, hdeadend3.html, and hdeadend4.html -->
+<div class="session-info" style="background-color: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <h4>Session Debug Information:</h4>
+    <p><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</p>
+    <p><strong>Structure ID:</strong> {{ structure_id|default:"Not set" }}</p>
+    <p><strong>Popup Actions:</strong></p>
+    <ul>
+        {% for popup in session_popups %}
+            <li>{{ popup }}</li>
+        {% empty %}
+            <li>No popup actions stored</li>
+        {% endfor %}
+    </ul>
+    
+    <!-- Circuit Definition Data -->
+    <p><strong>Circuit Definition (from session):</strong></p>
+    {% if session_circuit_definition %}
+        <ul>
+            {% for key, value in session_circuit_definition.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No circuit definition data in session yet</p>
+    {% endif %}
+</div>
     
   {% endblock %}
 

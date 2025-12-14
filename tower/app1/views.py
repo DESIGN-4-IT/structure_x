@@ -432,17 +432,59 @@ def store_set_phase_combinations(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 def hdata1(request):
-                               # **********8
+    # DEBUG: Print all session data at the start of hdata1
+    print(f"DEBUG [hdata1 Page] - All session data received:")
+    print(f"  1. Home Page Data:")
+    print(f"     Structure Type: {request.session.get('selected_structure_type')}")
+    print(f"     Structure ID: {request.session.get('selected_structure_id')}")
+    print(f"     Active Popups: {request.session.get('active_popups', [])}")
+    print(f"     Popup Selections: {request.session.get('popup_selections', {})}")
+    
+    print(f"  2. Circuit Definition Data:")
+    circuit_definition = request.session.get('circuit_definition', {})
+    print(f"     Num 3-Phase Circuits: {circuit_definition.get('num_3_phase_circuits')}")
+    print(f"     Num Shield Wires: {circuit_definition.get('num_shield_wires')}")
+    print(f"     Num 1-Phase Circuits: {circuit_definition.get('num_1_phase_circuits')}")
+    print(f"     Num Communication Cables: {circuit_definition.get('num_communication_cables')}")
+    print(f"     Circuit Model: {circuit_definition.get('circuit_model')}")
+    print(f"     Circuit ID: {circuit_definition.get('circuit_id')}")
+    
+    print(f"  3. Selection Values:")
+    print(f"     Selected Values: {request.session.get('selected_values', {})}")
+    
+    matching_model = find_matching_model(request.session)
+    print(f"\n🔍 DEBUG [hdata1] - Matching Results:")
+    if matching_model:
+        print(f"  ✓ Found matching model: {matching_model.name}")
+        print(f"    ID: {matching_model.id}")
+        print(f"    Type: {matching_model.structure_type}")
+        print(f"    Attachment: {matching_model.attachment_points}")
+        print(f"    Configuration: {matching_model.configuration}")
+        print(f"    Circuit: {matching_model.circuit_type}")
+    else:
+        print(f"  ⚠ No matching model found")
+
     available_models = TowerModel.objects.all().order_by('name')
     selected_model_id = request.session.get('selected_model_id')
+    
+    if matching_model:
+        selected_model_id = matching_model.id
+        request.session['selected_model_id'] = selected_model_id
+        print(f"  🎯 AUTO-SELECTING matched model ID: {selected_model_id}")
     
     if request.method == 'POST' and 'selected_model' in request.POST:
         selected_model_id = request.POST.get('selected_model')
         if selected_model_id:
             request.session['selected_model_id'] = selected_model_id
+            print(f"  🔄 User manually selected model ID: {selected_model_id}")
         else:
             # Clear selection if "None" is selected
             request.session.pop('selected_model_id', None)
+            # If user cleared selection, revert to matched model
+            if matching_model:
+                selected_model_id = matching_model.id
+                request.session['selected_model_id'] = selected_model_id
+                print(f"  🔄 User cleared selection, reverting to matched model")
     
     # Handle new model upload
     if request.method == 'POST' and 'tower_model_file' in request.FILES:
@@ -451,26 +493,46 @@ def hdata1(request):
         
         # Validate file type
         if model_file.name.endswith(('.glb', '.gltf')):
+            # Get categorization from form
+            structure_type = request.POST.get('structure_type')
+            attachment_points = request.POST.get('attachment_points')
+            configuration = request.POST.get('configuration')
+            circuit_type = request.POST.get('circuit_type')
+            
             new_model = TowerModel.objects.create(
                 name=model_name,
-                model_file=model_file
+                model_file=model_file,
+                structure_type=structure_type,
+                attachment_points=attachment_points,
+                configuration=configuration,
+                circuit_type=circuit_type
             )
             # Optionally select the newly uploaded model
             request.session['selected_model_id'] = new_model.id
+
     
     # Get selected model if any
     selected_model = None
     if selected_model_id:
         try:
             selected_model = TowerModel.objects.get(id=selected_model_id)
+            print(f"  📊 Current selected model: {selected_model.name} (ID: {selected_model.id})")
         except TowerModel.DoesNotExist:
-            pass                                       # **********8
-    # Get selected values from session
+            print(f"  ❌ Selected model ID {selected_model_id} not found")
+            selected_model = None
+            
+    if not selected_model and matching_model:
+        selected_model = matching_model
+        print(f"  🆘 Fallback to matching model: {selected_model.name}")
+    
+    # Get all session data to pass to template
     selected_values = request.session.get('selected_values', {})
     active_combinations = selected_values.get('active_combinations', [])
     structure_id = selected_values.get('structure_id')
     button_type = selected_values.get('button_type', '')
     
+    # Get circuit definition data from session
+    circuit_definition = request.session.get('circuit_definition', {})
     
     # Keep only the canvas container logic
     if structure_id:
@@ -583,9 +645,11 @@ def hdata1(request):
     request.session['selected_values']['filter_criteria'] = filter_criteria
     request.session.modified = True
 
-    return render(request, 'app1/hdata1.html', {
-        'available_models': available_models,   # **********8
-        'selected_model': selected_model,        # **********8
+    # Prepare context data including all session information
+    context = {
+        # Existing context
+        'available_models': available_models,
+        'selected_model': selected_model,
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
@@ -596,11 +660,180 @@ def hdata1(request):
         'button_type': button_type,
         'structure_id': structure_id,
         'filter_criteria': filter_criteria,
-        'selected_joints': selected_joints,  # NEW: Pass to template
-        'active_combinations': active_combinations,  # NEW: Pass to template
+        'selected_joints': selected_joints,
+        'active_combinations': active_combinations,
         
-    })
+        # NEW: Session data from Home Page and Circuit Definition
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_structure_id': request.session.get('selected_structure_id', ''),
+        'session_active_popups': request.session.get('active_popups', []),
+        'session_popup_selections': request.session.get('popup_selections', {}),
+        'session_circuit_definition': circuit_definition,
+        'matching_model': matching_model,
+        'matched_model_info': {
+            'structure_type': matching_model.structure_type if matching_model else None,
+            'attachment_points': matching_model.attachment_points if matching_model else None,
+            'configuration': matching_model.configuration if matching_model else None,
+            'circuit_type': matching_model.circuit_type if matching_model else None,
+        } if matching_model else None,
+    }
     
+    return render(request, 'app1/hdata1.html', context)
+    
+    
+def find_matching_model(session_data):
+    """
+    Find a 3D model that matches ALL session selections including complete circuit definition
+    """
+    from .models import TowerModel
+    
+    # Extract data from session
+    structure_type = session_data.get('selected_structure_type')
+    popup_selections = session_data.get('popup_selections', {})
+    circuit_definition = session_data.get('circuit_definition', {})
+    
+    # Get attachment points and configuration from popups
+    attachment_points = popup_selections.get('attachment_points')
+    configuration = popup_selections.get('configuration')
+    
+    # DEBUG: Print all selection data
+    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
+    print(f"  Structure Type: {structure_type}")
+    print(f"  Attachment Points: {attachment_points}")
+    print(f"  Configuration: {configuration}")
+    print(f"  Circuit Definition: {circuit_definition}")
+    
+    # DETERMINE CIRCUIT TYPE BASED ON ALL CIRCUIT DEFINITION FIELDS
+    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
+    num_shield_wires = circuit_definition.get('num_shield_wires', 0)
+    num_1_phase = circuit_definition.get('num_1_phase_circuits', 0)
+    num_comm_cables = circuit_definition.get('num_communication_cables', 0)
+    
+    # Determine total circuits based on ALL components
+    total_circuits = 0
+    
+    # 3-Phase circuits count as full circuits
+    total_circuits += num_3_phase
+    
+    # Shield wires don't typically count as separate circuits for model matching
+    # 1-Phase circuits typically bundle together
+    if num_1_phase > 0:
+        total_circuits += 1  # Add one for any 1-phase circuits
+    
+    # Communication cables also typically bundle
+    if num_comm_cables > 0:
+        total_circuits += 1  # Add one for any communication cables
+    
+    # Map total circuits to circuit type codes
+    if total_circuits == 1:
+        circuit_type = 'sc'  # Single Circuit
+    elif total_circuits == 2:
+        circuit_type = 'dc'  # Double Circuit
+    elif total_circuits >= 3:
+        circuit_type = 'tc'  # Triple Circuit
+    else:
+        circuit_type = 'sc'  # Default to Single Circuit
+    
+    print(f"  Calculated Circuit Type: {circuit_type} (based on {total_circuits} total circuits)")
+    print(f"    Breakdown: 3-Phase={num_3_phase}, 1-Phase={num_1_phase}, Comm={num_comm_cables}")
+    
+    # Try to find EXACT match first
+    matching_model = TowerModel.objects.filter(
+        structure_type=structure_type,
+        attachment_points=attachment_points,
+        configuration=configuration,
+        circuit_type=circuit_type
+    ).first()
+    
+    if matching_model:
+        print(f"  ✓ Found EXACT match: {matching_model.name}")
+        return matching_model
+    
+    # If no exact match, try matching with structure naming convention
+    # Based on your naming: HFrame_DE_Vert_SC, HFrame_Tan_Vert_DC, etc.
+    print(f"  ⚠ No exact match found, trying naming convention match...")
+    
+    # Generate expected name patterns
+    # Structure type prefix
+    if structure_type == 'hframes':
+        prefix = "HFrame"
+    elif structure_type == 'towers':
+        prefix = "Tower"
+    elif structure_type == 'monopoles':
+        prefix = "MP"
+    else:
+        prefix = ""
+    
+    # Attachment points
+    if attachment_points == 'deadend':
+        attachment_code = "DE"
+    elif attachment_points == 'tangent':
+        attachment_code = "Tan"
+    else:
+        attachment_code = ""
+    
+    # Configuration
+    if configuration == 'vertical':
+        config_code = "Vert"
+    elif configuration == 'horizontal':
+        config_code = "Horiz"
+    else:
+        config_code = configuration[:4] if configuration else ""
+    
+    # Circuit type
+    circuit_code = circuit_type.upper()  # SC, DC, TC
+    
+    # Try to find by name pattern
+    expected_pattern = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
+    print(f"  Searching for pattern: {expected_pattern}")
+    
+    # Get all models and try to find closest match
+    all_models = TowerModel.objects.all()
+    best_match = None
+    best_score = 0
+    
+    for model in all_models:
+        score = 0
+        
+        # Check structure type
+        if model.structure_type == structure_type:
+            score += 30
+        
+        # Check attachment points
+        if model.attachment_points == attachment_points:
+            score += 25
+        
+        # Check configuration
+        if model.configuration == configuration:
+            score += 25
+        
+        # Check circuit type
+        if model.circuit_type == circuit_type:
+            score += 20
+        
+        # Check name contains expected parts
+        model_name_upper = model.name.upper()
+        if prefix and prefix.upper() in model_name_upper:
+            score += 5
+        if attachment_code and attachment_code.upper() in model_name_upper:
+            score += 5
+        if config_code and config_code.upper() in model_name_upper:
+            score += 5
+        if circuit_code and circuit_code in model_name_upper:
+            score += 5
+        
+        if score > best_score:
+            best_score = score
+            best_match = model
+    
+    if best_match and best_score >= 50:  # At least somewhat relevant match
+        print(f"  ✓ Found BEST match: {best_match.name} (score: {best_score})")
+        return best_match
+    
+    # Last resort: return first model with matching structure type
+    print(f"  ⚠ Falling back to first {structure_type} model")
+    return TowerModel.objects.filter(structure_type=structure_type).first()
+
 # Add this function to your views.py
 def update_selection_session(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -2410,7 +2643,138 @@ from .forms import StructureForm
 def list_structures(request):
     structures = ListOfStructure.objects.all()
     groups = StructureGroup.objects.all()
-    return render(request, 'app1/home.html', {'structures': structures, 'groups': groups})
+    
+    # Debug: Print current session data
+    session_data = dict(request.session.items())
+    print(f"DEBUG - Current session data: {session_data}")
+    
+    # Get session data to pass to template
+    context = {
+        'structures': structures,
+        'groups': groups,
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_structure_id': request.session.get('selected_structure_id', ''),
+        'session_popups': request.session.get('active_popups', []),
+        'session_popup_selections': request.session.get('popup_selections', {}),
+    }
+    
+    return render(request, 'app1/home.html', context)
+
+def store_structure_selection(request):
+    if request.method == 'POST':
+        structure_type = request.POST.get('structure_type')
+        structure_id = request.POST.get('structure_id')
+        
+        # Clear previous popup selections when starting a new structure type
+        request.session['active_popups'] = []  # Reset the popup list
+        request.session['popup_selections'] = {}  # Reset structured selections
+        
+        # Store in session
+        request.session['selected_structure_type'] = structure_type
+        request.session['selected_structure_id'] = structure_id
+        
+        # Debug print
+        print(f"DEBUG - Stored in session: structure_type={structure_type}, structure_id={structure_id}")
+        print(f"DEBUG - Session ID: {request.session.session_key}")
+        print(f"DEBUG - Active popups cleared for new selection")
+        print(f"DEBUG - Popup selections cleared for new selection")
+        
+        # Save session explicitly
+        request.session.modified = True
+        
+        return JsonResponse({
+            'status': 'success', 
+            'structure_type': structure_type,
+            'structure_id': structure_id
+        })
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+def store_popup_selection(request):
+    if request.method == 'POST':
+        popup_type = request.POST.get('popup_type')
+        selection_value = request.POST.get('selection_value')
+        structure_type = request.POST.get('structure_type')
+        structure_id = request.POST.get('structure_id')
+        
+        # Debug: Print all received data
+        print(f"DEBUG [store_popup_selection] - Received:")
+        print(f"  popup_type: '{popup_type}'")
+        print(f"  selection_value: '{selection_value}'")
+        print(f"  structure_type: '{structure_type}'")
+        print(f"  structure_id: '{structure_id}'")
+        
+        # Ensure active_popups exists in session
+        if 'active_popups' not in request.session:
+            request.session['active_popups'] = []
+        
+        # Store structure type if not already stored
+        if structure_type and 'selected_structure_type' not in request.session:
+            request.session['selected_structure_type'] = structure_type
+        
+        # Store structure ID if not already stored
+        if structure_id and 'selected_structure_id' not in request.session:
+            request.session['selected_structure_id'] = structure_id
+        
+        # Store the specific popup type and value
+        if popup_type and selection_value:
+            # Create a key for this specific selection
+            selection_key = f"{popup_type}_{selection_value}"
+            
+            # Add to active popups if not already present
+            if selection_key not in request.session['active_popups']:
+                request.session['active_popups'].append(selection_key)
+                print(f"DEBUG [store_popup_selection] - Added to active_popups: '{selection_key}'")
+            else:
+                print(f"DEBUG [store_popup_selection] - Already in active_popups: '{selection_key}'")
+            
+            # Also store in a structured way
+            if 'popup_selections' not in request.session:
+                request.session['popup_selections'] = {}
+            
+            # Check if we're overwriting an existing value
+            if popup_type in request.session['popup_selections']:
+                old_value = request.session['popup_selections'][popup_type]
+                print(f"DEBUG [store_popup_selection] - Overwriting {popup_type}: '{old_value}' -> '{selection_value}'")
+            
+            request.session['popup_selections'][popup_type] = selection_value
+            print(f"DEBUG [store_popup_selection] - Updated popup_selections[{popup_type}] = '{selection_value}'")
+        else:
+            print(f"DEBUG [store_popup_selection] - WARNING: Missing popup_type or selection_value!")
+            print(f"  popup_type: {popup_type}")
+            print(f"  selection_value: {selection_value}")
+        
+        # Debug print current state
+        print(f"DEBUG [store_popup_selection] - Current state:")
+        print(f"  active_popups: {request.session.get('active_popups', [])}")
+        print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+        print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+        print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+        
+        # Save session
+        request.session.modified = True
+        
+        return JsonResponse({
+            'status': 'success', 
+            'popup_type': popup_type,
+            'selection_value': selection_value,
+            'active_popups': request.session['active_popups'],
+            'popup_selections': request.session.get('popup_selections', {})
+        })
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+def clear_session_data(request):
+    """Clear session data for debugging or starting fresh"""
+    if 'active_popups' in request.session:
+        del request.session['active_popups']
+    if 'selected_structure_type' in request.session:
+        del request.session['selected_structure_type']
+    if 'selected_structure_id' in request.session:
+        del request.session['selected_structure_id']
+    
+    request.session.modified = True
+    return JsonResponse({'status': 'success', 'message': 'Session data cleared'})
 
 # View to add a new structure
 def add_structure(request):
@@ -5339,14 +5703,33 @@ def tdrop5(request):
 from django.contrib import messages
 
 
+import time 
+
+import time
 
 def hdeadend1(request):
     structure_id = request.GET.get('structure_id')
     structure_type = request.GET.get('structure_type')
     
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [Circuit Definition Page] - Session data received:")
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
     # Initialize variables
     structure = None
     existing_data = False
+    existing_circuit_data = None
     
     # Get structure object safely
     if structure_id:
@@ -5354,14 +5737,25 @@ def hdeadend1(request):
             structure = ListOfStructure.objects.get(id=structure_id)
             # Check if data already exists for this structure
             existing_data = HDeadend1.objects.filter(structure=structure).exists()
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = HDeadend1.objects.filter(structure=structure).latest('id')
+                print(f"DEBUG [Existing Data Found] - Found existing HDeadend1 data for structure ID: {structure_id}")
         except ListOfStructure.DoesNotExist:
             return redirect('home')
+        except HDeadend1.DoesNotExist:
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No HDeadend1 data found for structure ID: {structure_id}")
     
     # Handle Next button click
     if request.method == 'GET' and request.GET.get('next') == 'true':
         if structure_id and structure_type and existing_data:
-            # Redirect to upload page
-            return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+            # Pass session data to upload page
+            return HttpResponseRedirect(
+                f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}'
+                f'&popup_actions={",".join(request.session.get("active_popups", []))}'
+            )
         else:
             return redirect('home')
     
@@ -5369,11 +5763,13 @@ def hdeadend1(request):
         # If data already exists, prevent saving new data
         if existing_data:
             return render(request, 'app1/hdeadend1.html', {
-                'form': HDeadendForm1(),
+                'form': HDeadendForm1(instance=existing_circuit_data),
                 'structure_type': structure_type,
                 'selected_structure': structure,
                 'structure_id': structure_id,
-                'existing_data': existing_data
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),  # Pass to template
+                'session_structure_type': request.session.get('selected_structure_type', '')
             })
         
         form = HDeadendForm1(request.POST)
@@ -5390,22 +5786,85 @@ def hdeadend1(request):
                 request.session['selected_structure_type'] = structure_type
                 request.session['circuit_structure_id'] = instance.id
                 
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'HDeadend1',  # Identifier for this form type
+                    'circuit_id': instance.id,     # Database ID of the saved record
+                    'timestamp': time.time(),      # For debugging/tracking
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [Circuit Definition] - Stored in session:")
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session] - All session data:")
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
                 # Redirect directly to upload page after successful save
-                return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
+                return HttpResponseRedirect(
+                    f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}'
+                    f'&popup_actions={",".join(request.session.get("active_popups", []))}'
+                )
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
             except Exception as e:
                 form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [Form Errors] - Form validation failed:")
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        # GET request - create empty form
-        form = HDeadendForm1()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = HDeadendForm1(instance=existing_circuit_data)
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'HDeadend1',
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = HDeadendForm1()
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [GET Request] - Current session state:")
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
     return render(request, 'app1/hdeadend1.html', {
         'form': form,
         'structure_type': structure_type,
         'selected_structure': structure,
         'structure_id': structure_id,
-        'existing_data': existing_data
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),  # Pass session data to template
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),  # NEW: Pass circuit definition
     })
 
 
@@ -5785,43 +6244,70 @@ def hdrop1(request):
 
 
 
-def hdeadend2(request):     # ****************
+def hdeadend2(request):
     structure_id = request.GET.get('structure_id')
     structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [HDeadend2 Page] - Session data received:")
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
     
     # Initialize variables
     structure = None
     existing_data = False
+    existing_circuit_data = None
     
     # Get structure object safely
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             # Check if data already exists for this structure
-            existing_data = HDeadend2.objects.filter(structure=structure).exists()  # ******************
+            existing_data = HDeadend2.objects.filter(structure=structure).exists()
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = HDeadend2.objects.filter(structure=structure).latest('id')
+                print(f"DEBUG [Existing Data Found] - Found existing HDeadend2 data for structure ID: {structure_id}")
         except ListOfStructure.DoesNotExist:
             return redirect('home')
+        except HDeadend2.DoesNotExist:
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No HDeadend2 data found for structure ID: {structure_id}")
     
     # Handle Next button click
     if request.method == 'GET' and request.GET.get('next') == 'true':
         if structure_id and structure_type and existing_data:
             # Redirect to upload page
-            return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')  # *************************
+            return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')
         else:
             return redirect('home')
     
     if request.method == 'POST':
         # If data already exists, prevent saving new data
         if existing_data:
-            return render(request, 'app1/hdeadend2.html', {       # ***************
-                'form': HDeadendForm2(),                         # ***************
+            return render(request, 'app1/hdeadend2.html', {
+                'form': HDeadendForm2(instance=existing_circuit_data),
                 'structure_type': structure_type,
                 'selected_structure': structure,
                 'structure_id': structure_id,
-                'existing_data': existing_data
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
             })
         
-        form = HDeadendForm2(request.POST)                      # ***************
+        form = HDeadendForm2(request.POST)
         if form.is_valid():
             try:
                 # Force the structure from URL parameter
@@ -5835,22 +6321,82 @@ def hdeadend2(request):     # ****************
                 request.session['selected_structure_type'] = structure_type
                 request.session['circuit_structure_id'] = instance.id
                 
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'HDeadend2',
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [HDeadend2] - Stored in session:")
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - HDeadend2] - All session data:")
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
                 # Redirect directly to upload page after successful save
-                return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')     # ***************
+                return HttpResponseRedirect(f'/hupload2/?structure_id={structure_id}&structure_type={structure_type}')
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
             except Exception as e:
                 form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [HDeadend2 Form Errors] - Form validation failed:")
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        # GET request - create empty form
-        form = HDeadendForm2()                   # ***************
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = HDeadendForm2(instance=existing_circuit_data)
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'HDeadend2',
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = HDeadendForm2()
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [HDeadend2 GET Request] - Current session state:")
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/hdeadend2.html', {               # ***************
+    return render(request, 'app1/hdeadend2.html', {
         'form': form,
         'structure_type': structure_type,
         'selected_structure': structure,
         'structure_id': structure_id,
-        'existing_data': existing_data
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
     })
 
 
@@ -6123,39 +6669,66 @@ def hdeadend3(request):
     structure_id = request.GET.get('structure_id')
     structure_type = request.GET.get('structure_type')
     
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [HDeadend3 Page] - Session data received:")
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
     # Initialize variables
     structure = None
     existing_data = False
+    existing_circuit_data = None
     
     # Get structure object safely
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             # Check if data already exists for this structure
-            existing_data = HDeadend3.objects.filter(structure=structure).exists()  # ***************
+            existing_data = HDeadend3.objects.filter(structure=structure).exists()
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = HDeadend3.objects.filter(structure=structure).latest('id')
+                print(f"DEBUG [Existing Data Found] - Found existing HDeadend3 data for structure ID: {structure_id}")
         except ListOfStructure.DoesNotExist:
             return redirect('home')
+        except HDeadend3.DoesNotExist:
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No HDeadend3 data found for structure ID: {structure_id}")
     
     # Handle Next button click
     if request.method == 'GET' and request.GET.get('next') == 'true':
         if structure_id and structure_type and existing_data:
             # Redirect to upload page
-            return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')  # ***************
+            return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')
         else:
             return redirect('home')
     
     if request.method == 'POST':
         # If data already exists, prevent saving new data
         if existing_data:
-            return render(request, 'app1/hdeadend3.html', {    # ***************
-                'form': HDeadendForm3(),                     # ***************
+            return render(request, 'app1/hdeadend3.html', {
+                'form': HDeadendForm3(instance=existing_circuit_data),
                 'structure_type': structure_type,
                 'selected_structure': structure,
                 'structure_id': structure_id,
-                'existing_data': existing_data
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
             })
         
-        form = HDeadendForm3(request.POST)            # ***************
+        form = HDeadendForm3(request.POST)
         if form.is_valid():
             try:
                 # Force the structure from URL parameter
@@ -6169,22 +6742,82 @@ def hdeadend3(request):
                 request.session['selected_structure_type'] = structure_type
                 request.session['circuit_structure_id'] = instance.id
                 
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'HDeadend3',
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [HDeadend3] - Stored in session:")
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - HDeadend3] - All session data:")
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
                 # Redirect directly to upload page after successful save
-                return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')   # ***************
+                return HttpResponseRedirect(f'/hupload3/?structure_id={structure_id}&structure_type={structure_type}')
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
             except Exception as e:
                 form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [HDeadend3 Form Errors] - Form validation failed:")
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        # GET request - create empty form  
-        form = HDeadendForm3()           # ***************
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = HDeadendForm3(instance=existing_circuit_data)
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'HDeadend3',
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = HDeadendForm3()
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [HDeadend3 GET Request] - Current session state:")
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/hdeadend3.html', {       # ***************
+    return render(request, 'app1/hdeadend3.html', {
         'form': form,
         'structure_type': structure_type,
         'selected_structure': structure,
         'structure_id': structure_id,
-        'existing_data': existing_data
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
     })
 
 def hdeadend3_update(request, pk):
@@ -6456,39 +7089,66 @@ def hdeadend4(request):
     structure_id = request.GET.get('structure_id')
     structure_type = request.GET.get('structure_type')
     
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [HDeadend4 Page] - Session data received:")
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
     # Initialize variables
     structure = None
     existing_data = False
+    existing_circuit_data = None
     
     # Get structure object safely
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             # Check if data already exists for this structure
-            existing_data = HDeadend4.objects.filter(structure=structure).exists()  # ***************
+            existing_data = HDeadend4.objects.filter(structure=structure).exists()
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = HDeadend4.objects.filter(structure=structure).latest('id')
+                print(f"DEBUG [Existing Data Found] - Found existing HDeadend4 data for structure ID: {structure_id}")
         except ListOfStructure.DoesNotExist:
             return redirect('home')
+        except HDeadend4.DoesNotExist:
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No HDeadend4 data found for structure ID: {structure_id}")
     
     # Handle Next button click
     if request.method == 'GET' and request.GET.get('next') == 'true':
         if structure_id and structure_type and existing_data:
             # Redirect to upload page
-            return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')  # ***************
+            return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')
         else:
             return redirect('home')
     
     if request.method == 'POST':
         # If data already exists, prevent saving new data
         if existing_data:
-            return render(request, 'app1/hdeadend4.html', {    # ***************
-                'form': HDeadendForm4(),                     # ***************
+            return render(request, 'app1/hdeadend4.html', {
+                'form': HDeadendForm4(instance=existing_circuit_data),
                 'structure_type': structure_type,
                 'selected_structure': structure,
                 'structure_id': structure_id,
-                'existing_data': existing_data
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
             })
         
-        form = HDeadendForm4(request.POST)            # ***************
+        form = HDeadendForm4(request.POST)
         if form.is_valid():
             try:
                 # Force the structure from URL parameter
@@ -6502,24 +7162,85 @@ def hdeadend4(request):
                 request.session['selected_structure_type'] = structure_type
                 request.session['circuit_structure_id'] = instance.id
                 
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'HDeadend4',
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [HDeadend4] - Stored in session:")
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - HDeadend4] - All session data:")
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
                 # Redirect directly to upload page after successful save
-                return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')   # ***************
+                return HttpResponseRedirect(f'/hupload4/?structure_id={structure_id}&structure_type={structure_type}')
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
             except Exception as e:
                 form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [HDeadend4 Form Errors] - Form validation failed:")
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        # GET request - create empty form  
-        form = HDeadendForm4()           # ***************
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = HDeadendForm4(instance=existing_circuit_data)
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'HDeadend4',
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = HDeadendForm4()
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [HDeadend4 GET Request] - Current session state:")
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/hdeadend4.html', {       # ***************
+    return render(request, 'app1/hdeadend4.html', {
         'form': form,
         'structure_type': structure_type,
         'selected_structure': structure,
         'structure_id': structure_id,
-        'existing_data': existing_data
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
     })
-
+    
+    
 def hdeadend4_update(request, pk):
     hdeadend = get_object_or_404(HDeadend4, pk=pk)       # ***************
 

@@ -1,7 +1,66 @@
-{% if selected_model %}
-    const modelUrl = "{{ selected_model.model_file.url }}";
-    loadTowerModel(modelUrl);
-{% else %}
-    const defaultUrl = "{% static 'app1/images/default_hframe.glb' %}";  // Fallback
-    loadTowerModel(defaultUrl);
-{% endif %}
+1️⃣ H-Frame Dead-End – Single Circuit – Horizontal
+
+Prompt
+
+Create a realistic 3D engineering model of an H-frame power transmission structure in a dead-end configuration.
+The structure is made of steel H-frame poles with cross arms.
+Single circuit arrangement with horizontal phase configuration.
+Include long strain insulator strings suitable for dead-end tension.
+Industrial utility-scale design, no wires attached.
+Neutral grey steel material, accurate proportions.
+Clean topology suitable for export as GLB.
+
+2️⃣ H-Frame Dead-End – Double Circuit – Vertical
+
+Prompt
+
+Generate a detailed 3D model of an H-frame transmission tower in dead-end configuration.
+Double circuit layout with vertical phase arrangement.
+Steel H-frame construction with two vertical cross arms.
+Include strain insulators for dead-end application.
+Utility-grade realistic proportions, no cables.
+Optimized mesh for engineering visualization.
+
+3️⃣ H-Frame Tangent – Single Circuit – Horizontal
+
+Prompt
+
+Create a 3D model of an H-frame transmission structure in tangent configuration.
+Single circuit with horizontal conductor arrangement.
+Steel H-frame poles with cross arm.
+Include suspension insulator strings instead of strain insulators.
+Engineering-accurate scale, industrial design.
+Clean geometry, suitable for Three.js rendering.
+
+4️⃣ H-Frame Tangent – Double Circuit – Horizontal
+
+Prompt
+
+Generate a realistic 3D model of an H-frame transmission structure.
+Tangent tower with double circuit horizontal phase configuration.
+Steel H-frame with two cross arms.
+Use suspension insulators for tangent application.
+Neutral industrial materials, no conductors.
+Optimized mesh for web and CAD usage.
+
+5️⃣ H-Frame Tangent – Single Circuit – Vertical
+
+Prompt
+
+Create a 3D engineering model of an H-frame power line structure.
+Tangent configuration with single circuit vertical phase arrangement.
+Steel H-frame poles with vertical cross arm layout.
+Include suspension insulators.
+Accurate utility-scale proportions.
+Export-ready clean topology.
+
+6️⃣ H-Frame Tangent – Double Circuit – Vertical
+
+Prompt
+
+Generate a detailed 3D model of an H-frame transmission structure.
+Tangent configuration with double circuit vertical phase arrangement.
+Steel H-frame construction with stacked cross arms.
+Suspension insulators included.
+Professional engineering appearance, no wires.
+Optimized for GLB export and rendering.

@@ -791,6 +791,34 @@
     </div>
 </div>
 
+<div style="position: fixed; bottom: 10px; right: 10px; z-index: 1000;">
+    <button onclick="clearSessionData()" style="background: #ff4444; color: white; padding: 5px 10px; border: none; border-radius: 3px;">
+        Clear Session
+    </button>
+</div>
+
+<!-- Update the session debug section in home.html -->
+<div class="session-info" style="background-color: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <h4>Session Debug Information:</h4>
+    <p><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</p>
+    <p><strong>Structure ID:</strong> {{ session_structure_id|default:"Not set" }}</p>
+    <p><strong>Popup Actions:</strong></p>
+    <ul>
+        {% for popup in session_popups %}
+            <li>{{ popup }}</li>
+        {% empty %}
+            <li>No popup actions stored</li>
+        {% endfor %}
+    </ul>
+    <p><strong>Structured Popup Selections:</strong></p>
+    <ul>
+        {% for key, value in session_popup_selections.items %}
+            <li><strong>{{ key }}:</strong> {{ value }}</li>
+        {% empty %}
+            <li>No structured popup selections</li>
+        {% endfor %}
+    </ul>
+</div>
 
 
                       {% comment %} tower  {% endcomment %}
@@ -1560,6 +1588,7 @@
     </script>
     
 
+
                                 {% comment %} hframe {% endcomment %}
     <script>
         const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
@@ -1573,6 +1602,11 @@
                 hframePopups[0].style.display = 'block'; // Show the first h-frame popup
                 mainContent.classList.add('blur');
                 hframePopupStack = [0];
+                
+                // Store structure type in session
+                const structureType = this.value;
+                const structureId = 'group_selection';
+                handleStructureTypeSelection(structureType, structureId);
             } else {
                 hframePopupOverlay.style.display = 'none';
                 mainContent.classList.remove('blur');
@@ -1595,6 +1629,13 @@
     
         // Functionality for the Deadend button
         document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store attachment points selection
+            storePopupSelection('attachment_points', 'deadend', structureType, structureId);
+            
             hframePopups[0].style.display = 'none';
             hframePopups[1].style.display = 'block'; // Show the second popup for insulator type
             hframePopupStack.push(1);
@@ -1602,54 +1643,111 @@
     
         // Functionality for the Tangent button
         document.getElementById('hframe-tangent-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store attachment points selection
+            storePopupSelection('attachment_points', 'tangent', structureType, structureId);
+            
             hframePopups[0].style.display = 'none'; // Hide the first popup
             hframePopups[2].style.display = 'block'; // Show the third popup for configuration
             hframePopupStack.push(2);
         });
     
-        // Functionality for the Vertical button in the second popup
+        // Functionality for the Vertical button in the second popup (Deadend -> Vertical)
         document.getElementById('vertical-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store configuration selection
+            storePopupSelection('configuration', 'vertical', structureType, structureId);
+            
             hframePopups[1].style.display = 'none'; // Hide the insulator type popup
+            
+            // Store that this is a deadend configuration
+            storePopupSelection('deadend_configuration', 'vertical', structureType, structureId);
+            
             // Redirect to the specified URL for deadend
-            window.location.href = '/hdeadend1/'; // Change this URL to the destination page
+            redirectWithStructure('/hdeadend1/');
         });
     
+        // Functionality for the Horizontal button in the second popup (Deadend -> Horizontal)
         document.getElementById('horizontal-btn').addEventListener('click', function() {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store configuration selection
+            storePopupSelection('configuration', 'horizontal', structureType, structureId);
+            
             hframePopups[1].style.display = 'none';
-            const structureId = sessionStorage.getItem('selectedStructureId');
-            const structureType = sessionStorage.getItem('selectedStructureType');
-            window.location.href = `/hdeadend3/?structure_id=${structureId}&structure_type=${structureType}`;
+            
+            // Store that this is a deadend configuration
+            storePopupSelection('deadend_configuration', 'horizontal', structureType, structureId);
+            
+            // Use the redirectWithStructure function for consistency
+            redirectWithStructure('/hdeadend3/');
         });
     
-        // Functionality for the configuration buttons in the third popup
+        // Functionality for the configuration buttons in the third popup (Tangent -> Configuration)
         document.getElementById('configuration-vertical-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store configuration selection
+            storePopupSelection('configuration', 'vertical', structureType, structureId);
+            
             hframePopups[2].style.display = 'none'; // Hide the configuration popup
             hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
             hframePopupStack.push(3); // Add the fourth popup to the stack
         });
     
+        // Functionality for the configuration buttons in the third popup (Tangent -> Configuration)
         document.getElementById('configuration-horizontal-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store configuration selection
+            storePopupSelection('configuration', 'horizontal', structureType, structureId);
+            
             hframePopups[2].style.display = 'none'; // Hide the configuration popup
             hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
             hframePopupStack.push(3);
         });
     
-        // Functionality for the Post Insulator button in the fourth popup
+        // Functionality for the Post Insulator button in the fourth popup (Tangent -> Post Insulator)
         document.getElementById('post-insulator-btn').addEventListener('click', function () {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store insulator type selection
+            storePopupSelection('insulator_type', 'post_insulator', structureType, structureId);
+            
             hframePopups[3].style.display = 'none'; // Hide the insulator type popup
+            
             // Handle post insulator action here
-            window.location.href = '/hdeadend2/';
-            // Add any additional action or redirect if needed
+            redirectWithStructure('/hdeadend2/');
         });
 
+        // Functionality for the V-String button in the fourth popup (Tangent -> V-String)
         document.getElementById('v-string-btn').addEventListener('click', function() {
+            // Store popup selection in session
+            const structureType = sessionStorage.getItem('selectedStructureType') || 'hframes';
+            const structureId = sessionStorage.getItem('selectedStructureId') || '';
+            
+            // Store insulator type selection
+            storePopupSelection('insulator_type', 'v_string', structureType, structureId);
+            
             hframePopups[3].style.display = 'none';
-            const structureId = sessionStorage.getItem('selectedStructureId');
-            const structureType = sessionStorage.getItem('selectedStructureType');
-            window.location.href = `/hdeadend4/?structure_id=${structureId}&structure_type=${structureType}`;
+            
+            // Use the redirectWithStructure function for consistency
+            redirectWithStructure('/hdeadend4/');
         });
-    
-      
     </script>
     
      <script>
@@ -1907,15 +2005,144 @@
 
 
 <script>
-// Store the selected structure type globally
+// Global variables
 let selectedStructureType = '';
 let selectedStructureId = '';
+
+// Function to store structure selection in session via AJAX
+function storeStructureSelection(structureType, structureId) {
+    fetch('/store-structure-selection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'structure_type': structureType,
+            'structure_id': structureId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Structure selection stored:', data);
+    })
+    .catch(error => {
+        console.error('Error storing structure selection:', error);
+    });
+}
+
+// Function to store popup selection in session via AJAX
+function storePopupSelection(popupType, selectionValue, structureType = null, structureId = null) {
+    // Get values from parameters or sessionStorage
+    const finalStructureType = structureType || sessionStorage.getItem('selectedStructureType') || '';
+    const finalStructureId = structureId || sessionStorage.getItem('selectedStructureId') || '';
+    
+    console.log(`DEBUG [storePopupSelection]:`);
+    console.log(`  popupType: ${popupType}`);
+    console.log(`  selectionValue: ${selectionValue}`);
+    console.log(`  finalStructureType: ${finalStructureType}`);
+    console.log(`  finalStructureId: ${finalStructureId}`);
+    
+    // Send AJAX request to store popup selection in session
+    fetch('/store-popup-selection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: new URLSearchParams({
+            'popup_type': popupType,
+            'selection_value': selectionValue,
+            'structure_type': finalStructureType,
+            'structure_id': finalStructureId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('DEBUG [storePopupSelection Response]:', data);
+        
+        // Also store in sessionStorage for immediate access
+        if (popupType && selectionValue) {
+            sessionStorage.setItem(popupType, selectionValue);
+        }
+    })
+    .catch(error => {
+        console.error('Error storing popup selection:', error);
+    });
+}
+
+function handleStructureTypeSelection(structureType, structureId) {
+    // Clear sessionStorage first
+    sessionStorage.clear();
+    
+    // Send AJAX request to store structure type in session
+    fetch('/store-structure-selection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: new URLSearchParams({
+            'structure_type': structureType,
+            'structure_id': structureId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Structure selection stored:', data);
+        // Now show the popups
+        showStructurePopups(structureType, structureId);
+    })
+    .catch(error => {
+        console.error('Error storing structure selection:', error);
+        // Still show popups even if storage fails
+        showStructurePopups(structureType, structureId);
+    });
+}
+
+// Add this function to handle popup button clicks
+function handlePopupButtonClick(popupAction, structureType) {
+    // Send AJAX request to store popup action in session
+    fetch('/store-popup-selection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: new URLSearchParams({
+            'popup_action': popupAction,
+            'structure_type': structureType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Popup action stored:', data);
+    })
+    .catch(error => {
+        console.error('Error storing popup action:', error);
+    });
+}
+
+// CSRF token helper function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Handle structure item clicks
     document.querySelectorAll('.structure-item').forEach(item => {
         item.addEventListener('click', function(e) {
-            // Don't trigger if delete button was clicked
             if (e.target.closest('.delete-btn')) {
                 return;
             }
@@ -1923,131 +2150,253 @@ document.addEventListener('DOMContentLoaded', function() {
             const structureId = this.dataset.structureId;
             const dropdown = document.getElementById(`dropdown-${structureId}`);
             
-            // Close all other dropdowns
             document.querySelectorAll('.structure-dropdown').forEach(dd => {
                 if (dd !== dropdown) {
                     dd.classList.remove('show');
                 }
             });
             
-            // Toggle current dropdown
             dropdown.classList.toggle('show');
             selectedStructureId = structureId;
         });
     });
     
-    // Handle structure type selection
     document.querySelectorAll('.structure-type-select').forEach(select => {
-        select.addEventListener('change', function() {
-            if (this.value) {
-                selectedStructureType = this.value;
-                const structureId = this.closest('.structure-dropdown').id.replace('dropdown-', '');
-                
-                // Close dropdown
-                this.closest('.structure-dropdown').classList.remove('show');
-                
-                // Show appropriate popups based on selection
-                showStructurePopups(selectedStructureType, structureId);
-                
-                // NEW: Reset the select value to ensure 'change' fires again on re-selection
-                this.value = "";
+    select.addEventListener('change', function() {
+        if (this.value) {
+            const structureType = this.value;
+            const structureId = this.closest('.structure-dropdown').id.replace('dropdown-', '');
+            
+            // Store selection in session via AJAX
+            handleStructureTypeSelection(structureType, structureId);
+            
+            // For H-Frames specifically
+            if (structureType === 'hframes') {
+                hframePopupOverlay.style.display = 'flex';
+                hframePopups.forEach((popup) => popup.style.display = 'none');
+                hframePopups[0].style.display = 'block';
+                mainContent.classList.add('blur');
+                hframePopupStack = [0];
             }
-        });
-    });
-    
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.structure-item-container')) {
-            document.querySelectorAll('.structure-dropdown').forEach(dd => {
-                dd.classList.remove('show');
-            });
+            
+            // Reset the select value
+            this.value = "";
         }
     });
 });
 
+
+// Modify the group structure select
+const structureSelect = document.getElementById('structure-select');
+if (structureSelect) {
+    structureSelect.addEventListener('change', function() {
+        if (this.value) {
+            const structureType = this.value;
+            // For group selection, we might not have a specific structure ID
+            handleStructureTypeSelection(structureType, 'group_selection');
+        }
+    });
+}
+
+});
+
 function showStructurePopups(structureType, structureId) {
-    // Store the selected structure ID and type in sessionStorage
+    // Store in sessionStorage for immediate use
     sessionStorage.setItem('selectedStructureId', structureId);
     sessionStorage.setItem('selectedStructureType', structureType);
     
-    // Show the appropriate popup overlay based on structure type
+    // Show appropriate popup overlay
     if (structureType === 'towers') {
         popupOverlay.style.display = 'flex';
         document.getElementById('popup1').style.display = 'block';
         mainContent.classList.add('blur');
         popupStack = ['popup1'];
+        
+        // Store initial popup selection
+        storePopupSelection('structure_type', 'towers');
     } else if (structureType === 'monopoles') {
         monopolePopupOverlay.style.display = 'flex';
         monopolePopups[0].style.display = 'block';
         mainContent.classList.add('blur');
         monopolePopupStack = [0];
+        
+        // Store initial popup selection
+        storePopupSelection('structure_type', 'monopoles');
     } else if (structureType === 'hframes') {
         hframePopupOverlay.style.display = 'flex';
         hframePopups[0].style.display = 'block';
         mainContent.classList.add('blur');
         hframePopupStack = [0];
+        
+        // Store initial popup selection
+        storePopupSelection('structure_type', 'hframes');
     }
 }
 
-// Modify existing popup redirects to pass structure information
-function modifyPopupRedirects() {
-    // Example for tower popups - modify all your existing redirects similarly
+// Modify all popup button event listeners to store selections
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== TOWER POPUPS ==========
+    
+    // Popup 1: Deadend/Tangent
+    document.getElementById('deadend-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'deadend');
+        showPopup('popup2');
+    });
+    
+    document.getElementById('tangent-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'tangent');
+        showPopup('popup7');
+    });
+    
+    // Popup 2: Has Arms (for Deadend)
+    document.getElementById('yes-btn1').addEventListener('click', function() {
+        storePopupSelection('has_arms', 'yes');
+        showPopup('popup3');
+    });
+    
+    document.getElementById('no-btn1').addEventListener('click', function() {
+        storePopupSelection('has_arms', 'no');
+        showPopup('popup4');
+    });
+    
+    // Popup 3: Configuration (for Deadend with arms)
+    document.getElementById('vertical-btnt1').addEventListener('click', function() {
+        storePopupSelection('configuration', 'vertical');
+        showPopup('popup6');
+    });
+    
+    document.getElementById('delta-btnt1').addEventListener('click', function() {
+        storePopupSelection('configuration', 'delta');
+        showPopup('popup61');
+    });
+    
+    document.getElementById('horizontal-btnt1').addEventListener('click', function() {
+        storePopupSelection('configuration', 'horizontal');
+        showPopup('popup62');
+    });
+    
+    // Popup 4: In-line deadend (for Deadend without arms)
     document.getElementById('yes-btn2').addEventListener('click', function() {
+        storePopupSelection('inline_deadend', 'yes');
         redirectWithStructure('/tdeadend/');
     });
     
+    document.getElementById('no-btn2').addEventListener('click', function() {
+        storePopupSelection('inline_deadend', 'no');
+        showPopup('popup5');
+    });
+    
+    // Popup 6, 61, 62: Insulator type selections
     document.getElementById('monopole-post-btn1').addEventListener('click', function() {
+        storePopupSelection('insulator_type', 'post_insulator');
         redirectWithStructure('/tdeadend3/');
     });
     
-    // Add similar modifications for all your popup redirects
-    // Towers
     document.getElementById('monopole-brace-btn1').addEventListener('click', function() {
+        storePopupSelection('insulator_type', 'v_string');
         redirectWithStructure('/tdeadend3/');
     });
     
-    document.getElementById('monopole-post-btn2').addEventListener('click', function() {
-        redirectWithStructure('/tdeadend4/');
+    // Add similar storePopupSelection calls for all other popup buttons...
+    // Repeat this pattern for ALL popup buttons in towers, monopoles, and hframes
+    
+    // ========== MONOPOLE POPUPS ==========
+    document.getElementById('monopole-deadend-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'deadend');
+        document.getElementById('monopole-popup1').style.display = 'none';
+        document.getElementById('monopole-popup2').style.display = 'block';
+        monopolePopupStack.push(1);
     });
     
-    // ... add all other tower redirects
-    
-    // Monopoles
-    document.getElementById('monopole-inline-yes-btn').addEventListener('click', function() {
-        redirectWithStructure('/mdeadend1/');
+    document.getElementById('monopole-tangent-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'tangent');
+        document.getElementById('monopole-popup1').style.display = 'none';
+        document.getElementById('monopole-popup6').style.display = 'block';
+        monopolePopupStack.push(5);
     });
     
-    document.getElementById('monopole-vertical-btn').addEventListener('click', function() {
-        redirectWithStructure('/mdeadend5/');
+    // ========== H-FRAME POPUPS ==========
+    document.getElementById('hframe-deadend-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'deadend');
+        hframePopups[0].style.display = 'none';
+        hframePopups[1].style.display = 'block';
+        hframePopupStack.push(1);
     });
     
-    // ... add all other monopole redirects
-    
-    // H-Frames
-    document.getElementById('vertical-btn').addEventListener('click', function() {
-        redirectWithStructure('/hdeadend1/');
+    document.getElementById('hframe-tangent-btn').addEventListener('click', function() {
+        storePopupSelection('attachment_points', 'tangent');
+        hframePopups[0].style.display = 'none';
+        hframePopups[2].style.display = 'block';
+        hframePopupStack.push(2);
     });
     
-    document.getElementById('post-insulator-btn').addEventListener('click', function() {
-        redirectWithStructure('/hdeadend2/');
-    });
-    
-    // ... add all other h-frame redirects
-}
-
-function redirectWithStructure(url) {
-    const structureId = sessionStorage.getItem('selectedStructureId');
-    const structureType = sessionStorage.getItem('selectedStructureType');
-    
-    // Add structure info as query parameters
-    const separator = url.includes('?') ? '&' : '?';
-    window.location.href = `${url}${separator}structure_id=${structureId}&structure_type=${structureType}`;
-}
-
-// Initialize the modified redirects when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    modifyPopupRedirects();
+    // Continue this pattern for ALL popup buttons...
 });
+
+// Modified redirect function
+// Modified redirect function
+function redirectWithStructure(url) {
+    const structureId = sessionStorage.getItem('selectedStructureId') || '';
+    const structureType = sessionStorage.getItem('selectedStructureType') || '';
+    
+    console.log('DEBUG [redirectWithStructure]:');
+    console.log('  url:', url);
+    console.log('  structureId:', structureId);
+    console.log('  structureType:', structureType);
+    
+    // Get all popup actions from sessionStorage
+    const popupActions = [];
+    const keys = ['attachment_points', 'configuration', 'insulator_type', 'deadend_configuration'];
+    keys.forEach(key => {
+        const value = sessionStorage.getItem(key);
+        if (value) {
+            popupActions.push(`${key}_${value}`);
+        }
+    });
+    
+    const separator = url.includes('?') ? '&' : '?';
+    const popupActionsParam = popupActions.length > 0 ? `&popup_actions=${popupActions.join(',')}` : '';
+    
+    console.log('DEBUG [redirectWithStructure] - Redirecting to:', 
+        `${url}${separator}structure_id=${structureId}&structure_type=${structureType}${popupActionsParam}`);
+    
+    // Give a small delay for AJAX to complete
+    setTimeout(() => {
+        window.location.href = `${url}${separator}structure_id=${structureId}&structure_type=${structureType}${popupActionsParam}`;
+    }, 100); // 100ms delay
+}
+
+function getCurrentPopupActions() {
+    // You can store popup actions in sessionStorage or fetch from backend
+    const actions = [];
+    
+    // Check for specific selections in sessionStorage
+    if (sessionStorage.getItem('attachment_points')) {
+        actions.push(sessionStorage.getItem('attachment_points'));
+    }
+    if (sessionStorage.getItem('configuration')) {
+        actions.push(sessionStorage.getItem('configuration'));
+    }
+    if (sessionStorage.getItem('insulator_type')) {
+        actions.push(sessionStorage.getItem('insulator_type'));
+    }
+    
+    return actions;
+}
+
+function clearSessionData() {
+    fetch('/clear-session-data/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Session data cleared. Refresh the page.');
+        location.reload();
+    });
+}
 </script>
 
    {% endblock %}

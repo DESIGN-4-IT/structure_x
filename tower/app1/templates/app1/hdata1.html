@@ -1555,6 +1555,28 @@
         }
     }
 
+    .badge {
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
 
     </style>
 
@@ -1768,64 +1790,116 @@
                     <h6>Select 3D Tower Model</h6>
                 </div>
                 <div class="model-control-body">
-                    <form method="post" class="compact-form">
-                        {% csrf_token %}
-                        <div class="form-group-compact">
-                            <label for="model-select">Model:</label>
-                            <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
-                                <option value="">-- Default Model --</option>
-                                {% for model in available_models %}
-                                    <option value="{{ model.id }}" 
-                                        {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
-                                        {{ model.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="model-status">
-                            {% if selected_model %}
-                                Currently viewing: <strong>{{ selected_model.name }}</strong>
+                <form method="post" class="compact-form">
+                    {% csrf_token %}
+                    <div class="form-group-compact">
+                        <label for="model-select">Model:</label>
+                        <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
+                            <option value="">-- Default Model --</option>
+                            {% for model in available_models %}
+                                <option value="{{ model.id }}" 
+                                    {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
+                                    {{ model.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="model-status">
+                        {% if selected_model %}
+                            Currently viewing: <strong>{{ selected_model.name }}</strong>
+                            {% if matching_model and selected_model.id == matching_model.id %}
+                                <span class="badge badge-success ml-2">Auto-Matched</span>
                             {% else %}
-                                Using default tower model
+                                <span class="badge badge-info ml-2">Manually Selected</span>
                             {% endif %}
-                        </div>
-                    </form>
-                </div>
+                        {% else %}
+                            Using default tower model
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
             </div>
 
             <!-- Model Upload Card -->
             <div class="model-control-card">
-                <div class="model-control-header">
-                    <h6>Upload New 3D Tower Model</h6>
+    <div class="model-control-header">
+        <h6>Upload New 3D Tower Model</h6>
+    </div>
+    <div class="model-control-body">
+        <form method="post" enctype="multipart/form-data" class="compact-form">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="model_name">Model Name:</label>
+                    <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
                 </div>
-                <div class="model-control-body">
-                    <form method="post" enctype="multipart/form-data" class="compact-form">
-                        {% csrf_token %}
-                        <div class="form-row">
-                            <div class="form-group-compact">
-                                <label for="model_name">Model Name:</label>
-                                <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
-                            </div>
-                            <div class="form-group-compact">
-                                <label for="tower_model_file">3D Model File:</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
-                                    <div class="file-input-display">
-                                        <span>Choose file...</span>
-                                        <span class="file-input-icon">📁</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group-compact">
-                                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
-                            </div>
+                <div class="form-group-compact">
+                    <label for="tower_model_file">3D Model File:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
+                        <div class="file-input-display">
+                            <span>Choose file...</span>
+                            <span class="file-input-icon">📁</span>
                         </div>
-                        <div class="form-text">
-                            <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
+            
+            <!-- ADD THESE FIELDS FOR CATEGORIZATION -->
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="structure_type">Structure Type:</label>
+                    <select name="structure_type" id="structure_type" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="towers">Towers</option>
+                        <option value="hframes">H-Frames</option>
+                        <option value="monopoles">Monopoles</option>
+                    </select>
+                </div>
+                <div class="form-group-compact">
+                    <label for="attachment_points">Attachment Points:</label>
+                    <select name="attachment_points" id="attachment_points" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="deadend">Deadend</option>
+                        <option value="tangent">Tangent</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="configuration">Configuration:</label>
+                    <select name="configuration" id="configuration" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="delta">Delta</option>
+                        <option value="hetic">Hetic</option>
+                    </select>
+                </div>
+                <div class="form-group-compact">
+                    <label for="circuit_type">Circuit Type:</label>
+                    <select name="circuit_type" id="circuit_type" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="sc">Single Circuit</option>
+                        <option value="dc">Double Circuit</option>
+                        <option value="tc">Triple Circuit</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group-compact">
+                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
+            </div>
+            
+            <div class="form-text">
+                <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
+            </div>
+        </form>
+    </div>
+</div>
+
         </div>
         
         <!-- Load Display Table - now placed below and full width -->
@@ -1874,6 +1948,91 @@
                 <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
                 <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
             </div>
+        </div>
+    </div>
+</div>
+<div class="model-matching-info" style="background-color: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
+    <h5>🎯 3D Model Matching</h5>
+    
+    <div class="row">
+        <div class="col-md-6">
+        <h6>User Selections:</h6>
+        <ul>
+            <li><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</li>
+            <li><strong>Attachment Points:</strong> {{ session_popup_selections.attachment_points|default:"Not set" }}</li>
+            <li><strong>Configuration:</strong> {{ session_popup_selections.configuration|default:"Not set" }}</li>
+            <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"0" }}</li>
+            <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"0" }}</li>
+            <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"0" }}</li>
+            <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"0" }}</li>
+            <li><strong>Total Circuits:</strong> 
+                {% with num_3_phase=session_circuit_definition.num_3_phase_circuits|default:0|add:0 num_1_phase=session_circuit_definition.num_1_phase_circuits|default:0|add:0 num_comm=session_circuit_definition.num_communication_cables|default:0|add:0 %}
+                    {{ num_3_phase|add:num_1_phase|add:num_comm }}
+                {% endwith %}
+            </li>
+        </ul>
+    </div>
+        
+        <div class="col-md-6">
+            <h6>Matched 3D Model:</h6>
+            {% if matching_model %}
+                <div class="alert alert-success">
+                    <strong>✓ Model Found!</strong><br>
+                    <strong>Name:</strong> {{ matching_model.name }}<br>
+                    <strong>Type:</strong> {{ matching_model.get_structure_type_display }}<br>
+                    <strong>Attachment:</strong> {{ matching_model.get_attachment_points_display|default:"-" }}<br>
+                    <strong>Configuration:</strong> {{ matching_model.get_configuration_display|default:"-" }}<br>
+                    <strong>Circuit:</strong> {{ matching_model.get_circuit_type_display|default:"-" }}
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    <strong>⚠ No Exact Match Found</strong><br>
+                    Using default model or manually selected model.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="session-debug" style="background-color: #e8f4f8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196F3;">
+    <h5>📊 Session Data Summary</h5>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Home Page Data:</h6>
+            <ul>
+               
+                <li><strong>Active Popups:</strong> 
+                    {% if session_active_popups %}
+                        {{ session_active_popups|join:", " }}
+                    {% else %}
+                        None
+                    {% endif %}
+                </li>
+            </ul>
+            
+            <h6>Popup Selections:</h6>
+            <ul>
+                {% for key, value in session_popup_selections.items %}
+                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% empty %}
+                    <li>No popup selections</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="col-md-6">
+            <h6>Circuit Definition Data:</h6>
+            {% if session_circuit_definition %}
+                <ul>
+                    <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"Not set" }}</li>
+                    <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"Not set" }}</li>
+                    <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"Not set" }}</li>
+                    <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"Not set" }}</li>
+                  
+                </ul>
+            {% else %}
+                <p>No circuit definition data available</p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -2026,38 +2185,90 @@ function initJointLabelsSelection() {
         function (gltf) {
             model = gltf.scene;
             scene.add(model);
-
+            console.log('✅ Model loaded successfully:', modelUrl);
+            
+            // Center and scale model
             const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             model.position.sub(center);
-
+            
             create3DGridCage(box);
             model.rotation.y = Math.PI / 4;
-
-            // Initialize enhanced event listeners
-            initEnhancedEventListeners();
             
+            // Initialize event listeners
+            initEnhancedEventListeners();
             animate();
         },
         undefined,
         function (error) {
-            console.error('Error loading model:', error);
-            // Fallback to default model
-            loadDefaultModel();
+            console.error('❌ Error loading model:', error);
+            console.log('Trying to load fallback model...');
+            
+            // Try to load any available model as fallback
+            {% if available_models and available_models.0 %}
+                const fallbackUrl = "{{ available_models.0.get_file_url }}";
+                console.log('Loading fallback model:', fallbackUrl);
+                loadTowerModel(fallbackUrl);
+            {% else %}
+                // Ultimate fallback
+                const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+                console.log('Loading ultimate fallback model:', defaultModelUrl);
+                loadTowerModel(defaultModelUrl);
+            {% endif %}
         }
     );
 }
 
-{% if selected_model %}
+{% if matching_model %}
+    // Get URLs for both matched and selected models
+    const matchedModelUrl = "{{ matching_model.get_file_url }}";
+    const selectedModelUrl = "{{ selected_model.get_file_url|default:'' }}";
+    
+    console.log('🔍 Model Loading Analysis:');
+    console.log('  Matched Model:', "{{ matching_model.name }}", matchedModelUrl);
+    console.log('  Selected Model:', "{{ selected_model.name|default:'None' }}", selectedModelUrl);
+    
+    // Verify they're the same
+    if (selectedModelUrl && matchedModelUrl === selectedModelUrl) {
+        console.log('✅ Matched and selected models are the same');
+        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
+        console.log('Model details:', {
+            name: "{{ matching_model.name }}",
+            type: "{{ matching_model.structure_type }}",
+            attachment: "{{ matching_model.attachment_points }}",
+            config: "{{ matching_model.configuration }}",
+            circuit: "{{ matching_model.circuit_type }}"
+        });
+        loadTowerModel(matchedModelUrl);
+    } else if (selectedModelUrl && selectedModelUrl !== matchedModelUrl) {
+        console.log('⚠️ Matched and selected models differ!');
+        console.log('Loading selected model (user choice overrides match):', selectedModelUrl);
+        loadTowerModel(selectedModelUrl);
+    } else {
+        // No selected model, use matched model
+        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
+        console.log('Model details:', {
+            name: "{{ matching_model.name }}",
+            type: "{{ matching_model.structure_type }}",
+            attachment: "{{ matching_model.attachment_points }}",
+            config: "{{ matching_model.configuration }}",
+            circuit: "{{ matching_model.circuit_type }}"
+        });
+        loadTowerModel(matchedModelUrl);
+    }
+{% else %}
+    // No matching model found, use selected or default
+    {% if selected_model %}
         const selectedModelUrl = "{{ selected_model.get_file_url }}";
-        console.log('Selected Model URL:', selectedModelUrl); // ADD THIS LINE
+        console.log('📌 Loading manually selected model:', selectedModelUrl);
         loadTowerModel(selectedModelUrl);
     {% else %}
         const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
-        console.log('Default Model URL:', defaultModelUrl); // ADD THIS LINE
-        loadDefaultModel(defaultModelUrl);
+        console.log('⚙ Loading default model:', defaultModelUrl);
+        loadTowerModel(defaultModelUrl);
     {% endif %}
+{% endif %}
 
 // Function to load default model
 function loadDefaultModel() {

@@ -30,4 +30,19 @@ admin.site.register(HDeadend3)
 admin.site.register(hUploadedFile3)
 admin.site.register(hUploadedFile2) 
 admin.site.register(hUploadedFile4) 
-admin.site.register(TowerModel)
+
+
+@admin.register(TowerModel)
+class TowerModelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'structure_type', 'attachment_points', 'configuration', 'circuit_type')
+    list_filter = ('structure_type', 'attachment_points', 'configuration', 'circuit_type')
+    search_fields = ('name',)
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'model_file')
+        }),
+        ('Categorization', {
+            'fields': ('structure_type', 'attachment_points', 'configuration', 'circuit_type')
+        }),
+    )

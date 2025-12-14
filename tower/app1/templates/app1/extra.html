@@ -1,113 +1,165 @@
-Read the entire codebase carefully and act as a full-stack developer with 10+ years of experience, as well as a transmission line domain expert.
+Read the entire codebase carefully and act as a full-stack developer with 10+ years of experience, along with expertise in transmission line structures. Please thoroughly understand the complete code before suggesting any changes.
 
-Your first task is to understand the functionality implemented in the canvas container on Page 4.
+Objective
 
-Goal
+I want a simple implementation and do not want to create any new files.
 
-Display the correct 3D structure on Page 4 based on all user selections from Pages 1–3.
+I need to display a 3D .glb model inside an existing canvas container, based on user selections made on:
 
-User Flow
-Page 1
+The Home page
 
-The user selects a structure type (e.g., H-Frame, Tower, Monopole) from 3 main links.
-Then the user selects additional options from popups (e.g., Deadend, Vertical, etc.).
+The Circuit Definition Form page
 
-Page 2
+The 3D model should be loaded from the backend according to these selections.
 
-The user fills and saves the Circuit Definition form by selecting:
+Current Status
 
-Number of 3-phase circuits
+I have already implemented backend logic to fetch and store user-selected data (using session or context) on the hdeadend1 page.
 
-Number of shield wires
+The backend successfully receives and logs the following selections:
 
-Number of 1-phase circuits
+Active Popups
 
-Number of communication cables
+structure_type_hframes
 
-And other fields in the circuit definition form
+attachment_points_deadend
 
-Based on the selected values, we determine which 3D GLB model should be loaded.
+configuration_vertical
 
-Also, note:
+Popup Selections
+structure_type: hframes
+attachment_points: deadend
+configuration: vertical
 
-Each button in H-Frame (Deadend, Vertical, etc.) redirects to a separate Circuit Definition form.
+Circuit Definition Form Data
+3-Phase Circuits: 1
+Shield Wires: 1
+1-Phase Circuits: 1
+Communication Cables: 1
 
-Based on whichever Circuit Definition form is submitted, Page 4 must show the correct 3D model.
+Issue
 
-Page 3
+I have already written backend logic to load a 3D model, but currently it only considers the 3-Phase Circuits field from the Circuit Definition Form.
 
-The user uploads an Excel file and then clicks Set/Phase or Attachment Joint Label, which redirects to Page 4.
+The other fields (Shield Wires, 1-Phase Circuits, Communication Cables) are not being used to determine which 3D .glb model should be loaded.
+and currently it fetch correct selection 
+for example 
+🎯 3D Model Matching
+User Selections:
+Structure Type: hframes
+Attachment Points: tangent
+Configuration: horizontal
+3-Phase Circuits: 2
+but it match wrong 3d model Matched 3D Model:
+✓ Model Found!
+Name: HFrame_DE_Vert_SC
+Type: H-Frames
+Attachment: Deadend
+Configuration: Vertical
+Circuit: Single Circuit
 
-Page 4
+we have this sortcut 
+MP- Monopole
+DE- Deadend
+Tan- Tangent
+Horiz.- Horizontal
+Vert.- Vertical
+SC- Single Circuit
+DC- Double Circuit
+and we save 3d model like this 
 
-Render the correct 3D model inside the canvas container using:
+HFrame_DE_Vert_SC
 
-Selected structure type + popup option from Page 1
+HFrame_Tan_Vert_DC
 
-Circuit Definition values from Page 2
+HFrame_DE_Horiz_TC
 
-Uploaded Excel file from Page 3 (if needed)
+Requirement
 
-Current Challenge
+Based on all the above selections (popup selections + complete circuit definition data), I want to:
 
-I need Page 4 to always display the correct 3D model based on:
+Dynamically determine the correct .glb model on the backend
 
-The structure type and popup selection from Page 1
+Pass the model information to the frontend
 
-The configuration values saved on Page 2
+Render the selected 3D model inside the existing canvas container
 
-Currently, there are multiple popups for Towers, H-Frames, and Monopoles.
-For now, focus only on H-Frame.
-Later, the same approach will be applied to Tower and Monopole.
+Guidance Needed
 
-What I Need From You
+Please provide clear and practical implementation guidance, including:
 
-Please provide:
+Which existing files need to be modified (views, serializers, templates, JS, etc.)
 
-1. The simplest and most scalable implementation approach
+What exact logic should be added or updated to include all Circuit Definition fields
 
-How should we design the logic for mapping selections → correct GLB model?
+How backend data should be passed to the frontend to correctly load and render the .glb model
 
-2. Exact locations where code must be modified/added
+How to extend the current logic without breaking existing functionality
 
-Please give clear beginner-friendly hints such as:
+Note
 
-Which view file to update
+Do not suggest creating new files.
 
-Which model to modify
+Avoid theoretical explanations.
 
-Where to store the selected data
+Clearly indicate where code needs to be added or modified, with practical implementation hints.
 
-Where to load the GLB model on Page 4
+this is model to store 3d model 
 
-3. How to pass selected data from Pages 1–3 to Page 4
-
-Explain the best method to send data across pages (session, database, hidden fields, etc.) so Page 4 always knows which 3D model to render.
-
-
-this is first page code 
-
-class ListOfStructure(models.Model):
-    structure = models.CharField(max_length=100,unique=True)
-
-    def __str__(self):
-        return self.structure
-
-class StructureGroup(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    structures = models.ManyToManyField(ListOfStructure, related_name='groups')
-
-    def __str__(self):
-        return self.name
-
-def list_structures(request):
-    structures = ListOfStructure.objects.all()
-    groups = StructureGroup.objects.all()
-    return render(request, 'app1/home.html', {'structures': structures, 'groups': groups})
-
-class TowerModel(models.Model):
+"class TowerModel(models.Model):
+    STRUCTURE_TYPES = [
+        ('towers', 'Towers'),
+        ('hframes', 'H-Frames'),
+        ('monopoles', 'Monopoles')
+    ]
+    
+    ATTACHMENT_TYPES = [
+        ('deadend', 'Deadend'),
+        ('tangent', 'Tangent')
+    ]
+    
+    CONFIGURATION_TYPES = [
+        ('vertical', 'Vertical'),
+        ('horizontal', 'Horizontal'),
+        ('delta', 'Delta'),
+        ('hetic', 'Hetic')
+    ]
+    
+    CIRCUIT_TYPES = [
+        ('sc', 'Single Circuit'),
+        ('dc', 'Double Circuit'),
+        ('tc', 'Triple Circuit')
+    ]
+    
     name = models.CharField(max_length=255)
     model_file = models.FileField(upload_to='tower_models/')
+    
+    # ADD THESE FIELDS
+    structure_type = models.CharField(
+        max_length=20, 
+        choices=STRUCTURE_TYPES, 
+        blank=True, 
+        null=True
+    )
+    attachment_points = models.CharField(
+        max_length=20, 
+        choices=ATTACHMENT_TYPES, 
+        blank=True, 
+        null=True
+    )
+    configuration = models.CharField(
+        max_length=20, 
+        choices=CONFIGURATION_TYPES, 
+        blank=True, 
+        null=True
+    )
+    circuit_type = models.CharField(
+        max_length=10, 
+        choices=CIRCUIT_TYPES, 
+        blank=True, 
+        null=True
+    )
+    
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -117,1333 +169,38 @@ class TowerModel(models.Model):
         if self.model_file and hasattr(self.model_file, 'url'):
             return self.model_file.url
         return ''
-
-home.html 
-"   <div class="content">
-        <div class="panel">
-        <div class="panel-header">
-            <i class="fas fa-list panel-icon"></i>
-            List All Structures
-        </div>
-        <div class="panel-body">
-            <button class="btn" onclick="window.location.href='{% url 'add_structure' %}'">
-                <i class="fas fa-plus-circle"></i> Add Structure
-            </button>
-            <div class="structure-list">
-                {% for structure in structures %}
-                    <div class="structure-item-container">
-                        <div class="structure-item" data-structure-id="{{ structure.id }}">
-                            <div>{{ structure.structure }}</div>
-                            <a href="{% url 'delete_structure' structure.id %}" class="delete-btn" title="Delete">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </div>
-                        <div class="structure-dropdown" id="dropdown-{{ structure.id }}">
-                            <select class="structure-type-select">
-                                <option value="">Select Structure Type</option>
-                                <option value="towers">Towers</option>
-                                <option value="hframes">H-Frames</option>
-                                <option value="monopoles">Monopoles</option>
-                            </select>
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="empty-state">No structures found. Add your first structure!</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="panel">
-        <div class="panel-header">
-            <i class="fas fa-layer-group panel-icon"></i>
-            Group Structures
-        </div>
-        <div class="panel-body">
-            <select id="structure-select">
-                <option value="">Select Structure Type For Group</option>
-                <option value="towers">Towers</option>
-                <option value="hframes">H-Frames</option>
-                <option value="monopoles">Monopoles</option>
-            </select>
-            
-            <div class="group-list-container" id="groupListContainer">
-                {% for group in groups %}
-                    <div class="group-item" id="group-{{ group.id }}">
-                        <div class="group-header">
-                            <span class="group-name-text">{{ group.name }}</span>
-                            <div class="group-actions">
-                                <button type="button" class="group-edit-btn" title="Edit Group Name" data-group-id="{{ group.id }}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="group-delete-btn" title="Delete Group" data-group-id="{{ group.id }}">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="group-edit-form" style="display: none;">
-                            <input type="text" class="group-edit-input" value="{{ group.name }}" style="display: inline-block; width: auto; margin-right: 5px;">
-                            <button type="button" class="group-save-btn btn btn-sm btn-success" data-group-id="{{ group.id }}">Save</button>
-                            <button type="button" class="group-cancel-btn btn btn-sm btn-secondary" data-group-id="{{ group.id }}">Cancel</button>
-                        </div>
-                        <div class="group-structures-tags">
-                            {% for structure in group.structures.all %}
-                                <span class="structure-tag">{{ structure.structure }}</span>
-                            {% empty %}
-                                <span class="empty-state">No structures in this group.</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="empty-state" id="noGroupsState">No groups created yet.</div>
-                {% endfor %}
-            </div>
-
-            <button class="btn" onclick="window.location.href='{% url 'add_group' %}'">
-                <i class="fas fa-plus-circle"></i> Create Structure Group
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- H-Frame Popup -->
-<div class="popup-overlay" id="hframe-popup-overlay">
-    <!-- H-Frame First Popup -->
-    <div class="popup" id="hframe-popup1">
-        <div class="popup-header">
-            <span class="popup-close">&times;</span>
-            <h3>What are the majority of the attachment points on each structure in the group?</h3>
-        </div>
-        <button class="popup-btn blue" id="hframe-deadend-btn">Deadend</button>
-        <button class="popup-btn green" id="hframe-tangent-btn">Tangent</button>
-
-        <p class="popup-note">Note: Individual attachments can be modified later</p>
-    </div>
-
-    <!-- H-Frame Second Popup for Insulator Type -->
-    <div class="popup" id="hframe-popup2" style="display: none;">
-        <div class="popup-header">
-            <span class="popup-close">&times;</span>
-            <h3>Select Configuration</h3>
-        </div>
-        <button class="popup-btn blue" id="vertical-btn">Vertical</button>
-        <button class="popup-btn red" id="horizontal-btn">Horizontal</button>
-    </div>
-
-    <!-- H-Frame Third Popup for Configuration -->
-    <div class="popup" id="hframe-popup3" style="display: none;">
-        <div class="popup-header">
-            <span class="popup-close">&times;</span>
-            <h3>Select Configuration</h3>
-        </div>
-        <button class="popup-btn blue" id="configuration-vertical-btn">Vertical</button>
-        <button class="popup-btn red" id="configuration-horizontal-btn">Horizontal</button>
-    </div>
-
-    <!-- H-Frame Fourth Popup for Insulator Type -->
-    <div class="popup" id="hframe-popup4" style="display: none;">
-        <div class="popup-header">
-            <span class="popup-close">&times;</span>
-            <h3>Select Configuration</h3>
-        </div>
-        <button class="popup-btn blue" id="post-insulator-btn">Post Insulator</button>
-        <button class="popup-btn red" id="v-string-btn">V-String</button>
-    </div>
-</div>
-
-<script>
-        const hframePopupOverlay = document.getElementById('hframe-popup-overlay');
-        const hframePopups = document.querySelectorAll('#hframe-popup-overlay .popup'); // Scope to h-frame popups only
-        let hframePopupStack = [];
-    
-        document.getElementById('structure-select').addEventListener('change', function () {
-            if (this.value === 'hframes') {
-                hframePopupOverlay.style.display = 'flex';
-                hframePopups.forEach((popup) => popup.style.display = 'none');
-                hframePopups[0].style.display = 'block'; // Show the first h-frame popup
-                mainContent.classList.add('blur');
-                hframePopupStack = [0];
-            } else {
-                hframePopupOverlay.style.display = 'none';
-                mainContent.classList.remove('blur');
-                hframePopupStack = [];
-            }
-        });
-    
-        document.querySelectorAll('#hframe-popup-overlay .popup-close').forEach((closeBtn, index) => {
-            closeBtn.addEventListener('click', function () {
-                hframePopups[index].style.display = 'none';
-                hframePopupStack.pop();
-                if (hframePopupStack.length > 0) {
-                    hframePopups[hframePopupStack[hframePopupStack.length - 1]].style.display = 'block';
-                } else {
-                    hframePopupOverlay.style.display = 'none';
-                    mainContent.classList.remove('blur');
-                }
-            });
-        });
-    
-        // Functionality for the Deadend button
-        document.getElementById('hframe-deadend-btn').addEventListener('click', function () {
-            hframePopups[0].style.display = 'none';
-            hframePopups[1].style.display = 'block'; // Show the second popup for insulator type
-            hframePopupStack.push(1);
-        });
-    
-        // Functionality for the Tangent button
-        document.getElementById('hframe-tangent-btn').addEventListener('click', function () {
-            hframePopups[0].style.display = 'none'; // Hide the first popup
-            hframePopups[2].style.display = 'block'; // Show the third popup for configuration
-            hframePopupStack.push(2);
-        });
-    
-        // Functionality for the Vertical button in the second popup
-        document.getElementById('vertical-btn').addEventListener('click', function () {
-            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
-            // Redirect to the specified URL for deadend
-            window.location.href = '/hdeadend1/'; // Change this URL to the destination page
-        });
-    
-        // Functionality for the Horizontal button in the second popup
-        document.getElementById('horizontal-btn').addEventListener('click', function () {
-            hframePopups[1].style.display = 'none'; // Hide the insulator type popup
-            // Add redirection or any action needed for horizontal
-        window.location.href = '/hdeadend3/'; // Change this URL to the destination page
-
-        });
-    
-        // Functionality for the configuration buttons in the third popup
-        document.getElementById('configuration-vertical-btn').addEventListener('click', function () {
-            hframePopups[2].style.display = 'none'; // Hide the configuration popup
-            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
-            hframePopupStack.push(3); // Add the fourth popup to the stack
-        });
-    
-        document.getElementById('configuration-horizontal-btn').addEventListener('click', function () {
-            hframePopups[2].style.display = 'none'; // Hide the configuration popup
-            hframePopups[3].style.display = 'block'; // Show the fourth popup for insulator type
-            hframePopupStack.push(3);
-        });
-    
-        // Functionality for the Post Insulator button in the fourth popup
-        document.getElementById('post-insulator-btn').addEventListener('click', function () {
-            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
-            // Handle post insulator action here
-            window.location.href = '/hdeadend2/';
-            // Add any additional action or redirect if needed
-        });
-    
-        // Functionality for the V-String button in the fourth popup
-        document.getElementById('v-string-btn').addEventListener('click', function () {
-            hframePopups[3].style.display = 'none'; // Hide the insulator type popup
-            // Handle post insulator action here
-            window.location.href = '/hdeadend4/';
-            // Add any additional action or redirect if needed
-        });
-    </script>
     
 "
-this is second page circuit defination form code same functionality for other buttons circuit defination form also 
-
-class HDeadend1(models.Model):
-    CIRCUIT_CHOICES = [
-        (0, "0"),
-    ] + [(i, str(i)) for i in range(1, 11)]
-
-    structure = models.ForeignKey(
-        'ListOfStructure',
-        on_delete=models.CASCADE,
-        related_name='h_deadends1',
-        unique=True
-    )
-
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
-
-    def __str__(self):
-        return f"HDeadend {self.id} - Structure: {self.structure}"
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_h_per_structure1')
-        ]
-
-def hdeadend1(request):
-    structure_id = request.GET.get('structure_id')
-    structure_type = request.GET.get('structure_type')
+this is canvas container/hdata1 page code 
+"def hdata1(request):
+    # DEBUG: Print all session data at the start of hdata1
+    print(f"DEBUG [hdata1 Page] - All session data received:")
+    print(f"  1. Home Page Data:")
+    print(f"     Structure Type: {request.session.get('selected_structure_type')}")
+    print(f"     Structure ID: {request.session.get('selected_structure_id')}")
+    print(f"     Active Popups: {request.session.get('active_popups', [])}")
+    print(f"     Popup Selections: {request.session.get('popup_selections', {})}")
     
-    # Initialize variables
-    structure = None
-    existing_data = False
+    print(f"  2. Circuit Definition Data:")
+    circuit_definition = request.session.get('circuit_definition', {})
+    print(f"     Num 3-Phase Circuits: {circuit_definition.get('num_3_phase_circuits')}")
+    print(f"     Num Shield Wires: {circuit_definition.get('num_shield_wires')}")
+    print(f"     Num 1-Phase Circuits: {circuit_definition.get('num_1_phase_circuits')}")
+    print(f"     Num Communication Cables: {circuit_definition.get('num_communication_cables')}")
+    print(f"     Circuit Model: {circuit_definition.get('circuit_model')}")
+    print(f"     Circuit ID: {circuit_definition.get('circuit_id')}")
     
-    # Get structure object safely
-    if structure_id:
-        try:
-            structure = ListOfStructure.objects.get(id=structure_id)
-            # Check if data already exists for this structure
-            existing_data = HDeadend1.objects.filter(structure=structure).exists()
-        except ListOfStructure.DoesNotExist:
-            return redirect('home')
+    print(f"  3. Selection Values:")
+    print(f"     Selected Values: {request.session.get('selected_values', {})}")
     
-    # Handle Next button click
-    if request.method == 'GET' and request.GET.get('next') == 'true':
-        if structure_id and structure_type and existing_data:
-            # Redirect to upload page
-            return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
-        else:
-            return redirect('home')
-    
-    if request.method == 'POST':
-        # If data already exists, prevent saving new data
-        if existing_data:
-            return render(request, 'app1/hdeadend1.html', {
-                'form': HDeadendForm1(),
-                'structure_type': structure_type,
-                'selected_structure': structure,
-                'structure_id': structure_id,
-                'existing_data': existing_data
-            })
-        
-        form = HDeadendForm1(request.POST)
-        if form.is_valid():
-            try:
-                # Force the structure from URL parameter
-                instance = form.save(commit=False)
-                if structure:
-                    instance.structure = structure
-                instance.save()
-                
-                # Store structure info in session for upload page
-                request.session['selected_structure_id'] = structure_id
-                request.session['selected_structure_type'] = structure_type
-                request.session['circuit_structure_id'] = instance.id
-                
-                # Redirect directly to upload page after successful save
-                return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
-            except IntegrityError:
-                form.add_error('structure', 'Data already added for this structure.')
-            except Exception as e:
-                form.add_error(None, f'Error saving data: {str(e)}')
-    else:
-        # GET request - create empty form
-        form = HDeadendForm1()
-
-    return render(request, 'app1/hdeadend1.html', {
-        'form': form,
-        'structure_type': structure_type,
-        'selected_structure': structure,
-        'structure_id': structure_id,
-        'existing_data': existing_data
-    })
-
-this is hdeadend1.html 
-"    
- <div class="content">
-    <div class="form-container">
-        {% comment %} <h2>Circuit Definition - {{ structure_type|title }}</h2> {% endcomment %}
-        <h2>Circuit Definition</h2>
-        <!-- Display selected structure info -->
-        {% if selected_structure %}
-        <div class="selected-structure-info">
-            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
-            {% if existing_data %}
-            <span class="existing-data-badge">Data Exists</span>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if existing_data %}
-        <!-- Show view options when data exists -->
-        <div class="existing-data-message">
-            <div class="alert">
-                <strong>Circuit definition already exists for this structure.</strong>
-            </div>
-            <div class="action-buttons">
-                <a href="{% url 'h_deadend_view1' %}" class="btn btn-primary">View Existing Data</a>
-                <a href="{% url 'hupload1' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-next">Continue to Upload</a>
-                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
-            </div>
-        </div>
-        {% else %}
-        <!-- Show form only if no existing data -->
-        <form method="POST" id="circuit-form">
-            {% csrf_token %}
-            
-            <!-- Hidden field for structure -->
-            {% if selected_structure %}
-            <input type="hidden" name="structure" value="{{ selected_structure.id }}">
-            {% endif %}
-            
-            <!-- Display form fields -->
-            <div class="form-group">
-                <label>Define number of 3-phase circuits</label>
-                {{ form.num_3_phase_circuits }}
-                {% if form.num_3_phase_circuits.errors %}
-                    <div class="error-message">
-                        {% for error in form.num_3_phase_circuits.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label>Define number of shield wires</label>
-                {{ form.num_shield_wires }}
-                {% if form.num_shield_wires.errors %}
-                    <div class="error-message">
-                        {% for error in form.num_shield_wires.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label>Define number of 1-phase circuits</label>
-                {{ form.num_1_phase_circuits }}
-                {% if form.num_1_phase_circuits.errors %}
-                    <div class="error-message">
-                        {% for error in form.num_1_phase_circuits.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label>Define number of communication cables</label>
-                {{ form.num_communication_cables }}
-                {% if form.num_communication_cables.errors %}
-                    <div class="error-message">
-                        {% for error in form.num_communication_cables.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <!-- Display any other form fields -->
-            {% for field in form %}
-                {% if field.name not in 'structure,num_3_phase_circuits,num_shield_wires,num_1_phase_circuits,num_communication_cables' and field.name != 'csrfmiddlewaretoken' %}
-                <div class="form-group">
-                    <label>{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="error-message">
-                            {% for error in field.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    {% if field.help_text %}
-                        <small class="help-text">{{ field.help_text }}</small>
-                    {% endif %}
-                </div>
-                {% endif %}
-            {% endfor %}
-            
-            <!-- Display non-field errors -->
-            {% if form.non_field_errors %}
-            <div class="error-message">
-                {% for error in form.non_field_errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            <div class="form-buttons">
-                <button class="save-button" type="submit">Save & Continue</button>
-                <a href="{% url 'home' %}" class="cancel-button">Cancel</a>
-            </div>
-        </form>
-        {% endif %}
-    </div>
-</div>"
-
-this is 3rd page code 
-
-class hUploadedFile1(models.Model):
-    structure = models.ForeignKey(ListOfStructure, on_delete=models.CASCADE, related_name='huploaded_files1')
-    file = models.FileField(upload_to='uploads/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.file.name} ({self.structure.structure})"
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['structure'], name='hunique_file_per_structure1')
-        ]
-
-def hupload1(request):
-    structure_id = (
-        request.GET.get('structure_id') or
-        request.POST.get('structure_id') or
-        request.session.get('selected_structure_id')
-    )
-    structure_type = (
-        request.GET.get('structure_type') or
-        request.POST.get('structure_type') or
-        request.session.get('selected_structure_type')
-    )
-    
-    structure = None
-    existing_file = False
-    circuit_data_exists = False
-    
-    if structure_id:
-        try:
-            structure = ListOfStructure.objects.get(id=structure_id)
-            # Check if circuit data exists
-            circuit_data_exists = HDeadend1.objects.filter(structure=structure).exists()
-        except ListOfStructure.DoesNotExist:
-            return redirect('home')
-    else:
-        return redirect('home')
-    
-    # Check if circuit data exists
-    if not circuit_data_exists:
-        return HttpResponseRedirect(f'/hdeadend1/?structure_id={structure_id}&structure_type={structure_type}')
-    
-    if request.method == 'POST':
-        # Handle file upload
-        if 'file' in request.FILES:
-            # Check if file already exists for this structure
-            existing_file_check = hUploadedFile1.objects.filter(structure=structure).exists()
-            
-            if existing_file_check:
-                return render(request, 'app1/hupload1.html', {
-                    'form': HUDeadendForm1(),
-                    'structures_with_files': ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct(),
-                    'selected_structure': structure,
-                    'structure_type': structure_type,
-                    'structure_id': structure_id,
-                    'existing_file': existing_file_check,
-                    'circuit_data_exists': circuit_data_exists
-                })
-            
-            form = HUDeadendForm1(request.POST, request.FILES)
-            if form.is_valid():
-                try:
-                    # Force the structure from URL parameter
-                    instance = form.save(commit=False)
-                    instance.structure = structure
-                    instance.save()
-                    
-                    extract_load_cases(instance)
-                    
-                    # Clear session data
-                    request.session.pop('selected_structure_id', None)
-                    request.session.pop('selected_structure_type', None)
-                    request.session.pop('circuit_structure_id', None)
-                    
-                    # Redirect to show updated state
-                    return HttpResponseRedirect(f'/hupload1/?structure_id={structure_id}&structure_type={structure_type}')
-                    
-                except IntegrityError as e:
-                    form.add_error('structure', 'A file has already been uploaded for this structure.')
-                except Exception as e:
-                    form.add_error(None, f'Error uploading file: {str(e)}')
-            else:
-                # Form is invalid, show errors
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f'{field}: {error}')
-        
-        # NEW: Handle Set/Phase or Attachment Joint Label selection and redirect
-        elif 'set_phase_button' in request.POST:
-            # Store selection in session and redirect to canvas container
-            selected_values = {
-                'button_type': 'set_phase',
-                'structure_id': structure_id
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-            
-        elif 'joint_labels_button' in request.POST:
-            # Store selection in session and redirect to canvas container
-            selected_values = {
-                'button_type': 'joint_labels',
-                'structure_id': structure_id
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    
-    else:  # GET request
-        # GET request - check for existing file
-        existing_file = hUploadedFile1.objects.filter(structure=structure).exists()
-        form = HUDeadendForm1()
-        
-    structures_with_files = ListOfStructure.objects.filter(huploaded_files1__isnull=False).distinct()
-
-    # Handle AJAX requests for data (GET requests only)
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        structure_id = request.GET.get('structure_id')
-        if not structure_id:
-            return JsonResponse({'error': 'Structure ID is required'}, status=400)
-
-        try:
-            structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = hUploadedFile1.objects.filter(structure=structure).latest('uploaded_at')
-            df = pd.read_excel(latest_file.file.path, engine='openpyxl')
-
-            if request.GET.get('get_set_phase'):
-                # Process set/phase data
-                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
-                data = set_phase_data.to_dict('records')
-                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
-                return JsonResponse({'data': data, 'columns': columns})
-
-            elif request.GET.get('get_joint_labels'):
-                # Process joint labels
-                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
-                return JsonResponse({'values': joint_labels})
-                
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return render(request, 'app1/hupload1.html', {
-        'form': form,
-        'structures_with_files': structures_with_files,
-        'selected_structure': structure,
-        'structure_type': structure_type,
-        'structure_id': structure_id,
-        'existing_file': existing_file,
-        'circuit_data_exists': circuit_data_exists
-    })
-
-hupload1.html 
-"<div class="content">
-    <div class="form-container">
-        <h2>File Upload</h2>
-        
-        <!-- Display selected structure info -->
-        {% if selected_structure %}
-        <div class="selected-structure-info">
-            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
-            {% if existing_file %}
-            <span class="existing-data-badge">File Exists</span>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if not circuit_data_exists %}
-        <!-- Show message if circuit data doesn't exist -->
-        <div class="existing-data-message">
-            <div class="alert">
-                <strong>Please complete circuit definition first.</strong>
-            </div>
-            <div class="action-buttons">
-                <a href="{% url 'hdeadend1' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">
-                    Go to Circuit Definition
-                </a>
-                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
-            </div>
-        </div>
-        
-        {% elif existing_file %}
-        <!-- Show options when file exists -->
-        <div class="existing-data-message">
-            <div class="alert">
-                <strong>File already exists for this structure.</strong>
-            </div>
-            
-            <!-- NEW: Simplified selection buttons -->
-            <div class="selection-buttons">
-                <h3>Select Data Type to Continue</h3>
-                
-                <form method="post" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
-                    <button type="submit" name="set_phase_button" class="btn btn-primary btn-lg">
-                        Set / Phase
-                    </button>
-                </form>
-                
-                <form method="post" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
-                    <button type="submit" name="joint_labels_button" class="btn btn-success btn-lg">
-                        Attachment Joint Labels
-                    </button>
-                </form>
-            </div>
-            
-            <div class="update-link">
-                <a href="{% url 'hupload1_update' %}" class="btn btn-secondary">Update Existing File</a>
-            </div>
-        </div>
-        
-        {% else %}
-        <!-- Show upload form if no file exists -->
-        <form method="post" enctype="multipart/form-data" id="upload-form">
-            {% csrf_token %}
-            
-            <!-- Hide the structure dropdown since it's hardcoded -->
-            <div style="display: none;">
-                {{ form.structure }}
-            </div>
-            
-            <div class="upload-section">
-                <div class="upload-box">
-                    <p>Upload File for: <strong>{{ selected_structure.structure }}</strong></p>
-                    
-                    <div class="file-input-container">
-                        <input type="file" name="file" id="file-input" accept=".xls,.xlsx" required>
-                        <label for="file-input" class="file-input-label">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            Choose Excel File (.xls, .xlsx)
-                        </label>
-                        <span id="file-name">No file chosen</span>
-                    </div>
-
-                    <button type="submit" class="upload-button">Upload File</button>
-                </div>
-            </div>
-        </form>
-
-        <div class="update-link">
-            <p>Need to update an existing file?</p>
-            <a href="{% url 'hupload1_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">
-                Update Existing File
-            </a>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
- <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const structureSelect = document.getElementById('structure-select');
-        const loadCasesSection = document.getElementById('load-cases-section');
-        const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
-        const groupLoadCasesLink = document.getElementById('group-load-cases-link');
-        const customGroupsLink = document.getElementById('custom-groups-link');
-        const loadCasesResults = document.getElementById('load-cases-results');
-
-        const selectedLoadCases = new Set();
-        const selectedLoadCasesSection = document.getElementById('selected-load-cases');
-        const selectedCasesList = document.getElementById('selected-cases-list');
-        const loadCaseValuesInput = document.getElementById('load-case-values-input');
-        const loadCaseValuesInputJoint = document.getElementById('load-case-values-input-joint');
-        const setPhaseForm = document.getElementById('set-phase-form');
-        const jointLabelsForm = document.getElementById('joint-labels-form');
-        const createCustomGroupSection = document.getElementById('create-custom-group');
-        const customGroupNameInput = document.getElementById('custom-group-name');
-        const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
-
-        
-        // Show load cases section when a structure is selected
-        structureSelect.addEventListener('change', function() {
-            if (this.value) {
-                loadCasesSection.style.display = 'block';
-            } else {
-                loadCasesSection.style.display = 'none';
-                loadCasesResults.innerHTML = '';
-                selectedLoadCasesSection.style.display = 'none';
-                createCustomGroupSection.style.display = 'none';
-            }
-        });
-
-        function updateSelectedLoadCases() {
-            if (selectedLoadCases.size > 0) {
-                selectedLoadCasesSection.style.display = 'block';
-                selectedCasesList.innerHTML = '';
-                
-                selectedLoadCases.forEach(caseName => {
-                    const caseElement = document.createElement('div');
-                    caseElement.className = 'selected-case';
-                    caseElement.innerHTML = `
-                        ${caseName}
-                        <span class="remove-case" data-case="${caseName}">×</span>
-                    `;
-                    selectedCasesList.appendChild(caseElement);
-                });
-                
-                // Show create custom group option
-                createCustomGroupSection.style.display = 'block';
-                
-                // Add remove event listeners
-                document.querySelectorAll('.remove-case').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const caseName = this.dataset.case;
-                        selectedLoadCases.delete(caseName);
-                        updateSelectedLoadCases();
-                    });
-                });
-            } else {
-                selectedLoadCasesSection.style.display = 'none';
-                createCustomGroupSection.style.display = 'none';
-            }
-        
-            // Update hidden inputs
-            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
-            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
-        }
-
-        function clearAllSelections() {
-            selectedLoadCases.clear();
-            updateSelectedLoadCases();
-
-            // Uncheck all checkboxes in loadCasesResults
-            loadCasesResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-        }
-
-        // Handle Imported Load Cases link click
-        importedLoadCasesLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            clearAllSelections();
-
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
-            }
-
-            fetch(`/hupload1/?get_load_cases=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                let html = '<h4>Imported Load Cases</h4>';
-                if (data.values && data.values.length > 0) {
-                    html += '<form id="load-cases-form">';
-                    html += '<ul class="load-cases-list">';
-                    data.values.forEach(caseName => {
-                        const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                        html += `<li>
-                            <input type="checkbox" name="load_case_values" value="${caseName}" ${isChecked}>
-                            ${caseName}
-                        </li>`;
-                    });
-                    html += '</ul>';
-                    html += '</form>';
-                } else {
-                    html += '<p>No load cases found</p>';
-                }
-                loadCasesResults.innerHTML = html;
-
-                // Add event listener for checkbox changes
-                document.querySelectorAll('#load-cases-form input[type="checkbox"]').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            selectedLoadCases.add(this.value);
-                        } else {
-                            selectedLoadCases.delete(this.value);
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-            });
-        });
-
-        // Handle Group Load Cases link click
-        groupLoadCasesLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            clearAllSelections();
-
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
-            }
-
-            fetch(`/hupload1/?get_grouped_load_cases=true&structure_id=${structureId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                let html = '<h4>Group Load Cases</h4>';
-                if (data.groups && Object.keys(data.groups).length > 0) {
-                    html += '<form id="grouped-load-cases-form">';
-                    
-                    for (const [groupName, cases] of Object.entries(data.groups)) {
-                        html += `<div class="load-case-group">
-                            <h5>${groupName}</h5>
-                            <div class="group-select-all">
-                                <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
-                                <label for="select-all-${groupName}">Select All</label>
-                            </div>
-                            <ul class="group-load-cases-list">`;
-                        
-                        cases.forEach(caseName => {
-                            const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                            html += `<li>
-                                <input type="checkbox" name="load_case_values" value="${caseName}" class="group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                                ${caseName}
-                            </li>`;
-                        });
-                        
-                        html += '</ul></div>';
-                    }
-                    
-                    html += '</form>';
-                } else {
-                    html += '<p>No grouped load cases found</p>';
-                }
-                loadCasesResults.innerHTML = html;
-
-                // Add select all functionality
-                document.querySelectorAll('.select-all-group').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        const groupName = this.id.replace('select-all-', '');
-                        const caseCheckboxes = document.querySelectorAll(`.group-case-checkbox[data-group="${groupName}"]`);
-                        caseCheckboxes.forEach(cb => {
-                            cb.checked = this.checked;
-                            if (this.checked) {
-                                selectedLoadCases.add(cb.value);
-                            } else {
-                                selectedLoadCases.delete(cb.value);
-                            }
-                        });
-                        updateSelectedLoadCases();
-                    });
-                });
-
-                // Add event listener for individual checkbox changes
-                document.querySelectorAll('.group-case-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            selectedLoadCases.add(this.value);
-                        } else {
-                            selectedLoadCases.delete(this.value);
-                            // Uncheck select-all if any checkbox is unchecked
-                            const groupName = this.dataset.group;
-                            const selectAll = document.getElementById(`select-all-${groupName}`);
-                            if (selectAll) {
-                                selectAll.checked = false;
-                            }
-                        }
-                        updateSelectedLoadCases();
-                    });
-                });
-            })
-            .catch(error => {
-                loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-            });
-        });
-
-// Handle Custom Groups link click
-customGroupsLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    clearAllSelections();
-
-    const structureId = structureSelect.value;
-    if (!structureId) {
-        alert('Please select a structure first');
-        return;
-    }
-
-    fetch(`/hupload1/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            loadCasesResults.innerHTML = `<div class="error">${data.error}</div>`;
-            return;
-        }
-
-        let html = '<h4>Custom Groups - Select Load Cases</h4>';
-        if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
-            html += '<form id="custom-groups-form">';
-            
-            for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                html += `<div class="load-case-group" id="group-${groupName.replace(/\s+/g, '-')}">
-                    <h5>
-                        <span class="group-name-display">${groupName}</span>
-                        <button class="btn btn-responsive btn-primary edit-group d-inline-block" data-group="${groupName}" style="margin-left: 10px;">Rename</button>
-                        <button class="btn btn-responsive btn-danger delete-group d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
-                    </h5>
-                    <div class="group-edit-form" style="display: none; margin-bottom: 10px;">
-                        <input type="text" class="form-control-responsive edit-group-input" value="${groupName}" style="display: inline-block;">
-                        <button class="btn btn-responsive btn-success save-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Save</button>
-                        <button class="btn btn-responsive btn-secondary cancel-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
-                    </div>
-                    <div class="group-select-all">
-                        <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
-                        <label for="select-all-custom-${groupName}">Select All</label>
-                    </div>
-                    <ul class="custom-group-load-cases-list">`;
-                
-                cases.forEach(caseName => {
-                    const isChecked = selectedLoadCases.has(caseName) ? 'checked' : '';
-                    html += `<li>
-                        <input type="checkbox" name="load_case_values" value="${caseName}" class="custom-group-case-checkbox" data-group="${groupName}" ${isChecked}>
-                        ${caseName}
-                    </li>`;
-                });
-                
-                html += '</ul></div>';
-            }
-            
-            html += '</form>';
-        } else {
-            html += '<p>No custom groups found</p>';
-        }
-        loadCasesResults.innerHTML = html;
-
-        // Add select all functionality for custom groups
-        document.querySelectorAll('.select-all-custom-group').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const groupName = this.id.replace('select-all-custom-', '');
-                const caseCheckboxes = document.querySelectorAll(`.custom-group-case-checkbox[data-group="${groupName}"]`);
-                caseCheckboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedLoadCases.add(cb.value);
-                    } else {
-                        selectedLoadCases.delete(cb.value);
-                    }
-                });
-                updateSelectedLoadCases();
-            });
-        });
-
-        // Add edit functionality - FIXED: Use current structureId
-        document.querySelectorAll('.edit-group').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const groupName = this.dataset.group;
-                const groupElement = this.closest('.load-case-group');
-                const displayElement = groupElement.querySelector('.group-name-display');
-                const editForm = groupElement.querySelector('.group-edit-form');
-                
-                // Show edit form, hide display
-                displayElement.style.display = 'none';
-                this.style.display = 'none';
-                groupElement.querySelector('.delete-group').style.display = 'none';
-                editForm.style.display = 'block';
-            });
-        });
-
-        document.querySelectorAll('.cancel-edit').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const groupName = this.dataset.group;
-                const groupElement = this.closest('.load-case-group');
-                const displayElement = groupElement.querySelector('.group-name-display');
-                const editForm = groupElement.querySelector('.group-edit-form');
-                
-                // Hide edit form, show display
-                editForm.style.display = 'none';
-                displayElement.style.display = 'inline';
-                groupElement.querySelector('.edit-group').style.display = 'inline-block';
-                groupElement.querySelector('.delete-group').style.display = 'inline-block';
-            });
-        });
-
-        document.querySelectorAll('.save-edit').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const oldGroupName = this.dataset.group;
-                const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
-                
-                if (!newGroupName) {
-                    alert('Group name cannot be empty');
-                    return;
-                }
-                
-                if (newGroupName === oldGroupName) {
-                    // Just cancel if name didn't change
-                    this.closest('.group-edit-form').querySelector('.cancel-edit').click();
-                    return;
-                }
-                
-                const formData = new FormData();
-                formData.append('update_custom_group', 'true');
-                formData.append('old_group_name', oldGroupName);
-                formData.append('new_group_name', newGroupName);
-                
-                // Make structure_id optional - only include if available
-                const currentStructureId = structureSelect.value;
-                if (currentStructureId) {
-                    formData.append('structure_id', currentStructureId);
-                }
-                
-                fetch('/hupload1/', {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update the UI
-                        const groupElement = this.closest('.load-case-group');
-                        groupElement.querySelector('.group-name-display').textContent = newGroupName;
-                        groupElement.querySelector('.edit-group').dataset.group = newGroupName;
-                        groupElement.querySelector('.delete-group').dataset.group = newGroupName;
-                        groupElement.querySelector('.save-edit').dataset.group = newGroupName;
-                        groupElement.querySelector('.cancel-edit').dataset.group = newGroupName;
-                        
-                        // Also update all checkboxes in this group
-                        groupElement.querySelectorAll('.custom-group-case-checkbox').forEach(cb => {
-                            cb.dataset.group = newGroupName;
-                        });
-                        
-                        // Update the group ID
-                        groupElement.id = `group-${newGroupName.replace(/\s+/g, '-')}`;
-                        
-                        // Update select-all checkbox ID if it exists
-                        const selectAllCheckbox = groupElement.querySelector('.select-all-custom-group');
-                        if (selectAllCheckbox) {
-                            selectAllCheckbox.id = `select-all-custom-${newGroupName}`;
-                            const selectAllLabel = groupElement.querySelector('label[for="select-all-custom-' + oldGroupName + '"]');
-                            if (selectAllLabel) {
-                                selectAllLabel.setAttribute('for', `select-all-custom-${newGroupName}`);
-                            }
-                        }
-                        
-                        // Hide edit form
-                        groupElement.querySelector('.group-edit-form').style.display = 'none';
-                        groupElement.querySelector('.group-name-display').style.display = 'inline';
-                        groupElement.querySelector('.edit-group').style.display = 'inline-block';
-                        groupElement.querySelector('.delete-group').style.display = 'inline-block';
-                        
-                    } else {
-                        alert('Error updating group: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    alert('Error updating group: ' + error);
-                });
-            });
-        });
-
-        // Add event listener for individual checkbox changes in custom groups
-        document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedLoadCases.add(this.value);
-                } else {
-                    selectedLoadCases.delete(this.value);
-                    // Uncheck select-all if any checkbox is unchecked
-                    const groupName = this.dataset.group;
-                    const selectAll = document.getElementById(`select-all-custom-${groupName}`);
-                    if (selectAll) {
-                        selectAll.checked = false;
-                    }
-                }
-                updateSelectedLoadCases();
-            });
-        });
-
-        // Add delete functionality - FIXED: Use current structureId
-        document.querySelectorAll('.delete-group').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const groupName = this.dataset.group;
-                if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-                    // Get the current structure ID directly from the select element
-                    const currentStructureId = structureSelect.value;
-                    if (!currentStructureId) {
-                        alert('Please select a structure first');
-                        return;
-                    }
-                    
-                    const formData = new FormData();
-                    formData.append('delete_custom_group', 'true');
-                    formData.append('structure_id', currentStructureId); // Use current value
-                    formData.append('group_name', groupName);
-                    
-                    fetch('/hupload1/', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Remove the group from UI without refreshing
-                            this.closest('.load-case-group').remove();
-                            // If no groups left, show message
-                            if (!document.querySelector('.load-case-group')) {
-                                loadCasesResults.innerHTML = '<p>No custom groups found</p>';
-                            }
-                        } else {
-                            alert('Error deleting group: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error deleting group: ' + error);
-                    });
-                }
-            });
-        });
-    })
-    .catch(error => {
-        loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
-    });
-});
-
-
-        // Handle Create Custom Group button
-        createCustomGroupBtn.addEventListener('click', function() {
-            const structureId = structureSelect.value;
-            const groupName = customGroupNameInput.value.trim();
-            
-            if (!structureId) {
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (!groupName) {
-                alert('Please enter a group name');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('create_custom_group', 'true');
-            formData.append('structure_id', structureId);
-            formData.append('group_name', groupName);
-            selectedLoadCases.forEach(caseName => {
-                formData.append('selected_cases', caseName);
-            });
-            
-            // Send request
-            fetch('/hupload1/', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`Custom group "${groupName}" created successfully!`);
-                    customGroupNameInput.value = '';
-                    clearAllSelections();  // <-- clear selections and checkboxes
-                } else {
-                    alert('Error creating custom group: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Error creating custom group: ' + error);
-            });
-        });
-
-
-
-
-        // Handle form submissions
-        setPhaseForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input').value = structureId;
-            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        jointLabelsForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input-joint').value = structureId;
-            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        // Auto-hide messages
-        setTimeout(function() {
-            const messages = document.querySelectorAll('.alert');
-            messages.forEach(function(message) {
-                message.style.transition = 'opacity 0.5s ease-out';
-                message.style.opacity = '0';
-                setTimeout(function() {
-                    message.remove();
-                }, 500);
-            });
-        }, 3000); 
-    });
-</script>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const structureId = '{{ structure_id }}';
-    
-    // File input handling
-    const fileInput = document.getElementById('file-input');
-    const fileName = document.getElementById('file-name');
-    
-    if (fileInput && fileName) {
-        fileInput.addEventListener('change', function() {
-            if (this.files.length > 0) {
-                fileName.textContent = this.files[0].name;
-            } else {
-                fileName.textContent = 'No file chosen';
-            }
-        });
-    }
-});
-</script>
-
-"
-
-now this is 4th page code 
-
-def hdata1(request):
-                               # **********8
+    matching_model = find_matching_model(request.session)
+    # Rest of your existing hdata1 code...
     available_models = TowerModel.objects.all().order_by('name')
     selected_model_id = request.session.get('selected_model_id')
+    
+    if not selected_model_id and matching_model:
+        selected_model_id = matching_model.id
+        request.session['selected_model_id'] = selected_model_id
     
     if request.method == 'POST' and 'selected_model' in request.POST:
         selected_model_id = request.POST.get('selected_model')
@@ -1460,12 +217,23 @@ def hdata1(request):
         
         # Validate file type
         if model_file.name.endswith(('.glb', '.gltf')):
+            # Get categorization from form
+            structure_type = request.POST.get('structure_type')
+            attachment_points = request.POST.get('attachment_points')
+            configuration = request.POST.get('configuration')
+            circuit_type = request.POST.get('circuit_type')
+            
             new_model = TowerModel.objects.create(
                 name=model_name,
-                model_file=model_file
+                model_file=model_file,
+                structure_type=structure_type,
+                attachment_points=attachment_points,
+                configuration=configuration,
+                circuit_type=circuit_type
             )
             # Optionally select the newly uploaded model
             request.session['selected_model_id'] = new_model.id
+
     
     # Get selected model if any
     selected_model = None
@@ -1473,13 +241,16 @@ def hdata1(request):
         try:
             selected_model = TowerModel.objects.get(id=selected_model_id)
         except TowerModel.DoesNotExist:
-            pass                                       # **********8
-    # Get selected values from session
+            pass
+    
+    # Get all session data to pass to template
     selected_values = request.session.get('selected_values', {})
     active_combinations = selected_values.get('active_combinations', [])
     structure_id = selected_values.get('structure_id')
     button_type = selected_values.get('button_type', '')
     
+    # Get circuit definition data from session
+    circuit_definition = request.session.get('circuit_definition', {})
     
     # Keep only the canvas container logic
     if structure_id:
@@ -1592,9 +363,11 @@ def hdata1(request):
     request.session['selected_values']['filter_criteria'] = filter_criteria
     request.session.modified = True
 
-    return render(request, 'app1/hdata1.html', {
-        'available_models': available_models,   # **********8
-        'selected_model': selected_model,        # **********8
+    # Prepare context data including all session information
+    context = {
+        # Existing context
+        'available_models': available_models,
+        'selected_model': selected_model,
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
@@ -1605,12 +378,75 @@ def hdata1(request):
         'button_type': button_type,
         'structure_id': structure_id,
         'filter_criteria': filter_criteria,
-        'selected_joints': selected_joints,  # NEW: Pass to template
-        'active_combinations': active_combinations,  # NEW: Pass to template
+        'selected_joints': selected_joints,
+        'active_combinations': active_combinations,
         
-    })
+        # NEW: Session data from Home Page and Circuit Definition
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_structure_id': request.session.get('selected_structure_id', ''),
+        'session_active_popups': request.session.get('active_popups', []),
+        'session_popup_selections': request.session.get('popup_selections', {}),
+        'session_circuit_definition': circuit_definition,
+        'matching_model': matching_model,
+        'matched_model_info': {
+            'structure_type': matching_model.structure_type if matching_model else None,
+            'attachment_points': matching_model.attachment_points if matching_model else None,
+            'configuration': matching_model.configuration if matching_model else None,
+            'circuit_type': matching_model.circuit_type if matching_model else None,
+        } if matching_model else None,
+    }
+    
+    return render(request, 'app1/hdata1.html', context)
+    
+    
+def find_matching_model(session_data):
+    """
+    Find a 3D model that matches the session selections
+    """
+    from .models import TowerModel
+    
+    # Extract data from session
+    structure_type = session_data.get('selected_structure_type')
+    popup_selections = session_data.get('popup_selections', {})
+    circuit_definition = session_data.get('circuit_definition', {})
+    
+    # Get attachment points and configuration
+    attachment_points = popup_selections.get('attachment_points')
+    configuration = popup_selections.get('configuration')
+    
+    # Determine circuit type based on circuit definition
+    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
+    circuit_type = 'sc' if num_3_phase == 1 else 'dc' if num_3_phase == 2 else 'tc'
+    
+    # First, try to find exact match
+    query = TowerModel.objects.filter(
+        structure_type=structure_type,
+        attachment_points=attachment_points,
+        configuration=configuration,
+        circuit_type=circuit_type
+    ).first()
+    
+    if query:
+        return query
+    
+    # If no exact match, try with fewer conditions
+    query = TowerModel.objects.filter(
+        structure_type=structure_type,
+        attachment_points=attachment_points,
+        configuration=configuration
+    ).first()
+    
+    if query:
+        return query
+    
+    # Last resort: just match structure type
+    query = TowerModel.objects.filter(
+        structure_type=structure_type
+    ).first()
+    
+    return query"
 
-this is hdata.html 
+this is hdata1.html 
 "<div class="container">
         <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
         
@@ -1805,37 +641,83 @@ this is hdata.html
 
             <!-- Model Upload Card -->
             <div class="model-control-card">
-                <div class="model-control-header">
-                    <h6>Upload New 3D Tower Model</h6>
+    <div class="model-control-header">
+        <h6>Upload New 3D Tower Model</h6>
+    </div>
+    <div class="model-control-body">
+        <form method="post" enctype="multipart/form-data" class="compact-form">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="model_name">Model Name:</label>
+                    <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
                 </div>
-                <div class="model-control-body">
-                    <form method="post" enctype="multipart/form-data" class="compact-form">
-                        {% csrf_token %}
-                        <div class="form-row">
-                            <div class="form-group-compact">
-                                <label for="model_name">Model Name:</label>
-                                <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
-                            </div>
-                            <div class="form-group-compact">
-                                <label for="tower_model_file">3D Model File:</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
-                                    <div class="file-input-display">
-                                        <span>Choose file...</span>
-                                        <span class="file-input-icon">📁</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group-compact">
-                                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
-                            </div>
+                <div class="form-group-compact">
+                    <label for="tower_model_file">3D Model File:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
+                        <div class="file-input-display">
+                            <span>Choose file...</span>
+                            <span class="file-input-icon">📁</span>
                         </div>
-                        <div class="form-text">
-                            <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
+            
+            <!-- ADD THESE FIELDS FOR CATEGORIZATION -->
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="structure_type">Structure Type:</label>
+                    <select name="structure_type" id="structure_type" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="towers">Towers</option>
+                        <option value="hframes">H-Frames</option>
+                        <option value="monopoles">Monopoles</option>
+                    </select>
+                </div>
+                <div class="form-group-compact">
+                    <label for="attachment_points">Attachment Points:</label>
+                    <select name="attachment_points" id="attachment_points" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="deadend">Deadend</option>
+                        <option value="tangent">Tangent</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group-compact">
+                    <label for="configuration">Configuration:</label>
+                    <select name="configuration" id="configuration" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="delta">Delta</option>
+                        <option value="hetic">Hetic</option>
+                    </select>
+                </div>
+                <div class="form-group-compact">
+                    <label for="circuit_type">Circuit Type:</label>
+                    <select name="circuit_type" id="circuit_type" class="form-control-sm" required>
+                        <option value="">Select...</option>
+                        <option value="sc">Single Circuit</option>
+                        <option value="dc">Double Circuit</option>
+                        <option value="tc">Triple Circuit</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group-compact">
+                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
+            </div>
+            
+            <div class="form-text">
+                <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
+            </div>
+        </form>
+    </div>
+</div>
+
         </div>
         
         <!-- Load Display Table - now placed below and full width -->
@@ -1884,6 +766,83 @@ this is hdata.html
                 <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
                 <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
             </div>
+        </div>
+    </div>
+</div>
+<div class="model-matching-info" style="background-color: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
+    <h5>🎯 3D Model Matching</h5>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h6>User Selections:</h6>
+            <ul>
+                <li><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</li>
+                <li><strong>Attachment Points:</strong> {{ session_popup_selections.attachment_points|default:"Not set" }}</li>
+                <li><strong>Configuration:</strong> {{ session_popup_selections.configuration|default:"Not set" }}</li>
+                <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"Not set" }}</li>
+            </ul>
+        </div>
+        
+        <div class="col-md-6">
+            <h6>Matched 3D Model:</h6>
+            {% if matching_model %}
+                <div class="alert alert-success">
+                    <strong>✓ Model Found!</strong><br>
+                    <strong>Name:</strong> {{ matching_model.name }}<br>
+                    <strong>Type:</strong> {{ matching_model.get_structure_type_display }}<br>
+                    <strong>Attachment:</strong> {{ matching_model.get_attachment_points_display|default:"-" }}<br>
+                    <strong>Configuration:</strong> {{ matching_model.get_configuration_display|default:"-" }}<br>
+                    <strong>Circuit:</strong> {{ matching_model.get_circuit_type_display|default:"-" }}
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    <strong>⚠ No Exact Match Found</strong><br>
+                    Using default model or manually selected model.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="session-debug" style="background-color: #e8f4f8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196F3;">
+    <h5>📊 Session Data Summary</h5>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Home Page Data:</h6>
+            <ul>
+               
+                <li><strong>Active Popups:</strong> 
+                    {% if session_active_popups %}
+                        {{ session_active_popups|join:", " }}
+                    {% else %}
+                        None
+                    {% endif %}
+                </li>
+            </ul>
+            
+            <h6>Popup Selections:</h6>
+            <ul>
+                {% for key, value in session_popup_selections.items %}
+                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% empty %}
+                    <li>No popup selections</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="col-md-6">
+            <h6>Circuit Definition Data:</h6>
+            {% if session_circuit_definition %}
+                <ul>
+                    <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"Not set" }}</li>
+                    <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"Not set" }}</li>
+                    <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"Not set" }}</li>
+                    <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"Not set" }}</li>
+                  
+                </ul>
+            {% else %}
+                <p>No circuit definition data available</p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -2059,15 +1018,24 @@ function initJointLabelsSelection() {
     );
 }
 
-{% if selected_model %}
-        const selectedModelUrl = "{{ selected_model.get_file_url }}";
-        console.log('Selected Model URL:', selectedModelUrl); // ADD THIS LINE
-        loadTowerModel(selectedModelUrl);
+{% if matching_model %}
+        // AUTO-LOAD: Use the matched model
+        const matchedModelUrl = "{{ matching_model.get_file_url }}";
+        console.log('Auto-loading matched model:', matchedModelUrl);
+        loadTowerModel(matchedModelUrl);
     {% else %}
-        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
-        console.log('Default Model URL:', defaultModelUrl); // ADD THIS LINE
-        loadDefaultModel(defaultModelUrl);
+        // Fallback to user-selected or default model
+        {% if selected_model %}
+            const selectedModelUrl = "{{ selected_model.get_file_url }}";
+            console.log('Loading manually selected model:', selectedModelUrl);
+            loadTowerModel(selectedModelUrl);
+        {% else %}
+            const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+            console.log('Loading default model:', defaultModelUrl);
+            loadTowerModel(defaultModelUrl);
+        {% endif %}
     {% endif %}
+
 
 // Function to load default model
 function loadDefaultModel() {
@@ -2378,454 +1346,4 @@ function loadDefaultModel() {
             placeItemAtPosition(itemType, itemValue, position);
             checkAndSelectSource(itemType, itemValue);
         }
-    }
-
-    // NEW: Convert screen coordinates to 3D world position
-    function screenToWorldPosition(screenX, screenY) {
-        const vector = new THREE.Vector3(
-            (screenX / renderer.domElement.clientWidth) * 2 - 1,
-            -(screenY / renderer.domElement.clientHeight) * 2 + 1,
-            0.5
-        );
-        
-        vector.unproject(camera);
-        
-        // Create a plane at a reasonable height for new objects
-        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const direction = vector.sub(camera.position).normalize();
-        const raycaster = new THREE.Raycaster(camera.position, direction);
-        const intersectionPoint = new THREE.Vector3();
-        
-        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-            return intersectionPoint;
-        }
-        
-        return null;
-    }
-
-    // NEW: Update drag position visual feedback
-    function updateDragPosition(e) {
-        // This can be enhanced to show a preview of where the item will be placed
-        const rect = renderer.domElement.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        // Could add a temporary preview object here
-    }
-
-    // NEW: Generic function to place items at specific positions
-    function placeItemAtPosition(itemType, itemValue, position) {
-        if (itemType === 'joint') {
-            addJointMarker(itemValue, position);
-        } else if (itemType === 'set' || itemType === 'phase') {
-            if (selectedSets.size === 0 || selectedPhases.size === 0) {
-                showSelectionRequiredMessage();
-                return;
-            }
-            const currentSet = Array.from(selectedSets).pop();
-            const currentPhase = Array.from(selectedPhases).pop();
-            addSetPhaseMarker(currentSet, currentPhase, position);
-        }
-    }
-
-    // NEW: Check and select source checkbox
-    function checkAndSelectSource(itemType, itemValue) {
-        const checkbox = document.querySelector(`input[name="${getCheckboxName(itemType)}"][value="${itemValue}"]`);
-        if (checkbox && !checkbox.checked) {
-            checkbox.checked = true;
-            const changeEvent = new Event('change');
-            checkbox.dispatchEvent(changeEvent);
-        }
-    }
-
-    // NEW: Helper function to get checkbox name
-    function getCheckboxName(itemType) {
-        switch(itemType) {
-            case 'joint': return 'joint-labels';
-            case 'set': return 'set-numbers';
-            case 'phase': return 'phase-numbers';
-            default: return '';
-        }
-    }
-
-    function initTransformControls() {
-        // Create transform controls
-        transformControls = new THREE.TransformControls(camera, renderer.domElement);
-        transformControls.setSize(0.8);
-        transformControls.addEventListener('dragging-changed', function(event) {
-            controls.enabled = !event.value;
-        });
-        
-        // Hide initially
-        transformControls.visible = false;
-        scene.add(transformControls);
-    }
-
-    function toggleGrid() {
-        isGridVisible = !isGridVisible;
-        
-        gridHelpers.forEach(grid => {
-            grid.visible = isGridVisible;
-        });
-        
-        // Update button text
-        const gridToggleBtn = document.getElementById('grid-toggle-btn');
-        if (gridToggleBtn) {
-            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
-            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
-        }
-    }
-
-    // Function to clear all grids
-    function clearAllGrids() {
-        gridHelpers.forEach(grid => {
-            scene.remove(grid);
-        });
-        gridHelpers = [];
-    }
-
-    // Function to create 3D grid cage
-    function create3DGridCage(boundingBox) {
-        const size = boundingBox.getSize(new THREE.Vector3());
-        const center = boundingBox.getCenter(new THREE.Vector3());
-        
-        // Make grid slightly larger than model
-        const gridSize = Math.max(size.x, size.y, size.z) * 1.2;
-        const gridDivisions = 20;
-        
-        // Clear any existing grids
-        clearAllGrids();
-        
-        // Create grids on different planes
-        
-        // XY Plane (front/back)
-        const gridXY1 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
-        gridXY1.position.set(center.x, center.y, boundingBox.min.z - 1);
-        gridXY1.rotation.x = Math.PI / 2;
-        scene.add(gridXY1);
-        gridHelpers.push(gridXY1);
-        
-        const gridXY2 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
-        gridXY2.position.set(center.x, center.y, boundingBox.max.z + 1);
-        gridXY2.rotation.x = Math.PI / 2;
-        scene.add(gridXY2);
-        gridHelpers.push(gridXY2);
-        
-        // XZ Plane (ground/top)
-        const gridXZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
-        gridXZ1.position.set(center.x, boundingBox.min.y - 1, center.z);
-        scene.add(gridXZ1);
-        gridHelpers.push(gridXZ1);
-        
-        const gridXZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
-        gridXZ2.position.set(center.x, boundingBox.max.y + 1, center.z);
-        scene.add(gridXZ2);
-        gridHelpers.push(gridXZ2);
-        
-        // YZ Plane (left/right)
-        const gridYZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
-        gridYZ1.position.set(boundingBox.min.x - 1, center.y, center.z);
-        gridYZ1.rotation.z = Math.PI / 2;
-        scene.add(gridYZ1);
-        gridHelpers.push(gridYZ1);
-        
-        const gridYZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
-        gridYZ2.position.set(boundingBox.max.x + 1, center.y, center.z);
-        gridYZ2.rotation.z = Math.PI / 2;
-        scene.add(gridYZ2);
-        gridHelpers.push(gridYZ2);
-        
-        isGridVisible = true;
-    }
-    
-
-        // NEW: Handle clicks on the 3D canvas for assigning labels
-    function onCanvasClick(event) {
-        event.preventDefault();
-
-        // If we're using transform controls, don't process other clicks
-        if (transformControls.dragging) return;
-
-        const canvas = renderer.domElement;
-        const rect = canvas.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-
-        // If a label is being dropped from sidebar, place it
-        if (currentDroppingItem) {
-            const intersects = raycaster.intersectObjects(scene.children, true);
-
-            if (intersects.length > 0) {
-                const intersection = intersects[0];
-                const point = intersection.point;
-
-                const itemType = currentDroppingItem.type;
-                const itemValue = currentDroppingItem.value;
-
-                if (itemType === 'joint') {
-                    addJointMarker(itemValue, point);
-                } else if (itemType === 'set' || itemType === 'phase') {
-                    if (selectedSets.size === 0 || selectedPhases.size === 0) {
-                        showSelectionRequiredMessage();
-                        return;
-                    }
-                    const currentSet = Array.from(selectedSets).pop();
-                    const currentPhase = Array.from(selectedPhases).pop();
-                    addSetPhaseMarker(currentSet, currentPhase, point);
-                }
-
-                // Check the source checkbox after dropping
-                const checkbox = document.querySelector(`input[name="${itemType === 'joint' ? 'joint-labels' : (itemType === 'set' ? 'set-numbers' : 'phase-numbers')}"][value="${itemValue}"]`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    const changeEvent = new Event('change');
-                    checkbox.dispatchEvent(changeEvent);
-                }
-
-                currentDroppingItem = null;
-                renderer.domElement.style.cursor = 'grab';
-            }
-            return;
-        }
-
-        // Handle selection of markers for transform controls
-        const intersects = raycaster.intersectObjects(scene.children, true);
-        
-        // First, check if we clicked on transform controls
-        const transformControlIntersects = raycaster.intersectObject(transformControls, true);
-        if (transformControlIntersects.length > 0) {
-            return; // Let transform controls handle the click
-        }
-
-        // Then check if we clicked on a marker
-        let foundMarker = false;
-        
-        // Check joint markers
-        Object.keys(jointMarkers).forEach(label => {
-            if (jointMarkers[label].mesh === intersects[0]?.object) {
-                selectObjectForTransform(jointMarkers[label].mesh, label, 'joint');
-                foundMarker = true;
-                return;
-            }
-        });
-        
-        // Check set-phase markers
-        if (!foundMarker) {
-            Object.keys(setMarkers).forEach(id => {
-                if (setMarkers[id].mesh === intersects[0]?.object) {
-                    selectObjectForTransform(setMarkers[id].mesh, id, 'set-phase');
-                    foundMarker = true;
-                    return;
-                }
-            });
-        }
-
-        // If clicked on empty space, deselect
-        if (!foundMarker && intersects.length > 0) {
-            deselectObject();
-        }
-    }
-
-    function deselectObject() {
-        if (selectedObject) {
-            transformControls.detach();
-            transformControls.visible = false;
-            hideSelectionHighlight(selectedObject.object);
-            selectedObject = null;
-        }
-    }
-
-    // NEW: Show selection highlight
-    function showSelectionHighlight(object) {
-        // You can add visual feedback here, like changing color or adding outline
-        if (object.material) {
-            object.userData.originalColor = object.material.color.clone();
-            object.material.color.set(0xffff00); // Yellow highlight
-        }
-    }
-
-    // NEW: Hide selection highlight
-    function hideSelectionHighlight(object) {
-            if (object.material && object.userData.originalColor) {
-                object.material.color.copy(object.userData.originalColor);
-            }
-        }
-
-        // NEW: Select object for transform controls
-        function selectObjectForTransform(object, value, type) {
-        deselectObject();
-        
-        selectedObject = { object, value, type };
-        transformControls.attach(object);
-        transformControls.visible = true;
-        
-        transformControls.addEventListener('change', function() {
-            updateObjectUI(selectedObject);
-        });
-        
-        showSelectionHighlight(object);
-        updateSelectedInfo(selectedObject);
-    }
-    
-   
-
-    // Setup part selection for the tower model
-    function updateRendererSize() {
-        const canvasContainer = document.querySelector('.model-viewer-container');
-        if (canvasContainer && renderer) {
-            const width = canvasContainer.clientWidth;
-            const height = canvasContainer.clientHeight;
-            console.log('Canvas container size:', width, height); // Add this line
-
-            renderer.setSize(width, height);
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-        }
-    }
-
-        // Add a marker for a joint on the 3D model
-    function addJointMarker(jointLabel, position = null) {
-        if (jointMarkers[jointLabel]) return;
-
-        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Same size as set/phase markers
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000, // Red color for joints
-            transparent: true,
-            opacity: 0.7
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-
-        if (position) {
-            sphere.position.copy(position);
-        } else {
-            // Improved default positioning
-            const markerCount = Object.keys(jointMarkers).length;
-            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
-            const row = Math.floor(markerCount / gridSize);
-            const col = markerCount % gridSize;
-
-            sphere.position.set(
-                (col - gridSize / 2) * 0.8,
-                2 + row * 0.4,
-                (row - gridSize / 2) * 0.4
-            );
-        }
-
-        // Create marker div - similar to set/phase markers
-        const markerDiv = document.createElement('div');
-        markerDiv.className = 'value-marker joint-marker';
-        markerDiv.textContent = jointLabel;
-        markerDiv.style.position = 'absolute';
-        markerDiv.style.color = 'black';
-        markerDiv.style.padding = '2px 5px';
-        markerDiv.style.cursor = 'pointer';
-        markerDiv.style.fontWeight = 'bold';
-        markerDiv.style.pointerEvents = 'auto';
-        markerDiv.dataset.jointLabel = jointLabel;
-        document.getElementById('joint-markers-container').appendChild(markerDiv);
-
-        // Click handler for selection - same as set/phase markers
-        markerDiv.addEventListener('click', function(e) {
-            e.stopPropagation();
-            selectObjectForTransform(sphere, jointLabel, 'joint');
-        });
-
-        jointMarkers[jointLabel] = {
-            mesh: sphere,
-            div: markerDiv,
-            originalScale: 1
-        };
-
-        scene.add(sphere);
-        updateMarkerPosition(sphere, markerDiv);
-    }
-
-    // MODIFIED: addSetPhaseMarker - add selection capability
-    function addSetPhaseMarker(setNumber, phaseNumber, position = null) {
-    const combination = Array.from(activeCombinations.values()).find(comb => 
-        comb.set === setNumber && comb.phase === phaseNumber
-    );
-    
-    if (!combination) return null;
-
-    const uniqueId = `${combination.id}_${Date.now()}`;
-    
-    // Your existing marker creation code here (keep the same)
-    const geometry = new THREE.SphereGeometry(0.06, 16, 16);
-    const material = new THREE.MeshBasicMaterial({ 
-        color: 0x0000ff,
-        transparent: true,
-        opacity: 0.7
-    });
-    const sphere = new THREE.Mesh(geometry, material);
-
-    if (position) {
-        sphere.position.copy(position);
-    } else {
-        const markerCount = Object.keys(setMarkers).length;
-        const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
-        const row = Math.floor(markerCount / gridSize);
-        const col = markerCount % gridSize;
-
-        sphere.position.set(
-            (col - gridSize / 2) * 0.8,
-            2 + row * 0.4,
-            (row - gridSize / 2) * 0.4
-        );
-    }
-
-    // Create HTML marker (your existing code)
-    const markerDiv = document.createElement('div');
-    markerDiv.className = 'value-marker set-phase-marker';
-    markerDiv.textContent = `${setNumber}:${phaseNumber}`;
-    markerDiv.style.position = 'absolute';
-    markerDiv.style.color = 'black';
-    markerDiv.style.padding = '2px 5px';
-    markerDiv.style.cursor = 'pointer';
-    markerDiv.style.fontWeight = 'bold';
-    markerDiv.style.pointerEvents = 'auto';
-    markerDiv.dataset.combinedId = uniqueId;
-    markerDiv.dataset.baseCombination = `${setNumber}:${phaseNumber}`;
-    document.getElementById('set-markers-container').appendChild(markerDiv);
-
-    markerDiv.addEventListener('click', function(e) {
-        e.stopPropagation();
-        selectObjectForTransform(sphere, uniqueId, 'set-phase');
-    });
-
-    // Store the marker
-    setMarkers[uniqueId] = {
-        mesh: sphere,
-        div: markerDiv,
-        setNumber: setNumber,
-        phaseNumber: phaseNumber,
-        baseCombination: `${setNumber}:${phaseNumber}`,
-        uniqueId: uniqueId,
-        combinationId: combination.id,
-        originalScale: 1
-    };
-
-    scene.add(sphere);
-    updateMarkerPosition(sphere, markerDiv);
-    
-    return uniqueId;
-}
-
-    // Add CSS for better cursor feedback
-    const style = document.createElement('style');
-    style.textContent = `
-        .value-marker:hover {
-            transform: scale(1.1);
-            transition: transform 0.2s ease;
-        }
-        
-        #model-canvas.grabbing {
-            cursor: grabbing !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-   
-</script>"
+    }"
