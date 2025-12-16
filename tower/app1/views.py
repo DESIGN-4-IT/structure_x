@@ -431,9 +431,215 @@ def store_set_phase_combinations(request):
         print(f"Error storing combinations: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+def debug_session_selections(session_data):
+    """Helper to debug session data"""
+    print("\n🔍 SESSION DATA DEBUG:")
+    print(f"Structure Type: {session_data.get('selected_structure_type')}")
+    
+    popup_selections = session_data.get('popup_selections', {})
+    print(f"Popup Selections: {popup_selections}")
+    
+    circuit_def = session_data.get('circuit_definition', {})
+    print(f"Circuit Definition: {circuit_def}")
+    
+    # Print all stored models for reference
+    from .models import TowerModel
+    all_models = TowerModel.objects.all()
+    print(f"\n📦 AVAILABLE MODELS IN DATABASE ({all_models.count()} total):")
+    for model in all_models:
+        print(f"  - {model.name}: {model.structure_type}/{model.attachment_points}/{model.configuration}/{model.circuit_type}")
+
+def find_matching_model(session_data):
+    """
+    Find a 3D model that matches ALL session selections including complete circuit definition
+    """
+    from .models import TowerModel
+    
+    # Extract data from session
+    structure_type = session_data.get('selected_structure_type')
+    popup_selections = session_data.get('popup_selections', {})
+    circuit_definition = session_data.get('circuit_definition', {})
+    
+    # Get attachment points and configuration from popups
+    attachment_points = popup_selections.get('attachment_points')
+    configuration = popup_selections.get('configuration')
+    
+    # DEBUG: Print all selection data
+    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
+    print(f"  Structure Type: {structure_type}")
+    print(f"  Attachment Points: {attachment_points}")
+    print(f"  Configuration: {configuration}")
+    print(f"  Circuit Definition: {circuit_definition}")
+    
+    # Convert to integers safely
+    num_3_phase = 0
+    num_1_phase = 0
+    
+    try:
+        num_3_phase = int(circuit_definition.get('num_3_phase_circuits', 0) or 0)
+    except (ValueError, TypeError):
+        num_3_phase = 0
+        
+    try:
+        num_1_phase = int(circuit_definition.get('num_1_phase_circuits', 0) or 0)
+    except (ValueError, TypeError):
+        num_1_phase = 0
+    
+    # CORRECT CIRCUIT TYPE CALCULATION FOR TRANSMISSION LINE STRUCTURES:
+    # Priority: 3-Phase Circuits > 1-Phase Circuits
+    # Shield wires and comm cables typically don't count as separate circuits
+    
+    if num_3_phase >= 3:
+        circuit_type = 'tc'  # Triple Circuit
+    elif num_3_phase == 2:
+        circuit_type = 'dc'  # Double Circuit
+    elif num_3_phase == 1:
+        circuit_type = 'sc'  # Single Circuit
+    elif num_1_phase >= 3:
+        circuit_type = 'tc'  # Triple Circuit (1-phase bundles)
+    elif num_1_phase == 2:
+        circuit_type = 'dc'  # Double Circuit (1-phase bundles)
+    elif num_1_phase == 1:
+        circuit_type = 'sc'  # Single Circuit (1-phase bundle)
+    else:
+        circuit_type = 'sc'  # Default to Single Circuit
+    
+    print(f"  Calculated Circuit Type: {circuit_type}")
+    print(f"    Based on: 3-Phase Circuits={num_3_phase}, 1-Phase Circuits={num_1_phase}")
+    
+    # Try to find EXACT match first
+    matching_model = TowerModel.objects.filter(
+        structure_type=structure_type,
+        attachment_points=attachment_points,
+        configuration=configuration,
+        circuit_type=circuit_type
+    ).first()
+    
+    if matching_model:
+        print(f"  ✓ Found EXACT match: {matching_model.name}")
+        return matching_model
+    
+    print(f"  ⚠ No exact match found, trying naming convention...")
+    
+    # FIXED NAMING CONVENTION MAPPING:
+    # Structure type prefix
+    if structure_type == 'hframes':
+        prefix = "HFrame"
+    elif structure_type == 'towers':
+        prefix = "Tower"
+    elif structure_type == 'monopoles':
+        prefix = "MP"
+    else:
+        prefix = structure_type.capitalize() if structure_type else ""
+    
+    # FIXED: Attachment points mapping (DE vs Tan)
+    if attachment_points == 'deadend':
+        attachment_code = "DE"
+    elif attachment_points == 'tangent':
+        attachment_code = "Tan"
+    else:
+        attachment_code = ""
+    
+    # FIXED: Configuration mapping (Vert vs Horiz)
+    if configuration == 'vertical':
+        config_code = "Vert"
+    elif configuration == 'horizontal':
+        config_code = "Horiz"
+    elif configuration == 'delta':
+        config_code = "Delta"
+    elif configuration == 'hetic':
+        config_code = "Hetic"
+    else:
+        config_code = configuration.capitalize() if configuration else ""
+    
+    # Circuit type code
+    circuit_code = circuit_type.upper()  # SC, DC, TC
+    
+    # Generate the expected name based on your naming pattern
+    expected_name = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
+    print(f"  Looking for model with name pattern: {expected_name}")
+    
+    # FIRST: Try to find by exact name
+    exact_name_match = TowerModel.objects.filter(name__iexact=expected_name).first()
+    if exact_name_match:
+        print(f"  ✓ Found EXACT name match: {exact_name_match.name}")
+        return exact_name_match
+    
+    # SECOND: Try to find by name containing all parts
+    name_query = TowerModel.objects.all()
+    
+    # Add filters based on name parts
+    if prefix:
+        name_query = name_query.filter(name__icontains=prefix)
+    if attachment_code:
+        name_query = name_query.filter(name__icontains=attachment_code)
+    if config_code:
+        name_query = name_query.filter(name__icontains=config_code)
+    if circuit_code:
+        name_query = name_query.filter(name__icontains=circuit_code)
+    
+    # Get all matching by name
+    name_matches = list(name_query)
+    
+    if name_matches:
+        print(f"  Found {len(name_matches)} name matches:")
+        for match in name_matches:
+            print(f"    - {match.name} ({match.structure_type}/{match.attachment_points}/{match.configuration}/{match.circuit_type})")
+        return name_matches[0]
+    
+    # THIRD: Try fuzzy matching
+    print(f"  Trying fuzzy matching...")
+    all_models = TowerModel.objects.all()
+    best_match = None
+    best_score = 0
+    
+    for model in all_models:
+        score = 0
+        
+        # Check structure type (most important - 30 points)
+        if model.structure_type == structure_type:
+            score += 30
+        
+        # Check attachment points (25 points)
+        if model.attachment_points == attachment_points:
+            score += 25
+        
+        # Check configuration (25 points)
+        if model.configuration == configuration:
+            score += 25
+        
+        # Check circuit type (20 points)
+        if model.circuit_type == circuit_type:
+            score += 20
+        
+        # Check name contains expected parts
+        model_name_upper = model.name.upper()
+        expected_parts = [prefix.upper(), attachment_code.upper(), config_code.upper(), circuit_code]
+        for part in expected_parts:
+            if part and part in model_name_upper:
+                score += 5
+        
+        if score > best_score:
+            best_score = score
+            best_match = model
+    
+    if best_match and best_score >= 50:
+        print(f"  ✓ Found BEST fuzzy match: {best_match.name} (score: {best_score})")
+        print(f"    Details: {best_match.structure_type}/{best_match.attachment_points}/{best_match.configuration}/{best_match.circuit_type}")
+        return best_match
+    
+    # FINAL FALLBACK: Get first model of the correct structure type
+    print(f"  ⚠ Falling back to first {structure_type} model")
+    fallback = TowerModel.objects.filter(structure_type=structure_type).first()
+    if fallback:
+        print(f"  Using: {fallback.name}")
+    return fallback
+
 def hdata1(request):
     # DEBUG: Print all session data at the start of hdata1
-    print(f"DEBUG [hdata1 Page] - All session data received:")
+    debug_session_selections(request.session)
+    
+    print(f"\n📊 DEBUG [hdata1 Page] - Detailed session data:")
     print(f"  1. Home Page Data:")
     print(f"     Structure Type: {request.session.get('selected_structure_type')}")
     print(f"     Structure ID: {request.session.get('selected_structure_id')}")
@@ -452,6 +658,7 @@ def hdata1(request):
     print(f"  3. Selection Values:")
     print(f"     Selected Values: {request.session.get('selected_values', {})}")
     
+    # Find matching model based on all selections
     matching_model = find_matching_model(request.session)
     print(f"\n🔍 DEBUG [hdata1] - Matching Results:")
     if matching_model:
@@ -467,49 +674,64 @@ def hdata1(request):
     available_models = TowerModel.objects.all().order_by('name')
     selected_model_id = request.session.get('selected_model_id')
     
+    # AUTO-SELECT matched model if available
     if matching_model:
         selected_model_id = matching_model.id
         request.session['selected_model_id'] = selected_model_id
-        print(f"  🎯 AUTO-SELECTING matched model ID: {selected_model_id}")
+        request.session['matched_model_id'] = matching_model.id
+        print(f"  🎯 AUTO-SELECTING matched model ID: {selected_model_id} ({matching_model.name})")
+    elif selected_model_id:
+        # Keep existing selection if no match found
+        print(f"  🔄 Keeping existing selection ID: {selected_model_id}")
     
-    if request.method == 'POST' and 'selected_model' in request.POST:
-        selected_model_id = request.POST.get('selected_model')
-        if selected_model_id:
-            request.session['selected_model_id'] = selected_model_id
-            print(f"  🔄 User manually selected model ID: {selected_model_id}")
-        else:
-            # Clear selection if "None" is selected
-            request.session.pop('selected_model_id', None)
-            # If user cleared selection, revert to matched model
-            if matching_model:
-                selected_model_id = matching_model.id
+    # Handle POST requests for model selection
+    if request.method == 'POST':
+        # Handle manual model selection
+        if 'selected_model' in request.POST:
+            selected_model_id = request.POST.get('selected_model')
+            if selected_model_id:
                 request.session['selected_model_id'] = selected_model_id
-                print(f"  🔄 User cleared selection, reverting to matched model")
-    
-    # Handle new model upload
-    if request.method == 'POST' and 'tower_model_file' in request.FILES:
-        model_name = request.POST.get('model_name', 'Unnamed Model')
-        model_file = request.FILES['tower_model_file']
+                print(f"  🔄 User manually selected model ID: {selected_model_id}")
+                
+                # Clear matched model flag since user made manual choice
+                if 'matched_model_id' in request.session:
+                    del request.session['matched_model_id']
+            else:
+                # Clear selection if "None" is selected
+                request.session.pop('selected_model_id', None)
+                # If user cleared selection, revert to matched model
+                if matching_model:
+                    selected_model_id = matching_model.id
+                    request.session['selected_model_id'] = selected_model_id
+                    request.session['matched_model_id'] = matching_model.id
+                    print(f"  🔄 User cleared selection, reverting to matched model")
         
-        # Validate file type
-        if model_file.name.endswith(('.glb', '.gltf')):
-            # Get categorization from form
-            structure_type = request.POST.get('structure_type')
-            attachment_points = request.POST.get('attachment_points')
-            configuration = request.POST.get('configuration')
-            circuit_type = request.POST.get('circuit_type')
+        # Handle new model upload
+        if 'tower_model_file' in request.FILES:
+            model_name = request.POST.get('model_name', 'Unnamed Model')
+            model_file = request.FILES['tower_model_file']
             
-            new_model = TowerModel.objects.create(
-                name=model_name,
-                model_file=model_file,
-                structure_type=structure_type,
-                attachment_points=attachment_points,
-                configuration=configuration,
-                circuit_type=circuit_type
-            )
-            # Optionally select the newly uploaded model
-            request.session['selected_model_id'] = new_model.id
-
+            # Validate file type
+            if model_file.name.endswith(('.glb', '.gltf')):
+                # Get categorization from form
+                structure_type = request.POST.get('structure_type')
+                attachment_points = request.POST.get('attachment_points')
+                configuration = request.POST.get('configuration')
+                circuit_type = request.POST.get('circuit_type')
+                
+                new_model = TowerModel.objects.create(
+                    name=model_name,
+                    model_file=model_file,
+                    structure_type=structure_type,
+                    attachment_points=attachment_points,
+                    configuration=configuration,
+                    circuit_type=circuit_type
+                )
+                
+                # Optionally select the newly uploaded model
+                request.session['selected_model_id'] = new_model.id
+                selected_model_id = new_model.id
+                print(f"  📤 New model uploaded and selected: {new_model.name} (ID: {new_model.id})")
     
     # Get selected model if any
     selected_model = None
@@ -517,13 +739,32 @@ def hdata1(request):
         try:
             selected_model = TowerModel.objects.get(id=selected_model_id)
             print(f"  📊 Current selected model: {selected_model.name} (ID: {selected_model.id})")
+            print(f"    Details: {selected_model.structure_type}/{selected_model.attachment_points}/{selected_model.configuration}/{selected_model.circuit_type}")
         except TowerModel.DoesNotExist:
             print(f"  ❌ Selected model ID {selected_model_id} not found")
             selected_model = None
             
-    if not selected_model and matching_model:
-        selected_model = matching_model
-        print(f"  🆘 Fallback to matching model: {selected_model.name}")
+    # ENSURE we always have a selected model
+    if not selected_model:
+        if matching_model:
+            selected_model = matching_model
+            print(f"  🆘 Fallback to matching model: {selected_model.name}")
+        elif available_models.exists():
+            selected_model = available_models.first()
+            print(f"  ⚠ No match found, selecting first available: {selected_model.name}")
+        else:
+            print(f"  ⚠ No models available in database")
+    
+    # Store model info in session for frontend
+    if selected_model:
+        request.session['selected_model_url'] = selected_model.get_file_url()
+        request.session['selected_model_name'] = selected_model.name
+        request.session['selected_model_details'] = {
+            'structure_type': selected_model.structure_type,
+            'attachment_points': selected_model.attachment_points,
+            'configuration': selected_model.configuration,
+            'circuit_type': selected_model.circuit_type
+        }
     
     # Get all session data to pass to template
     selected_values = request.session.get('selected_values', {})
@@ -534,7 +775,13 @@ def hdata1(request):
     # Get circuit definition data from session
     circuit_definition = request.session.get('circuit_definition', {})
     
-    # Keep only the canvas container logic
+    # Process structure data if structure_id exists
+    joint_labels = []
+    set_numbers = []
+    phase_numbers = []
+    load_data = []
+    df_columns = []
+    
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
@@ -559,6 +806,7 @@ def hdata1(request):
                 raise Exception("No uploaded file found for this structure")
                 
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
+            df_columns = list(df.columns)
 
             # Get selected load cases from session to filter data
             selected_load_cases = selected_values.get('load_cases', [])
@@ -589,14 +837,10 @@ def hdata1(request):
             set_numbers = []
             phase_numbers = []
             load_data = []
+            df_columns = []
             print(f"Error processing Excel file: {str(e)}")
-    else:
-        joint_labels = []
-        set_numbers = []
-        phase_numbers = []
-        load_data = []
     
-    # NEW: Initialize session storage for selections
+    # Initialize session storage for selections
     if 'selected_values' not in request.session:
         request.session['selected_values'] = {}
     
@@ -609,7 +853,6 @@ def hdata1(request):
     
     # Get current selections from session
     selected_joints = request.session['selected_values'].get('selected_joints', [])
-    # IMPORTANT: The active_combinations now includes the 'Ahead'/'Back' status
     active_combinations = request.session['selected_values'].get('active_combinations', [])
     
     # Build filter criteria
@@ -624,19 +867,16 @@ def hdata1(request):
     if active_combinations:
         for combo in active_combinations:
             if isinstance(combo, str):
-                # New, correct format: "1-2-Ahead"
-                # We need the first two parts ("1" and "2")
-                set_phase_pairs.append(combo.split('-')[:2])
+                # Format: "1-2-Ahead"
+                parts = combo.split('-')
+                if len(parts) >= 2:
+                    set_phase_pairs.append([parts[0], parts[1]])
             elif isinstance(combo, dict):
-                # Handle potential LEGACY dictionary format (e.g., {'set': 1, 'phase': 2})
-                # If your old format was different, adjust this logic.
-                set_val = str(combo.get('set'))
-                phase_val = str(combo.get('phase'))
+                # Handle legacy dictionary format
+                set_val = str(combo.get('set', ''))
+                phase_val = str(combo.get('phase', ''))
                 if set_val and phase_val:
                     set_phase_pairs.append([set_val, phase_val])
-                # NOTE: If you don't need to support the legacy dict format, you can
-                # just add a 'pass' or continue to skip it.
-            # else: skip other unexpected data types
 
     if set_phase_pairs:
         filter_criteria['set_phase_combinations'] = set_phase_pairs
@@ -645,194 +885,70 @@ def hdata1(request):
     request.session['selected_values']['filter_criteria'] = filter_criteria
     request.session.modified = True
 
+    # Calculate total circuits for display
+    total_circuits = 0
+    if circuit_definition:
+        num_3_phase = int(circuit_definition.get('num_3_phase_circuits', 0) or 0)
+        num_1_phase = int(circuit_definition.get('num_1_phase_circuits', 0) or 0)
+        total_circuits = num_3_phase + num_1_phase
+
     # Prepare context data including all session information
     context = {
-        # Existing context
+        # Model selection context
         'available_models': available_models,
         'selected_model': selected_model,
+        'matching_model': matching_model,
+        
+        # Structure data context
         'joint_labels': joint_labels,
         'set_numbers': set_numbers,
         'phase_numbers': phase_numbers,
         'load_data': load_data,
         'load_data_json': json.dumps(load_data),
+        'all_columns': df_columns,
+        
+        # Selection context
         'selected_values': selected_values,
-        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
         'button_type': button_type,
         'structure_id': structure_id,
         'filter_criteria': filter_criteria,
         'selected_joints': selected_joints,
         'active_combinations': active_combinations,
         
-        # NEW: Session data from Home Page and Circuit Definition
+        # Session data from Home Page and Circuit Definition
         'session_structure_type': request.session.get('selected_structure_type', ''),
         'session_structure_id': request.session.get('selected_structure_id', ''),
         'session_active_popups': request.session.get('active_popups', []),
         'session_popup_selections': request.session.get('popup_selections', {}),
         'session_circuit_definition': circuit_definition,
-        'matching_model': matching_model,
+        'session_total_circuits': total_circuits,
+        
+        # Model matching info
         'matched_model_info': {
             'structure_type': matching_model.structure_type if matching_model else None,
             'attachment_points': matching_model.attachment_points if matching_model else None,
             'configuration': matching_model.configuration if matching_model else None,
             'circuit_type': matching_model.circuit_type if matching_model else None,
         } if matching_model else None,
+        
+        # Selection comparison for debugging
+        'selection_comparison': {
+            'user_structure': request.session.get('selected_structure_type'),
+            'user_attachment': request.session.get('popup_selections', {}).get('attachment_points'),
+            'user_configuration': request.session.get('popup_selections', {}).get('configuration'),
+            'model_structure': selected_model.structure_type if selected_model else None,
+            'model_attachment': selected_model.attachment_points if selected_model else None,
+            'model_configuration': selected_model.configuration if selected_model else None,
+            'is_matched': selected_model == matching_model if selected_model and matching_model else False
+        } if selected_model else {}
     }
     
+    print(f"\n✅ [hdata1] Context prepared:")
+    print(f"  Selected Model: {selected_model.name if selected_model else 'None'}")
+    print(f"  Matching Model: {matching_model.name if matching_model else 'None'}")
+    print(f"  Models Match: {selected_model == matching_model if selected_model and matching_model else False}")
+    
     return render(request, 'app1/hdata1.html', context)
-    
-    
-def find_matching_model(session_data):
-    """
-    Find a 3D model that matches ALL session selections including complete circuit definition
-    """
-    from .models import TowerModel
-    
-    # Extract data from session
-    structure_type = session_data.get('selected_structure_type')
-    popup_selections = session_data.get('popup_selections', {})
-    circuit_definition = session_data.get('circuit_definition', {})
-    
-    # Get attachment points and configuration from popups
-    attachment_points = popup_selections.get('attachment_points')
-    configuration = popup_selections.get('configuration')
-    
-    # DEBUG: Print all selection data
-    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
-    print(f"  Structure Type: {structure_type}")
-    print(f"  Attachment Points: {attachment_points}")
-    print(f"  Configuration: {configuration}")
-    print(f"  Circuit Definition: {circuit_definition}")
-    
-    # DETERMINE CIRCUIT TYPE BASED ON ALL CIRCUIT DEFINITION FIELDS
-    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
-    num_shield_wires = circuit_definition.get('num_shield_wires', 0)
-    num_1_phase = circuit_definition.get('num_1_phase_circuits', 0)
-    num_comm_cables = circuit_definition.get('num_communication_cables', 0)
-    
-    # Determine total circuits based on ALL components
-    total_circuits = 0
-    
-    # 3-Phase circuits count as full circuits
-    total_circuits += num_3_phase
-    
-    # Shield wires don't typically count as separate circuits for model matching
-    # 1-Phase circuits typically bundle together
-    if num_1_phase > 0:
-        total_circuits += 1  # Add one for any 1-phase circuits
-    
-    # Communication cables also typically bundle
-    if num_comm_cables > 0:
-        total_circuits += 1  # Add one for any communication cables
-    
-    # Map total circuits to circuit type codes
-    if total_circuits == 1:
-        circuit_type = 'sc'  # Single Circuit
-    elif total_circuits == 2:
-        circuit_type = 'dc'  # Double Circuit
-    elif total_circuits >= 3:
-        circuit_type = 'tc'  # Triple Circuit
-    else:
-        circuit_type = 'sc'  # Default to Single Circuit
-    
-    print(f"  Calculated Circuit Type: {circuit_type} (based on {total_circuits} total circuits)")
-    print(f"    Breakdown: 3-Phase={num_3_phase}, 1-Phase={num_1_phase}, Comm={num_comm_cables}")
-    
-    # Try to find EXACT match first
-    matching_model = TowerModel.objects.filter(
-        structure_type=structure_type,
-        attachment_points=attachment_points,
-        configuration=configuration,
-        circuit_type=circuit_type
-    ).first()
-    
-    if matching_model:
-        print(f"  ✓ Found EXACT match: {matching_model.name}")
-        return matching_model
-    
-    # If no exact match, try matching with structure naming convention
-    # Based on your naming: HFrame_DE_Vert_SC, HFrame_Tan_Vert_DC, etc.
-    print(f"  ⚠ No exact match found, trying naming convention match...")
-    
-    # Generate expected name patterns
-    # Structure type prefix
-    if structure_type == 'hframes':
-        prefix = "HFrame"
-    elif structure_type == 'towers':
-        prefix = "Tower"
-    elif structure_type == 'monopoles':
-        prefix = "MP"
-    else:
-        prefix = ""
-    
-    # Attachment points
-    if attachment_points == 'deadend':
-        attachment_code = "DE"
-    elif attachment_points == 'tangent':
-        attachment_code = "Tan"
-    else:
-        attachment_code = ""
-    
-    # Configuration
-    if configuration == 'vertical':
-        config_code = "Vert"
-    elif configuration == 'horizontal':
-        config_code = "Horiz"
-    else:
-        config_code = configuration[:4] if configuration else ""
-    
-    # Circuit type
-    circuit_code = circuit_type.upper()  # SC, DC, TC
-    
-    # Try to find by name pattern
-    expected_pattern = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
-    print(f"  Searching for pattern: {expected_pattern}")
-    
-    # Get all models and try to find closest match
-    all_models = TowerModel.objects.all()
-    best_match = None
-    best_score = 0
-    
-    for model in all_models:
-        score = 0
-        
-        # Check structure type
-        if model.structure_type == structure_type:
-            score += 30
-        
-        # Check attachment points
-        if model.attachment_points == attachment_points:
-            score += 25
-        
-        # Check configuration
-        if model.configuration == configuration:
-            score += 25
-        
-        # Check circuit type
-        if model.circuit_type == circuit_type:
-            score += 20
-        
-        # Check name contains expected parts
-        model_name_upper = model.name.upper()
-        if prefix and prefix.upper() in model_name_upper:
-            score += 5
-        if attachment_code and attachment_code.upper() in model_name_upper:
-            score += 5
-        if config_code and config_code.upper() in model_name_upper:
-            score += 5
-        if circuit_code and circuit_code in model_name_upper:
-            score += 5
-        
-        if score > best_score:
-            best_score = score
-            best_match = model
-    
-    if best_match and best_score >= 50:  # At least somewhat relevant match
-        print(f"  ✓ Found BEST match: {best_match.name} (score: {best_score})")
-        return best_match
-    
-    # Last resort: return first model with matching structure type
-    print(f"  ⚠ Falling back to first {structure_type} model")
-    return TowerModel.objects.filter(structure_type=structure_type).first()
 
 # Add this function to your views.py
 def update_selection_session(request):

@@ -2,8 +2,6 @@ Read the entire codebase carefully and act as a full-stack developer with 10+ ye
 
 Objective
 
-I want a simple implementation and do not want to create any new files.
-
 I need to display a 3D .glb model inside an existing canvas container, based on user selections made on:
 
 The Home page
@@ -14,50 +12,46 @@ The 3D model should be loaded from the backend according to these selections.
 
 Current Status
 
-I have already implemented backend logic to fetch and store user-selected data (using session or context) on the hdeadend1 page.
+I have already implemented backend logic to fetch and store user-selected data (using session or context) on the hdeadend1,hdeadend2,hdeadend3 and hdeadend4 page.
 
 The backend successfully receives and logs the following selections:
 
 Active Popups
 
-structure_type_hframes
+structure_type_...
 
-attachment_points_deadend
+attachment_points_...
 
-configuration_vertical
+configuration_...
 
 Popup Selections
-structure_type: hframes
-attachment_points: deadend
-configuration: vertical
+structure_type: ...
+attachment_points: ...
+configuration: ...
 
 Circuit Definition Form Data
-3-Phase Circuits: 1
-Shield Wires: 1
-1-Phase Circuits: 1
-Communication Cables: 1
+3-Phase Circuits: ...
+Shield Wires: ...
+1-Phase Circuits: ...
+Communication Cables: ...
 
 Issue
 
-I have already written backend logic to load a 3D model, but currently it only considers the 3-Phase Circuits field from the Circuit Definition Form.
+I have already written backend logic to load a 3D model, but i am confuse who backend works 
+and 
 
-The other fields (Shield Wires, 1-Phase Circuits, Communication Cables) are not being used to determine which 3D .glb model should be loaded.
-and currently it fetch correct selection 
 for example 
 🎯 3D Model Matching
 User Selections:
 Structure Type: hframes
-Attachment Points: tangent
-Configuration: horizontal
-3-Phase Circuits: 2
+Attachment Points: Deadend
+Configuration: virtical
+3-Phase Circuits: ...
 but it match wrong 3d model Matched 3D Model:
 ✓ Model Found!
-Name: HFrame_DE_Vert_SC
-Type: H-Frames
-Attachment: Deadend
-Configuration: Vertical
-Circuit: Single Circuit
-
+Name: HFrame_DE_Horiz_TC or HFrame_Tan_Horiz_TC
+i already store HFrame_DE_Vert_SC only for this i think it not working correctly plz check 
+for other buttons i think it fetch correct 3d model 
 we have this sortcut 
 MP- Monopole
 DE- Deadend
@@ -95,7 +89,8 @@ What exact logic should be added or updated to include all Circuit Definition fi
 How backend data should be passed to the frontend to correctly load and render the .glb model
 
 How to extend the current logic without breaking existing functionality
-
+and tell how backend work using circuit defination data 
+if you want home page code tell i will provide 
 Note
 
 Do not suggest creating new files.
@@ -170,6 +165,8 @@ this is model to store 3d model
             return self.model_file.url
         return ''
     
+
+    
 "
 this is canvas container/hdata1 page code 
 "def hdata1(request):
@@ -194,21 +191,38 @@ this is canvas container/hdata1 page code
     print(f"     Selected Values: {request.session.get('selected_values', {})}")
     
     matching_model = find_matching_model(request.session)
-    # Rest of your existing hdata1 code...
+    print(f"\n🔍 DEBUG [hdata1] - Matching Results:")
+    if matching_model:
+        print(f"  ✓ Found matching model: {matching_model.name}")
+        print(f"    ID: {matching_model.id}")
+        print(f"    Type: {matching_model.structure_type}")
+        print(f"    Attachment: {matching_model.attachment_points}")
+        print(f"    Configuration: {matching_model.configuration}")
+        print(f"    Circuit: {matching_model.circuit_type}")
+    else:
+        print(f"  ⚠ No matching model found")
+
     available_models = TowerModel.objects.all().order_by('name')
     selected_model_id = request.session.get('selected_model_id')
     
-    if not selected_model_id and matching_model:
+    if matching_model:
         selected_model_id = matching_model.id
         request.session['selected_model_id'] = selected_model_id
+        print(f"  🎯 AUTO-SELECTING matched model ID: {selected_model_id}")
     
     if request.method == 'POST' and 'selected_model' in request.POST:
         selected_model_id = request.POST.get('selected_model')
         if selected_model_id:
             request.session['selected_model_id'] = selected_model_id
+            print(f"  🔄 User manually selected model ID: {selected_model_id}")
         else:
             # Clear selection if "None" is selected
             request.session.pop('selected_model_id', None)
+            # If user cleared selection, revert to matched model
+            if matching_model:
+                selected_model_id = matching_model.id
+                request.session['selected_model_id'] = selected_model_id
+                print(f"  🔄 User cleared selection, reverting to matched model")
     
     # Handle new model upload
     if request.method == 'POST' and 'tower_model_file' in request.FILES:
@@ -240,8 +254,14 @@ this is canvas container/hdata1 page code
     if selected_model_id:
         try:
             selected_model = TowerModel.objects.get(id=selected_model_id)
+            print(f"  📊 Current selected model: {selected_model.name} (ID: {selected_model.id})")
         except TowerModel.DoesNotExist:
-            pass
+            print(f"  ❌ Selected model ID {selected_model_id} not found")
+            selected_model = None
+            
+    if not selected_model and matching_model:
+        selected_model = matching_model
+        print(f"  🆘 Fallback to matching model: {selected_model.name}")
     
     # Get all session data to pass to template
     selected_values = request.session.get('selected_values', {})
@@ -401,7 +421,7 @@ this is canvas container/hdata1 page code
     
 def find_matching_model(session_data):
     """
-    Find a 3D model that matches the session selections
+    Find a 3D model that matches ALL session selections including complete circuit definition
     """
     from .models import TowerModel
     
@@ -410,41 +430,148 @@ def find_matching_model(session_data):
     popup_selections = session_data.get('popup_selections', {})
     circuit_definition = session_data.get('circuit_definition', {})
     
-    # Get attachment points and configuration
+    # Get attachment points and configuration from popups
     attachment_points = popup_selections.get('attachment_points')
     configuration = popup_selections.get('configuration')
     
-    # Determine circuit type based on circuit definition
-    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
-    circuit_type = 'sc' if num_3_phase == 1 else 'dc' if num_3_phase == 2 else 'tc'
+    # DEBUG: Print all selection data
+    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
+    print(f"  Structure Type: {structure_type}")
+    print(f"  Attachment Points: {attachment_points}")
+    print(f"  Configuration: {configuration}")
+    print(f"  Circuit Definition: {circuit_definition}")
     
-    # First, try to find exact match
-    query = TowerModel.objects.filter(
+    # DETERMINE CIRCUIT TYPE BASED ON ALL CIRCUIT DEFINITION FIELDS
+    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
+    num_shield_wires = circuit_definition.get('num_shield_wires', 0)
+    num_1_phase = circuit_definition.get('num_1_phase_circuits', 0)
+    num_comm_cables = circuit_definition.get('num_communication_cables', 0)
+    
+    # Determine total circuits based on ALL components
+    total_circuits = 0
+    
+    # 3-Phase circuits count as full circuits
+    total_circuits += num_3_phase
+    
+    # Shield wires don't typically count as separate circuits for model matching
+    # 1-Phase circuits typically bundle together
+    if num_1_phase > 0:
+        total_circuits += 1  # Add one for any 1-phase circuits
+    
+    # Communication cables also typically bundle
+    if num_comm_cables > 0:
+        total_circuits += 1  # Add one for any communication cables
+    
+    # Map total circuits to circuit type codes
+    if total_circuits == 1:
+        circuit_type = 'sc'  # Single Circuit
+    elif total_circuits == 2:
+        circuit_type = 'dc'  # Double Circuit
+    elif total_circuits >= 3:
+        circuit_type = 'tc'  # Triple Circuit
+    else:
+        circuit_type = 'sc'  # Default to Single Circuit
+    
+    print(f"  Calculated Circuit Type: {circuit_type} (based on {total_circuits} total circuits)")
+    print(f"    Breakdown: 3-Phase={num_3_phase}, 1-Phase={num_1_phase}, Comm={num_comm_cables}")
+    
+    # Try to find EXACT match first
+    matching_model = TowerModel.objects.filter(
         structure_type=structure_type,
         attachment_points=attachment_points,
         configuration=configuration,
         circuit_type=circuit_type
     ).first()
     
-    if query:
-        return query
+    if matching_model:
+        print(f"  ✓ Found EXACT match: {matching_model.name}")
+        return matching_model
     
-    # If no exact match, try with fewer conditions
-    query = TowerModel.objects.filter(
-        structure_type=structure_type,
-        attachment_points=attachment_points,
-        configuration=configuration
-    ).first()
+    # If no exact match, try matching with structure naming convention
+    # Based on your naming: HFrame_DE_Vert_SC, HFrame_Tan_Vert_DC, etc.
+    print(f"  ⚠ No exact match found, trying naming convention match...")
     
-    if query:
-        return query
+    # Generate expected name patterns
+    # Structure type prefix
+    if structure_type == 'hframes':
+        prefix = "HFrame"
+    elif structure_type == 'towers':
+        prefix = "Tower"
+    elif structure_type == 'monopoles':
+        prefix = "MP"
+    else:
+        prefix = ""
     
-    # Last resort: just match structure type
-    query = TowerModel.objects.filter(
-        structure_type=structure_type
-    ).first()
+    # Attachment points
+    if attachment_points == 'deadend':
+        attachment_code = "DE"
+    elif attachment_points == 'tangent':
+        attachment_code = "Tan"
+    else:
+        attachment_code = ""
     
-    return query"
+    # Configuration
+    if configuration == 'vertical':
+        config_code = "Vert"
+    elif configuration == 'horizontal':
+        config_code = "Horiz"
+    else:
+        config_code = configuration[:4] if configuration else ""
+    
+    # Circuit type
+    circuit_code = circuit_type.upper()  # SC, DC, TC
+    
+    # Try to find by name pattern
+    expected_pattern = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
+    print(f"  Searching for pattern: {expected_pattern}")
+    
+    # Get all models and try to find closest match
+    all_models = TowerModel.objects.all()
+    best_match = None
+    best_score = 0
+    
+    for model in all_models:
+        score = 0
+        
+        # Check structure type
+        if model.structure_type == structure_type:
+            score += 30
+        
+        # Check attachment points
+        if model.attachment_points == attachment_points:
+            score += 25
+        
+        # Check configuration
+        if model.configuration == configuration:
+            score += 25
+        
+        # Check circuit type
+        if model.circuit_type == circuit_type:
+            score += 20
+        
+        # Check name contains expected parts
+        model_name_upper = model.name.upper()
+        if prefix and prefix.upper() in model_name_upper:
+            score += 5
+        if attachment_code and attachment_code.upper() in model_name_upper:
+            score += 5
+        if config_code and config_code.upper() in model_name_upper:
+            score += 5
+        if circuit_code and circuit_code in model_name_upper:
+            score += 5
+        
+        if score > best_score:
+            best_score = score
+            best_match = model
+    
+    if best_match and best_score >= 50:  # At least somewhat relevant match
+        print(f"  ✓ Found BEST match: {best_match.name} (score: {best_score})")
+        return best_match
+    
+    # Last resort: return first model with matching structure type
+    print(f"  ⚠ Falling back to first {structure_type} model")
+    return TowerModel.objects.filter(structure_type=structure_type).first()
+"
 
 this is hdata1.html 
 "<div class="container">
@@ -614,29 +741,35 @@ this is hdata1.html
                     <h6>Select 3D Tower Model</h6>
                 </div>
                 <div class="model-control-body">
-                    <form method="post" class="compact-form">
-                        {% csrf_token %}
-                        <div class="form-group-compact">
-                            <label for="model-select">Model:</label>
-                            <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
-                                <option value="">-- Default Model --</option>
-                                {% for model in available_models %}
-                                    <option value="{{ model.id }}" 
-                                        {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
-                                        {{ model.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="model-status">
-                            {% if selected_model %}
-                                Currently viewing: <strong>{{ selected_model.name }}</strong>
+                <form method="post" class="compact-form">
+                    {% csrf_token %}
+                    <div class="form-group-compact">
+                        <label for="model-select">Model:</label>
+                        <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
+                            <option value="">-- Default Model --</option>
+                            {% for model in available_models %}
+                                <option value="{{ model.id }}" 
+                                    {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
+                                    {{ model.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="model-status">
+                        {% if selected_model %}
+                            Currently viewing: <strong>{{ selected_model.name }}</strong>
+                            {% if matching_model and selected_model.id == matching_model.id %}
+                                <span class="badge badge-success ml-2">Auto-Matched</span>
                             {% else %}
-                                Using default tower model
+                                <span class="badge badge-info ml-2">Manually Selected</span>
                             {% endif %}
-                        </div>
-                    </form>
-                </div>
+                        {% else %}
+                            Using default tower model
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
             </div>
 
             <!-- Model Upload Card -->
@@ -774,14 +907,22 @@ this is hdata1.html
     
     <div class="row">
         <div class="col-md-6">
-            <h6>User Selections:</h6>
-            <ul>
-                <li><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</li>
-                <li><strong>Attachment Points:</strong> {{ session_popup_selections.attachment_points|default:"Not set" }}</li>
-                <li><strong>Configuration:</strong> {{ session_popup_selections.configuration|default:"Not set" }}</li>
-                <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"Not set" }}</li>
-            </ul>
-        </div>
+        <h6>User Selections:</h6>
+        <ul>
+            <li><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</li>
+            <li><strong>Attachment Points:</strong> {{ session_popup_selections.attachment_points|default:"Not set" }}</li>
+            <li><strong>Configuration:</strong> {{ session_popup_selections.configuration|default:"Not set" }}</li>
+            <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"0" }}</li>
+            <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"0" }}</li>
+            <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"0" }}</li>
+            <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"0" }}</li>
+            <li><strong>Total Circuits:</strong> 
+                {% with num_3_phase=session_circuit_definition.num_3_phase_circuits|default:0|add:0 num_1_phase=session_circuit_definition.num_1_phase_circuits|default:0|add:0 num_comm=session_circuit_definition.num_communication_cables|default:0|add:0 %}
+                    {{ num_3_phase|add:num_1_phase|add:num_comm }}
+                {% endwith %}
+            </li>
+        </ul>
+    </div>
         
         <div class="col-md-6">
             <h6>Matched 3D Model:</h6>
@@ -846,14 +987,6 @@ this is hdata1.html
         </div>
     </div>
 </div>
-
-<!-- Include Three.js library -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TransformControls.js"></script>
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 
 
@@ -995,47 +1128,90 @@ function initJointLabelsSelection() {
         function (gltf) {
             model = gltf.scene;
             scene.add(model);
-
+            console.log('✅ Model loaded successfully:', modelUrl);
+            
+            // Center and scale model
             const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             model.position.sub(center);
-
+            
             create3DGridCage(box);
             model.rotation.y = Math.PI / 4;
-
-            // Initialize enhanced event listeners
-            initEnhancedEventListeners();
             
+            // Initialize event listeners
+            initEnhancedEventListeners();
             animate();
         },
         undefined,
         function (error) {
-            console.error('Error loading model:', error);
-            // Fallback to default model
-            loadDefaultModel();
+            console.error('❌ Error loading model:', error);
+            console.log('Trying to load fallback model...');
+            
+            // Try to load any available model as fallback
+            {% if available_models and available_models.0 %}
+                const fallbackUrl = "{{ available_models.0.get_file_url }}";
+                console.log('Loading fallback model:', fallbackUrl);
+                loadTowerModel(fallbackUrl);
+            {% else %}
+                // Ultimate fallback
+                const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+                console.log('Loading ultimate fallback model:', defaultModelUrl);
+                loadTowerModel(defaultModelUrl);
+            {% endif %}
         }
     );
 }
 
 {% if matching_model %}
-        // AUTO-LOAD: Use the matched model
-        const matchedModelUrl = "{{ matching_model.get_file_url }}";
-        console.log('Auto-loading matched model:', matchedModelUrl);
+    // Get URLs for both matched and selected models
+    const matchedModelUrl = "{{ matching_model.get_file_url }}";
+    const selectedModelUrl = "{{ selected_model.get_file_url|default:'' }}";
+    
+    console.log('🔍 Model Loading Analysis:');
+    console.log('  Matched Model:', "{{ matching_model.name }}", matchedModelUrl);
+    console.log('  Selected Model:', "{{ selected_model.name|default:'None' }}", selectedModelUrl);
+    
+    // Verify they're the same
+    if (selectedModelUrl && matchedModelUrl === selectedModelUrl) {
+        console.log('✅ Matched and selected models are the same');
+        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
+        console.log('Model details:', {
+            name: "{{ matching_model.name }}",
+            type: "{{ matching_model.structure_type }}",
+            attachment: "{{ matching_model.attachment_points }}",
+            config: "{{ matching_model.configuration }}",
+            circuit: "{{ matching_model.circuit_type }}"
+        });
         loadTowerModel(matchedModelUrl);
+    } else if (selectedModelUrl && selectedModelUrl !== matchedModelUrl) {
+        console.log('⚠️ Matched and selected models differ!');
+        console.log('Loading selected model (user choice overrides match):', selectedModelUrl);
+        loadTowerModel(selectedModelUrl);
+    } else {
+        // No selected model, use matched model
+        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
+        console.log('Model details:', {
+            name: "{{ matching_model.name }}",
+            type: "{{ matching_model.structure_type }}",
+            attachment: "{{ matching_model.attachment_points }}",
+            config: "{{ matching_model.configuration }}",
+            circuit: "{{ matching_model.circuit_type }}"
+        });
+        loadTowerModel(matchedModelUrl);
+    }
+{% else %}
+    // No matching model found, use selected or default
+    {% if selected_model %}
+        const selectedModelUrl = "{{ selected_model.get_file_url }}";
+        console.log('📌 Loading manually selected model:', selectedModelUrl);
+        loadTowerModel(selectedModelUrl);
     {% else %}
-        // Fallback to user-selected or default model
-        {% if selected_model %}
-            const selectedModelUrl = "{{ selected_model.get_file_url }}";
-            console.log('Loading manually selected model:', selectedModelUrl);
-            loadTowerModel(selectedModelUrl);
-        {% else %}
-            const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
-            console.log('Loading default model:', defaultModelUrl);
-            loadTowerModel(defaultModelUrl);
-        {% endif %}
+        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
+        console.log('⚙ Loading default model:', defaultModelUrl);
+        loadTowerModel(defaultModelUrl);
     {% endif %}
-
+{% endif %}
 
 // Function to load default model
 function loadDefaultModel() {
@@ -1346,4 +1522,101 @@ function loadDefaultModel() {
             placeItemAtPosition(itemType, itemValue, position);
             checkAndSelectSource(itemType, itemValue);
         }
+    }
+
+    // NEW: Convert screen coordinates to 3D world position
+    function screenToWorldPosition(screenX, screenY) {
+        const vector = new THREE.Vector3(
+            (screenX / renderer.domElement.clientWidth) * 2 - 1,
+            -(screenY / renderer.domElement.clientHeight) * 2 + 1,
+            0.5
+        );
+        
+        vector.unproject(camera);
+        
+        // Create a plane at a reasonable height for new objects
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const direction = vector.sub(camera.position).normalize();
+        const raycaster = new THREE.Raycaster(camera.position, direction);
+        const intersectionPoint = new THREE.Vector3();
+        
+        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
+            return intersectionPoint;
+        }
+        
+        return null;
+    }
+
+    // NEW: Update drag position visual feedback
+    function updateDragPosition(e) {
+        // This can be enhanced to show a preview of where the item will be placed
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Could add a temporary preview object here
+    }
+
+    // NEW: Generic function to place items at specific positions
+    function placeItemAtPosition(itemType, itemValue, position) {
+        if (itemType === 'joint') {
+            addJointMarker(itemValue, position);
+        } else if (itemType === 'set' || itemType === 'phase') {
+            if (selectedSets.size === 0 || selectedPhases.size === 0) {
+                showSelectionRequiredMessage();
+                return;
+            }
+            const currentSet = Array.from(selectedSets).pop();
+            const currentPhase = Array.from(selectedPhases).pop();
+            addSetPhaseMarker(currentSet, currentPhase, position);
+        }
+    }
+
+    // NEW: Check and select source checkbox
+    function checkAndSelectSource(itemType, itemValue) {
+        const checkbox = document.querySelector(`input[name="${getCheckboxName(itemType)}"][value="${itemValue}"]`);
+        if (checkbox && !checkbox.checked) {
+            checkbox.checked = true;
+            const changeEvent = new Event('change');
+            checkbox.dispatchEvent(changeEvent);
+        }
+    }
+
+    // NEW: Helper function to get checkbox name
+    function getCheckboxName(itemType) {
+        switch(itemType) {
+            case 'joint': return 'joint-labels';
+            case 'set': return 'set-numbers';
+            case 'phase': return 'phase-numbers';
+            default: return '';
+        }
+    }
+
+    function initTransformControls() {
+        // Create transform controls
+        transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        transformControls.setSize(0.8);
+        transformControls.addEventListener('dragging-changed', function(event) {
+            controls.enabled = !event.value;
+        });
+        
+        // Hide initially
+        transformControls.visible = false;
+        scene.add(transformControls);
+    }
+
+    function toggleGrid() {
+        isGridVisible = !isGridVisible;
+        
+        gridHelpers.forEach(grid => {
+            grid.visible = isGridVisible;
+        });
+        
+        // Update button text
+        const gridToggleBtn = document.getElementById('grid-toggle-btn');
+        if (gridToggleBtn) {
+            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
+            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
+        }
     }"
+
