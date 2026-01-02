@@ -37,61 +37,180 @@ h2 {
     font-size: 28px;
 }
 
-/* Upload section layout */
-.upload-section {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+/* Messages/Alerts */
+.messages {
+    margin-bottom: 25px;
 }
 
-/* Upload box style */
-.upload-box {
-    padding: 25px;
-    border: 2px dashed #ccc;
-    border-radius: 10px;
-    text-align: center;
-    background-color: #fafafa;
-    width: 100%;
-    max-width: 500px;
-    transition: all 0.3s ease;
-}
-
-.upload-box:hover {
-    border-color: #1252a7;
-    background-color: #f8f9ff;
-}
-
-.upload-box p {
-    margin: 12px 0;
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
     font-weight: 500;
-    color: #444;
+    text-align: center;
 }
 
-/* Form fields */
-.upload-box select,
-.upload-box input[type="file"] {
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error,
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* Form Styles */
+#update-form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+/* Select Dropdown Styling */
+.form-group select {
     width: 100%;
-    padding: 12px;
-    margin-top: 10px;
+    padding: 12px 15px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
-    box-sizing: border-box;
     font-size: 15px;
-    transition: border-color 0.3s;
     background-color: white;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23333' d='M2 0L0 2h4zm0 5L0 3h4z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 12px;
 }
 
-.upload-box select:focus,
-.upload-box input[type="file"]:focus {
-    border-color: #1252a7;
+.form-group select:focus {
     outline: none;
+    border-color: #1252a7;
     box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
 }
 
-/* Upload button */
-.upload-button {
-    margin-top: 20px;
+/* File Input Section */
+.file-input-container {
+    position: relative;
+    margin-top: 10px;
+}
+
+.file-input-label {
+    display: block;
+    padding: 25px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #fafafa;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.file-input-label:hover {
+    border-color: #1252a7;
+    background-color: #f8f9ff;
+    color: #1252a7;
+}
+
+.file-input-label i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+/* Hide default file input */
+.form-group input[type="file"] {
+    position: absolute;
     width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* File name display */
+.file-name-display {
+    display: block;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #495057;
+    text-align: center;
+}
+
+/* Help Text */
+.form-text {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Error Messages */
+.error {
+    color: #d9534f;
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 500;
+    background: #f8d7da;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #f5c6cb;
+    text-align: left;
+}
+
+.error ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.error li {
+    margin: 2px 0;
+}
+
+/* Button Container */
+.button-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+/* Primary Button */
+.btn-primary {
+    flex: 1;
     background-color: #1252a7;
     color: white;
     padding: 12px 0;
@@ -102,55 +221,99 @@ h2 {
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    min-width: 150px;
 }
 
-.upload-button:hover {
+.btn-primary:hover {
     background-color: #0e4285;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.upload-button:active {
+.btn-primary:active {
     transform: translateY(0);
 }
 
-/* Error and success messages */
-.error-message {
-    color: #d9534f;
-    background: #f8d7da;
-    padding: 12px;
-    border-radius: 6px;
-    margin: 10px 0;
-    border: 1px solid #f5c6cb;
-    text-align: left;
-    font-size: 14px;
-}
-
-.success-message {
-    color: #155724;
-    background: #d4edda;
-    padding: 12px;
-    border-radius: 6px;
-    margin: 10px 0;
-    border: 1px solid #c3e6cb;
-    text-align: center;
-    font-size: 14px;
-}
-
-/* Back link */
-.upload-box a {
-    color: #1252a7;
+/* Secondary Button */
+.btn-secondary {
+    flex: 1;
+    background-color: #6c757d;
+    color: white;
+    padding: 12px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s;
+    text-align: center;
+    min-width: 150px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.upload-box a:hover {
-    color: #0e4285;
-    text-decoration: underline;
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: white;
 }
 
+.btn-primary:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
 
+/* Loading State */
+.btn-primary.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-primary.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success Animation */
+@keyframes successPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn-primary.success {
+    animation: successPulse 0.6s ease-in-out;
+    background-color: #28a745;
+}
+
+/* Focus States for Accessibility */
+.btn:focus,
+select:focus {
+    outline: 2px solid #1252a7;
+    outline-offset: 2px;
+}
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -164,12 +327,48 @@ h2 {
         width: 95%;
     }
     
-    .upload-box {
+    .file-input-label {
         padding: 20px;
     }
     
     h2 {
         font-size: 24px;
+    }
+    
+    .button-container {
+        flex-direction: column;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        flex: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 10px;
+        margin-top: 50px;
+    }
+    
+    .form-container {
+        padding: 15px;
+    }
+    
+    h2 {
+        font-size: 22px;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        padding: 10px 0;
+        font-size: 15px;
+    }
+    
+    .file-input-label {
+        padding: 15px;
+        font-size: 14px;
     }
 }
 </style>
@@ -180,51 +379,126 @@ h2 {
 
 <div class="content">
     <div class="form-container">
-        <h2>Update Existing File</h2>
-        
+        <h2>Update Uploaded File</h2>
+
         {% if messages %}
+        <div class="messages">
             {% for message in messages %}
-                <div class="{% if message.tags %}{{ message.tags }}-message{% endif %}">
+                {% if "updated" in message.message or "Error" in message.message %}
+                <div class="alert alert-{{ message.tags }}">
                     {{ message }}
                 </div>
+                {% endif %}
             {% endfor %}
+        </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="update-form">
             {% csrf_token %}
-            <div class="upload-section">
-                <div class="upload-box">
-                    <p>Select Structure</p>
-                    {{ form.structure }}
-                    {% if form.structure.errors %}
-                        <div class="error-message">
-                            {% for error in form.structure.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <p>Select New File</p>
+            
+            <div class="form-group">
+                <label for="{{ form.structure.id_for_label }}">Structure to Update:</label>
+                {{ form.structure }}
+                {% if form.structure.errors %}
+                <div class="error">{{ form.structure.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.file.id_for_label }}">New Excel File:</label>
+                <div class="file-input-container">
+                    <label for="{{ form.file.id_for_label }}" class="file-input-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Choose New Excel File (.xls, .xlsx)
+                    </label>
                     {{ form.file }}
-                    {% if form.file.errors %}
-                        <div class="error-message">
-                            {% for error in form.file.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <button type="submit" class="upload-button">Update File</button>
-                    <div style="text-align: center; margin-top: 15px;">
-                        <a href="{% url 'tupload4' %}" style="color: #1252a7; text-decoration: none; font-weight: 500;">
-                            ← Back to Upload Page
-                        </a>              <!-- Change here -->
-                    </div>
+                    <span id="file-name" class="file-name-display">No file chosen</span>
                 </div>
+                {% if form.file.errors %}
+                <div class="error">{{ form.file.errors }}</div>
+                {% endif %}
+                <small class="form-text text-muted">Only .xls or .xlsx files are allowed. This will replace the existing file.</small>
+            </div>
+
+            <div class="button-container">
+                <a href="{% url 'tupload4' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}"  
+                   class="btn btn-secondary">   <!-- ************ -->
+                    ← Back to Upload Page
+                </a>
+                <button type="submit" class="btn btn-primary" id="submit-btn">Update File</button>
             </div>
         </form>
     </div>
 </div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // File input display with custom styling
+    const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+    const fileNameDisplay = document.getElementById('file-name');
+    const submitBtn = document.getElementById('submit-btn');
+    const fileInputLabel = document.querySelector('.file-input-label');
+    
+    if (fileInput && fileNameDisplay && fileInputLabel) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileNameDisplay.textContent = this.files[0].name;
+                fileNameDisplay.style.color = '#155724';
+                fileNameDisplay.style.fontWeight = '600';
+                fileNameDisplay.style.backgroundColor = '#d4edda';
+                fileInputLabel.style.borderColor = '#28a745';
+                fileInputLabel.style.backgroundColor = '#f8fff9';
+            } else {
+                fileNameDisplay.textContent = 'No file chosen';
+                fileNameDisplay.style.color = '#495057';
+                fileNameDisplay.style.fontWeight = '';
+                fileNameDisplay.style.backgroundColor = '#e9ecef';
+                fileInputLabel.style.borderColor = '#ccc';
+                fileInputLabel.style.backgroundColor = '#fafafa';
+            }
+        });
+        
+        // Add drag and drop functionality
+        fileInputLabel.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#1252a7';
+            this.style.backgroundColor = '#f8f9ff';
+        });
+        
+        fileInputLabel.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#ccc';
+            this.style.backgroundColor = '#fafafa';
+        });
+        
+        fileInputLabel.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#ccc';
+            this.style.backgroundColor = '#fafafa';
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+    
+    // Form submission handling
+    if (submitBtn) {
+        const form = document.getElementById('update-form');
+        form.addEventListener('submit', function() {
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating File...';
+        });
+    }
+});
+</script>
 
 
 {% endblock %}

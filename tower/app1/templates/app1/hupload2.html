@@ -588,7 +588,16 @@
             </div>
             
             <div class="update-link">
-                <a href="{% url 'hupload2_update' %}" class="btn btn-secondary">Update Existing File</a>   <!-- ################# -->
+                <p>Need to update an existing file?</p>
+                <a href="{% url 'hupload2_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">  <!-- ################# -->
+                    Update Existing File
+                </a>
+            </div>
+
+            <div class="action-buttons">
+                <a href="{% url 'hdeadend2' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">   <!-- ################# -->
+                    Go to Circuit Definition
+                </a>
             </div>
         </div>
         
@@ -620,12 +629,7 @@
             </div>
         </form>
 
-        <div class="update-link">
-            <p>Need to update an existing file?</p>
-            <a href="{% url 'hupload2_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">  <!-- ################# -->
-                Update Existing File
-            </a>
-        </div>
+        
         {% endif %}
     </div>
 </div>

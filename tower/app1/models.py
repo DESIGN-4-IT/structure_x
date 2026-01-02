@@ -205,64 +205,79 @@ class TowerDeadend(models.Model):
         ]
 
 
-class TowerDeadend3(models.Model):
+class TowerDeadend3(models.Model):             # **************
     CIRCUIT_CHOICES = [
         (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadends3', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='tower_deadends3',             # **************
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"TowerDeadend {self.id} - Structure: {self.structure}"
-    
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure3')
+            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure3')  # **************
         ]
         
-class TowerDeadend4(models.Model):
+class TowerDeadend4(models.Model):             # **************
     CIRCUIT_CHOICES = [
         (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadendss', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='tower_deadendss',             # **************
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"TowerDeadend {self.id} - Structure: {self.structure}"
-    
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure4')
+            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure4')  # **************
         ]
         
-class TowerDeadend5(models.Model):
+class TowerDeadend5(models.Model):             # **************
     CIRCUIT_CHOICES = [
         (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
-    structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='tower_deadends5', unique=True)
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='tower_deadends5',             # **************
+        unique=True
+    )
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"TowerDeadend {self.id} - Structure: {self.structure}"
-    
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure5')
+            models.UniqueConstraint(fields=['structure'], name='unique_tower_per_structure5')  # **************
         ]
         
     
@@ -529,15 +544,15 @@ class hUploadedFile4(models.Model):
         
         
         
-class TDeadend6(models.Model):
+class TDeadend6(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='t_deadends6',                 # ************Here**********
+        related_name='t_deadends6',             # **************
         unique=True
     )
 
@@ -547,12 +562,12 @@ class TDeadend6(models.Model):
     num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"HDeadend {self.id} - Structure: {self.structure}"
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure6')
-        ]      
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure6')  # **************
+        ]   
 
 
 
@@ -570,15 +585,15 @@ class tUploadedFile6(models.Model):
         ]
         
         
-class TDeadend7(models.Model):
+class TDeadend7(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='t_deadends7',                 # ************Here**********
+        related_name='t_deadends7',             # **************
         unique=True
     )
 
@@ -588,12 +603,12 @@ class TDeadend7(models.Model):
     num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"HDeadend {self.id} - Structure: {self.structure}"
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure7')
-        ]      
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure7')  # **************
+        ]   
 
 
 
@@ -611,15 +626,15 @@ class tUploadedFile7(models.Model):
         ]
         
         
-class TDeadend8(models.Model):
+class TDeadend8(models.Model):             # **************
     CIRCUIT_CHOICES = [
-        (0, "0"),                                   # ************Here**********
+        (0, "0"),
     ] + [(i, str(i)) for i in range(1, 11)]
 
     structure = models.ForeignKey(
         'ListOfStructure',
         on_delete=models.CASCADE,
-        related_name='t_deadends8',                 # ************Here**********
+        related_name='t_deadends8',             # **************
         unique=True
     )
 
@@ -629,12 +644,12 @@ class TDeadend8(models.Model):
     num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"HDeadend {self.id} - Structure: {self.structure}"
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure8')
-        ]      
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure8')  # **************
+        ]     
 
 
 
@@ -670,7 +685,7 @@ class TDeadend9(models.Model):
     num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
-        return f"HDeadend {self.id} - Structure: {self.structure}"
+        return f"TDeadend {self.id} - Structure: {self.structure}"
 
     class Meta:
         constraints = [
@@ -783,10 +798,10 @@ class MonopoleDeadend(models.Model):
 
     structure = models.ForeignKey('ListOfStructure', on_delete=models.CASCADE, related_name='monopole_deadends', unique=True)
 
-    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
-    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES)
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
 
     def __str__(self):
         return f"MonopoleDeadend {self.id} - Structure: {self.structure}"

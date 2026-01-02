@@ -145,87 +145,87 @@
 
 {% block content %}
     
-    <div class="content">
-        <div class="form-container">
-            <h2>Update Circuit Definition</h2>
-            
-            <div class="info-box">
-                <p>Updating record for Structure: <strong>{{ hdeadend.structure }}</strong></p>
-            </div>
+  <div class="content">
+    <div class="form-container">
+        <h2>Update Circuit Definition</h2>
+        
+        <div class="info-box">
+            <p>Updating record for Structure: <strong>{{ mdeadend.structure }}</strong></p>
+        </div>
 
-            <form method="POST" id="update-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label>Select Structure</label>
-                    {{ form.structure }}
-                    {% if form.structure.errors %}
-                        <div class="error-message">
-                            {% for error in form.structure.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Define number of 3 - phase circuits</label>
-                    {{ form.num_3_phase_circuits }}
-                    {% if form.num_3_phase_circuits.errors %}
-                        <div class="error-message">
-                            {% for error in form.num_3_phase_circuits.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Define number of shield wires associated with each phase</label>
-                    {{ form.num_shield_wires }}
-                    {% if form.num_shield_wires.errors %}
-                        <div class="error-message">
-                            {% for error in form.num_shield_wires.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Define number of 1 - phase circuits</label>
-                    {{ form.num_1_phase_circuits }}
-                    {% if form.num_1_phase_circuits.errors %}
-                        <div class="error-message">
-                            {% for error in form.num_1_phase_circuits.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Define number of communication cables</label>
-                    {{ form.num_communication_cables }}
-                    {% if form.num_communication_cables.errors %}
-                        <div class="error-message">
-                            {% for error in form.num_communication_cables.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Non-field errors -->
-                {% if form.non_field_errors %}
+        <form method="POST" id="update-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Select Structure</label>
+                {{ form.structure }}
+                {% if form.structure.errors %}
                     <div class="error-message">
-                        {% for error in form.non_field_errors %}
+                        {% for error in form.structure.errors %}
                             <p>{{ error }}</p>
                         {% endfor %}
                     </div>
                 {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Define number of 3-phase circuits</label>
+                {{ form.num_3_phase_circuits }}
+                {% if form.num_3_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_3_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Define number of shield wires</label>
+                {{ form.num_shield_wires }}
+                {% if form.num_shield_wires.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_shield_wires.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Define number of 1-phase circuits</label>
+                {{ form.num_1_phase_circuits }}
+                {% if form.num_1_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_1_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Define number of communication cables</label>
+                {{ form.num_communication_cables }}
+                {% if form.num_communication_cables.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_communication_cables.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
-                <div class="button-container">
-                    <button class="update-button" type="submit">Update</button>
-                    <a href="{% url 'monopole_deadend_view' %}" class="cancel-button">Cancel</a> <!-- here -->
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="error-message">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
                 </div>
-            </form>
-        </div>
+            {% endif %}
+
+            <div class="button-container">
+                <button class="update-button" type="submit">Update</button>
+                <a href="{% url 'monopole_deadend_view' %}" class="cancel-button">Cancel</a>
+            </div>
+        </form>
     </div>
+</div>
 
     {% endblock %}

@@ -1,1622 +1,738 @@
-Read the entire codebase carefully and act as a full-stack developer with 10+ years of experience, along with expertise in transmission line structures. Please thoroughly understand the complete code before suggesting any changes.
+first read complete promt and act as experince developer 
 
-Objective
+so i wanted to apply same backend 
 
-I need to display a 3D .glb model inside an existing canvas container, based on user selections made on:
 
-The Home page
-
-The Circuit Definition Form page
-
-The 3D model should be loaded from the backend according to these selections.
-
-Current Status
-
-I have already implemented backend logic to fetch and store user-selected data (using session or context) on the hdeadend1,hdeadend2,hdeadend3 and hdeadend4 page.
-
-The backend successfully receives and logs the following selections:
-
-Active Popups
-
-structure_type_...
-
-attachment_points_...
-
-configuration_...
-
-Popup Selections
-structure_type: ...
-attachment_points: ...
-configuration: ...
-
-Circuit Definition Form Data
-3-Phase Circuits: ...
-Shield Wires: ...
-1-Phase Circuits: ...
-Communication Cables: ...
-
-Issue
-
-I have already written backend logic to load a 3D model, but i am confuse who backend works 
-and 
-
-for example 
-🎯 3D Model Matching
-User Selections:
-Structure Type: hframes
-Attachment Points: Deadend
-Configuration: virtical
-3-Phase Circuits: ...
-but it match wrong 3d model Matched 3D Model:
-✓ Model Found!
-Name: HFrame_DE_Horiz_TC or HFrame_Tan_Horiz_TC
-i already store HFrame_DE_Vert_SC only for this i think it not working correctly plz check 
-for other buttons i think it fetch correct 3d model 
-we have this sortcut 
-MP- Monopole
-DE- Deadend
-Tan- Tangent
-Horiz.- Horizontal
-Vert.- Vertical
-SC- Single Circuit
-DC- Double Circuit
-and we save 3d model like this 
-
-HFrame_DE_Vert_SC
-
-HFrame_Tan_Vert_DC
-
-HFrame_DE_Horiz_TC
-
-Requirement
-
-Based on all the above selections (popup selections + complete circuit definition data), I want to:
-
-Dynamically determine the correct .glb model on the backend
-
-Pass the model information to the frontend
-
-Render the selected 3D model inside the existing canvas container
-
-Guidance Needed
-
-Please provide clear and practical implementation guidance, including:
-
-Which existing files need to be modified (views, serializers, templates, JS, etc.)
-
-What exact logic should be added or updated to include all Circuit Definition fields
-
-How backend data should be passed to the frontend to correctly load and render the .glb model
-
-How to extend the current logic without breaking existing functionality
-and tell how backend work using circuit defination data 
-if you want home page code tell i will provide 
-Note
-
-Do not suggest creating new files.
-
-Avoid theoretical explanations.
-
-Clearly indicate where code needs to be added or modified, with practical implementation hints.
-
-this is model to store 3d model 
-
-"class TowerModel(models.Model):
-    STRUCTURE_TYPES = [
-        ('towers', 'Towers'),
-        ('hframes', 'H-Frames'),
-        ('monopoles', 'Monopoles')
-    ]
+def mdeadend5(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
     
-    ATTACHMENT_TYPES = [
-        ('deadend', 'Deadend'),
-        ('tangent', 'Tangent')
-    ]
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend5 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
     
-    CONFIGURATION_TYPES = [
-        ('vertical', 'Vertical'),
-        ('horizontal', 'Horizontal'),
-        ('delta', 'Delta'),
-        ('hetic', 'Hetic')
-    ]
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
     
-    CIRCUIT_TYPES = [
-        ('sc', 'Single Circuit'),
-        ('dc', 'Double Circuit'),
-        ('tc', 'Triple Circuit')
-    ]
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
     
-    name = models.CharField(max_length=255)
-    model_file = models.FileField(upload_to='tower_models/')
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
     
-    # ADD THESE FIELDS
-    structure_type = models.CharField(
-        max_length=20, 
-        choices=STRUCTURE_TYPES, 
-        blank=True, 
-        null=True
-    )
-    attachment_points = models.CharField(
-        max_length=20, 
-        choices=ATTACHMENT_TYPES, 
-        blank=True, 
-        null=True
-    )
-    configuration = models.CharField(
-        max_length=20, 
-        choices=CONFIGURATION_TYPES, 
-        blank=True, 
-        null=True
-    )
-    circuit_type = models.CharField(
-        max_length=10, 
-        choices=CIRCUIT_TYPES, 
-        blank=True, 
-        null=True
-    )
-    
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.name
-    
-    def get_file_url(self):
-        if self.model_file and hasattr(self.model_file, 'url'):
-            return self.model_file.url
-        return ''
-    
-
-    
-"
-this is canvas container/hdata1 page code 
-"def hdata1(request):
-    # DEBUG: Print all session data at the start of hdata1
-    print(f"DEBUG [hdata1 Page] - All session data received:")
-    print(f"  1. Home Page Data:")
-    print(f"     Structure Type: {request.session.get('selected_structure_type')}")
-    print(f"     Structure ID: {request.session.get('selected_structure_id')}")
-    print(f"     Active Popups: {request.session.get('active_popups', [])}")
-    print(f"     Popup Selections: {request.session.get('popup_selections', {})}")
-    
-    print(f"  2. Circuit Definition Data:")
-    circuit_definition = request.session.get('circuit_definition', {})
-    print(f"     Num 3-Phase Circuits: {circuit_definition.get('num_3_phase_circuits')}")
-    print(f"     Num Shield Wires: {circuit_definition.get('num_shield_wires')}")
-    print(f"     Num 1-Phase Circuits: {circuit_definition.get('num_1_phase_circuits')}")
-    print(f"     Num Communication Cables: {circuit_definition.get('num_communication_cables')}")
-    print(f"     Circuit Model: {circuit_definition.get('circuit_model')}")
-    print(f"     Circuit ID: {circuit_definition.get('circuit_id')}")
-    
-    print(f"  3. Selection Values:")
-    print(f"     Selected Values: {request.session.get('selected_values', {})}")
-    
-    matching_model = find_matching_model(request.session)
-    print(f"\n🔍 DEBUG [hdata1] - Matching Results:")
-    if matching_model:
-        print(f"  ✓ Found matching model: {matching_model.name}")
-        print(f"    ID: {matching_model.id}")
-        print(f"    Type: {matching_model.structure_type}")
-        print(f"    Attachment: {matching_model.attachment_points}")
-        print(f"    Configuration: {matching_model.configuration}")
-        print(f"    Circuit: {matching_model.circuit_type}")
-    else:
-        print(f"  ⚠ No matching model found")
-
-    available_models = TowerModel.objects.all().order_by('name')
-    selected_model_id = request.session.get('selected_model_id')
-    
-    if matching_model:
-        selected_model_id = matching_model.id
-        request.session['selected_model_id'] = selected_model_id
-        print(f"  🎯 AUTO-SELECTING matched model ID: {selected_model_id}")
-    
-    if request.method == 'POST' and 'selected_model' in request.POST:
-        selected_model_id = request.POST.get('selected_model')
-        if selected_model_id:
-            request.session['selected_model_id'] = selected_model_id
-            print(f"  🔄 User manually selected model ID: {selected_model_id}")
-        else:
-            # Clear selection if "None" is selected
-            request.session.pop('selected_model_id', None)
-            # If user cleared selection, revert to matched model
-            if matching_model:
-                selected_model_id = matching_model.id
-                request.session['selected_model_id'] = selected_model_id
-                print(f"  🔄 User cleared selection, reverting to matched model")
-    
-    # Handle new model upload
-    if request.method == 'POST' and 'tower_model_file' in request.FILES:
-        model_name = request.POST.get('model_name', 'Unnamed Model')
-        model_file = request.FILES['tower_model_file']
-        
-        # Validate file type
-        if model_file.name.endswith(('.glb', '.gltf')):
-            # Get categorization from form
-            structure_type = request.POST.get('structure_type')
-            attachment_points = request.POST.get('attachment_points')
-            configuration = request.POST.get('configuration')
-            circuit_type = request.POST.get('circuit_type')
-            
-            new_model = TowerModel.objects.create(
-                name=model_name,
-                model_file=model_file,
-                structure_type=structure_type,
-                attachment_points=attachment_points,
-                configuration=configuration,
-                circuit_type=circuit_type
-            )
-            # Optionally select the newly uploaded model
-            request.session['selected_model_id'] = new_model.id
-
-    
-    # Get selected model if any
-    selected_model = None
-    if selected_model_id:
+    # Get structure object safely
+    if structure_id:
         try:
-            selected_model = TowerModel.objects.get(id=selected_model_id)
-            print(f"  📊 Current selected model: {selected_model.name} (ID: {selected_model.id})")
-        except TowerModel.DoesNotExist:
-            print(f"  ❌ Selected model ID {selected_model_id} not found")
-            selected_model = None
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend5.objects.filter(structure=structure).exists()   # **************
             
-    if not selected_model and matching_model:
-        selected_model = matching_model
-        print(f"  🆘 Fallback to matching model: {selected_model.name}")
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend5.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend5.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
     
-    # Get all session data to pass to template
-    selected_values = request.session.get('selected_values', {})
-    active_combinations = selected_values.get('active_combinations', [])
-    structure_id = selected_values.get('structure_id')
-    button_type = selected_values.get('button_type', '')
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload5/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
     
-    # Get circuit definition data from session
-    circuit_definition = request.session.get('circuit_definition', {})
+    if request.method == 'POST':
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend5.html', {   # *************
+                'form': MDeadendForm5(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm5(request.POST)     # ****************
+        if form.is_valid():
+            try:
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend5',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend5] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend5] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload5/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
+            except IntegrityError:
+                form.add_error('structure', 'Data already added for this structure.')
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend5 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
+    else:
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm5(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend5',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm5()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm5 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
+
+    return render(request, 'app1/mdeadend5.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
+
+
+
+def mdeadend5_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend5, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fetch TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
+    if request.method == 'POST':
+        form = MDeadend5FormUpdateForm(request.POST, instance=hdeadend)   # ***************
+        if form.is_valid():
+            try:
+                form.save()
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload5/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
+            except Exception as e:
+                form.add_error(None, f'Error updating record: {str(e)}')
+    else:
+        form = MDeadend5FormUpdateForm(instance=hdeadend)    # ***************
+
+    return render(request, 'app1/mdeadend5_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
+
+
+class TDeadend8(models.Model):             # **************
+    CIRCUIT_CHOICES = [
+        (0, "0"),
+    ] + [(i, str(i)) for i in range(1, 11)]
+
+    structure = models.ForeignKey(
+        'ListOfStructure',
+        on_delete=models.CASCADE,
+        related_name='t_deadends8',             # **************
+        unique=True
+    )
+
+    num_3_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_shield_wires = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_1_phase_circuits = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+    num_communication_cables = models.PositiveIntegerField(choices=CIRCUIT_CHOICES, null=True, blank=True)
+
+    def __str__(self):
+        return f"TowerDeadend {self.id} - Structure: {self.structure}"   # **************
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['structure'], name='unique_t_per_structure8')  # **************
+        ]
+
+
+
+class TDeadendForm8(forms.ModelForm):
+    class Meta:
+        model = TDeadend8                # *************** Here ***********
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadendForm8, self).__init__(*args, **kwargs)          # *************** Here ***********
+        self.fields['structure'].empty_label = "Select Structure"
+
+        # Show only structures that don't already have a TowerDeadend
+        used_structures = TDeadend8.objects.values_list('structure', flat=True)     # *************** Here ***********
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+
+
+class TDeadend8FormUpdateForm(forms.ModelForm):   # here
+    class Meta:
+        model = TDeadend7   # here
+        fields = ['structure', 'num_3_phase_circuits', 'num_shield_wires', 'num_1_phase_circuits', 'num_communication_cables']
+
+    def __init__(self, *args, **kwargs):
+        super(TDeadend7FormUpdateForm, self).__init__(*args, **kwargs)   # here
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make structure field read-only for update
+        self.fields['structure'].disabled = True
+
+
+************************************************************
+
+
+def mupload5(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
     
-    # Keep only the canvas container logic
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload5] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload5] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload5] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
     if structure_id:
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
             
-            # Try to get the latest file from different models
-            latest_file = None
-            file_models = [
-                tUploadedFile6, hUploadedFile1, tUploadedFile1, tUploadedFile2,
-                tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
-                hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
-                tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
-                UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
-                mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11
-            ]
-            
-            for model in file_models:
-                if model.objects.filter(structure=structure).exists():
-                    latest_file = model.objects.filter(structure=structure).latest('uploaded_at')
-                    break
-            
-            if not latest_file:
-                raise Exception("No uploaded file found for this structure")
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload5] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload5] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
                 
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload5] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend5 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend5.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend5.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend5] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload5] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload5] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend5.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload5] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend5.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload5] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend5.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend5.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload5] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload5] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload5] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend5.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend5.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload5] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend5.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend5.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload5] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload5] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload5] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend5/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend5',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload5] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
+    if request.method == 'POST':
+        # Handle file upload
+        if 'file' in request.FILES:
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile5.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload5.html', {
+                    'form': MUDeadendForm5(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files5__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm5(request.POST, request.FILES)  # ***************
+            if form.is_valid():
+                try:
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
+                    
+                    mextract_load_cases5(instance)   # ***************
+                    
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload5/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
+                    form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+        
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
+        elif 'create_custom_group' in request.POST:
+            structure_id = request.POST.get('structure_id')
+            group_name = request.POST.get('group_name')
+            selected_cases = request.POST.getlist('selected_cases')
+            
+            if structure_id and group_name:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    
+                    # Create custom group
+                    custom_group = LoadCaseGroup.objects.create(
+                        name=group_name,
+                        structure=structure,
+                        is_custom=True
+                    )
+                    
+                    # Add selected cases to the custom group
+                    for case_name in selected_cases:
+                        LoadCase.objects.create(
+                            name=case_name,
+                            group=custom_group,
+                            structure=structure
+                        )
+                    
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
+            
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile5.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm5()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files5__isnull=False).distinct()  # ***************
+
+    # Handle AJAX requests for data (GET requests only)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        structure_id = request.GET.get('structure_id')
+        if not structure_id:
+            return JsonResponse({'error': 'Structure ID is required'}, status=400)
+
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            latest_file = mUploadedFile5.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
-            # Get selected load cases from session to filter data
-            selected_load_cases = selected_values.get('load_cases', [])
-            if selected_load_cases and 'Load Case Description' in df.columns:
-                df = df[df['Load Case Description'].isin(selected_load_cases)]
+            if request.GET.get('get_set_phase'):
+                # Process set/phase data
+                set_phase_data = df[['Set No.', 'Phase No.']].dropna().drop_duplicates()
+                data = set_phase_data.to_dict('records')
+                columns = {'Set No.': 'Set No.', 'Phase No.': 'Phase No.'}
+                return JsonResponse({'data': data, 'columns': columns})
 
-            # Prepare complete data for table display
-            load_data = []
-            for _, row in df.iterrows():
-                row_data = {}
-                for col in df.columns:
-                    if pd.notna(row[col]):
-                        if pd.api.types.is_numeric_dtype(df[col]):
-                            row_data[col] = float(row[col])
+            elif request.GET.get('get_joint_labels'):
+                # Process joint labels
+                joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
+                return JsonResponse({'values': joint_labels})
+            
+            elif request.GET.get('get_load_cases'):
+                # Process load cases - extract unique load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    return JsonResponse({'values': load_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+                    
+            elif request.GET.get('get_grouped_load_cases'):
+                # Process grouped load cases
+                if 'Load Case Description' in df.columns:
+                    load_cases = df['Load Case Description'].dropna().unique().tolist()
+                    
+                    # Group load cases by their prefix (e.g., Hurricane, NESC, Rule)
+                    grouped_cases = {}
+                    for case in load_cases:
+                        # Extract the prefix (first word before space)
+                        if ' ' in case:
+                            prefix = case.split(' ')[0]
                         else:
-                            row_data[col] = str(row[col])
-                    else:
-                        row_data[col] = '' if pd.api.types.is_string_dtype(df[col]) else 0
-                load_data.append(row_data)
-
-            # Get unique values for display
-            joint_labels = [str(label) for label in df['Attach. Joint Labels'].unique()] if 'Attach. Joint Labels' in df.columns else []
-            set_numbers = [str(num) for num in df['Set No.'].dropna().unique()] if 'Set No.' in df.columns else []
-            phase_numbers = [str(num) for num in df['Phase No.'].dropna().unique()] if 'Phase No.' in df.columns else []
-
+                            prefix = case
+                            
+                        if prefix not in grouped_cases:
+                            grouped_cases[prefix] = []
+                        grouped_cases[prefix].append(case)
+                    
+                    return JsonResponse({'groups': grouped_cases})
+                else:
+                    return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
+            
+            # Get custom groups for a structure
+            elif request.GET.get('get_custom_groups_for_selection'):
+                custom_groups = LoadCaseGroup.objects.filter(
+                    structure=structure, 
+                    is_custom=True
+                ).prefetch_related('load_cases')
+                
+                groups_data = {}
+                for group in custom_groups:
+                    groups_data[group.name] = [case.name for case in group.load_cases.all()]
+                
+                return JsonResponse({'custom_groups': groups_data})
+                
         except Exception as e:
-            joint_labels = []
-            set_numbers = []
-            phase_numbers = []
-            load_data = []
-            print(f"Error processing Excel file: {str(e)}")
-    else:
-        joint_labels = []
-        set_numbers = []
-        phase_numbers = []
-        load_data = []
-    
-    # NEW: Initialize session storage for selections
-    if 'selected_values' not in request.session:
-        request.session['selected_values'] = {}
-    
-    # Initialize empty arrays if they don't exist
-    if 'selected_joints' not in request.session['selected_values']:
-        request.session['selected_values']['selected_joints'] = []
-    
-    if 'active_combinations' not in request.session['selected_values']:
-        request.session['selected_values']['active_combinations'] = []
-    
-    # Get current selections from session
-    selected_joints = request.session['selected_values'].get('selected_joints', [])
-    # IMPORTANT: The active_combinations now includes the 'Ahead'/'Back' status
-    active_combinations = request.session['selected_values'].get('active_combinations', [])
-    
-    # Build filter criteria
-    filter_criteria = {}
-    
-    # Store joint labels if any are selected
-    if selected_joints:
-        filter_criteria['joint_labels'] = selected_joints
-    
-    # Store set-phase combinations if any are active
-    set_phase_pairs = []
-    if active_combinations:
-        for combo in active_combinations:
-            if isinstance(combo, str):
-                # New, correct format: "1-2-Ahead"
-                # We need the first two parts ("1" and "2")
-                set_phase_pairs.append(combo.split('-')[:2])
-            elif isinstance(combo, dict):
-                # Handle potential LEGACY dictionary format (e.g., {'set': 1, 'phase': 2})
-                # If your old format was different, adjust this logic.
-                set_val = str(combo.get('set'))
-                phase_val = str(combo.get('phase'))
-                if set_val and phase_val:
-                    set_phase_pairs.append([set_val, phase_val])
-                # NOTE: If you don't need to support the legacy dict format, you can
-                # just add a 'pass' or continue to skip it.
-            # else: skip other unexpected data types
+            return JsonResponse({'error': str(e)}, status=500)
 
-    if set_phase_pairs:
-        filter_criteria['set_phase_combinations'] = set_phase_pairs
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
     
-    # Store filter criteria in session
-    request.session['selected_values']['filter_criteria'] = filter_criteria
-    request.session.modified = True
-
-    # Prepare context data including all session information
-    context = {
-        # Existing context
-        'available_models': available_models,
-        'selected_model': selected_model,
-        'joint_labels': joint_labels,
-        'set_numbers': set_numbers,
-        'phase_numbers': phase_numbers,
-        'load_data': load_data,
-        'load_data_json': json.dumps(load_data),
-        'selected_values': selected_values,
-        'all_columns': list(df.columns) if structure_id and 'df' in locals() else [],
-        'button_type': button_type,
+    return render(request, 'app1/mupload5.html', {     # ****************
+        'form': form,
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
         'structure_id': structure_id,
-        'filter_criteria': filter_criteria,
-        'selected_joints': selected_joints,
-        'active_combinations': active_combinations,
-        
-        # NEW: Session data from Home Page and Circuit Definition
-        'session_structure_type': request.session.get('selected_structure_type', ''),
-        'session_structure_id': request.session.get('selected_structure_id', ''),
-        'session_active_popups': request.session.get('active_popups', []),
-        'session_popup_selections': request.session.get('popup_selections', {}),
-        'session_circuit_definition': circuit_definition,
-        'matching_model': matching_model,
-        'matched_model_info': {
-            'structure_type': matching_model.structure_type if matching_model else None,
-            'attachment_points': matching_model.attachment_points if matching_model else None,
-            'configuration': matching_model.configuration if matching_model else None,
-            'circuit_type': matching_model.circuit_type if matching_model else None,
-        } if matching_model else None,
-    }
-    
-    return render(request, 'app1/hdata1.html', context)
-    
-    
-def find_matching_model(session_data):
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
+    })
+
+
+
+def mupload5_update(request):    # *************
     """
-    Find a 3D model that matches ALL session selections including complete circuit definition
+    Single page update view with structure selection and file upload
     """
-    from .models import TowerModel
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
     
-    # Extract data from session
-    structure_type = session_data.get('selected_structure_type')
-    popup_selections = session_data.get('popup_selections', {})
-    circuit_definition = session_data.get('circuit_definition', {})
-    
-    # Get attachment points and configuration from popups
-    attachment_points = popup_selections.get('attachment_points')
-    configuration = popup_selections.get('configuration')
-    
-    # DEBUG: Print all selection data
-    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
-    print(f"  Structure Type: {structure_type}")
-    print(f"  Attachment Points: {attachment_points}")
-    print(f"  Configuration: {configuration}")
-    print(f"  Circuit Definition: {circuit_definition}")
-    
-    # DETERMINE CIRCUIT TYPE BASED ON ALL CIRCUIT DEFINITION FIELDS
-    num_3_phase = circuit_definition.get('num_3_phase_circuits', 0)
-    num_shield_wires = circuit_definition.get('num_shield_wires', 0)
-    num_1_phase = circuit_definition.get('num_1_phase_circuits', 0)
-    num_comm_cables = circuit_definition.get('num_communication_cables', 0)
-    
-    # Determine total circuits based on ALL components
-    total_circuits = 0
-    
-    # 3-Phase circuits count as full circuits
-    total_circuits += num_3_phase
-    
-    # Shield wires don't typically count as separate circuits for model matching
-    # 1-Phase circuits typically bundle together
-    if num_1_phase > 0:
-        total_circuits += 1  # Add one for any 1-phase circuits
-    
-    # Communication cables also typically bundle
-    if num_comm_cables > 0:
-        total_circuits += 1  # Add one for any communication cables
-    
-    # Map total circuits to circuit type codes
-    if total_circuits == 1:
-        circuit_type = 'sc'  # Single Circuit
-    elif total_circuits == 2:
-        circuit_type = 'dc'  # Double Circuit
-    elif total_circuits >= 3:
-        circuit_type = 'tc'  # Triple Circuit
-    else:
-        circuit_type = 'sc'  # Default to Single Circuit
-    
-    print(f"  Calculated Circuit Type: {circuit_type} (based on {total_circuits} total circuits)")
-    print(f"    Breakdown: 3-Phase={num_3_phase}, 1-Phase={num_1_phase}, Comm={num_comm_cables}")
-    
-    # Try to find EXACT match first
-    matching_model = TowerModel.objects.filter(
-        structure_type=structure_type,
-        attachment_points=attachment_points,
-        configuration=configuration,
-        circuit_type=circuit_type
-    ).first()
-    
-    if matching_model:
-        print(f"  ✓ Found EXACT match: {matching_model.name}")
-        return matching_model
-    
-    # If no exact match, try matching with structure naming convention
-    # Based on your naming: HFrame_DE_Vert_SC, HFrame_Tan_Vert_DC, etc.
-    print(f"  ⚠ No exact match found, trying naming convention match...")
-    
-    # Generate expected name patterns
-    # Structure type prefix
-    if structure_type == 'hframes':
-        prefix = "HFrame"
-    elif structure_type == 'towers':
-        prefix = "Tower"
-    elif structure_type == 'monopoles':
-        prefix = "MP"
-    else:
-        prefix = ""
-    
-    # Attachment points
-    if attachment_points == 'deadend':
-        attachment_code = "DE"
-    elif attachment_points == 'tangent':
-        attachment_code = "Tan"
-    else:
-        attachment_code = ""
-    
-    # Configuration
-    if configuration == 'vertical':
-        config_code = "Vert"
-    elif configuration == 'horizontal':
-        config_code = "Horiz"
-    else:
-        config_code = configuration[:4] if configuration else ""
-    
-    # Circuit type
-    circuit_code = circuit_type.upper()  # SC, DC, TC
-    
-    # Try to find by name pattern
-    expected_pattern = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
-    print(f"  Searching for pattern: {expected_pattern}")
-    
-    # Get all models and try to find closest match
-    all_models = TowerModel.objects.all()
-    best_match = None
-    best_score = 0
-    
-    for model in all_models:
-        score = 0
-        
-        # Check structure type
-        if model.structure_type == structure_type:
-            score += 30
-        
-        # Check attachment points
-        if model.attachment_points == attachment_points:
-            score += 25
-        
-        # Check configuration
-        if model.configuration == configuration:
-            score += 25
-        
-        # Check circuit type
-        if model.circuit_type == circuit_type:
-            score += 20
-        
-        # Check name contains expected parts
-        model_name_upper = model.name.upper()
-        if prefix and prefix.upper() in model_name_upper:
-            score += 5
-        if attachment_code and attachment_code.upper() in model_name_upper:
-            score += 5
-        if config_code and config_code.upper() in model_name_upper:
-            score += 5
-        if circuit_code and circuit_code in model_name_upper:
-            score += 5
-        
-        if score > best_score:
-            best_score = score
-            best_match = model
-    
-    if best_match and best_score >= 50:  # At least somewhat relevant match
-        print(f"  ✓ Found BEST match: {best_match.name} (score: {best_score})")
-        return best_match
-    
-    # Last resort: return first model with matching structure type
-    print(f"  ⚠ Falling back to first {structure_type} model")
-    return TowerModel.objects.filter(structure_type=structure_type).first()
-"
-
-this is hdata1.html 
-"<div class="container">
-        <h3>OVERHEAD LOAD DESIGN CRITERIA</h3>
-        
-        <div class="row">
-            <!-- Left side - Selection Options (reduced width) -->
-            <div class="col-md-4">
-                {% if button_type == 'joint_labels' %}
-                <!-- Show only joint labels section when joint labels button was clicked -->
-                <div class="form-group">
-                    <label for="joint-labels">Attachment Joint Labels:</label>
-                    <div class="checkbox-list" id="joint-labels">
-                        {% for label in joint_labels %}
-                            <label draggable="true" class="drag-item" data-type="joint" data-value="{{ label }}">
-                                <input type="checkbox" name="joint-labels" value="{{ label }}"> {{ label }}
-                            </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% elif button_type == 'set_phase' %}
-                <!-- Show only set/phase sections when set/phase button was clicked -->
-                <div class="form-group">
-                    <label for="set-select">Set No.:</label>
-                    <select id="set-select" class="form-control" multiple size="4">
-                        {% for num in set_numbers %}
-                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
-                        {% endfor %}
-                    </select>
-                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sets</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="phase-select">Phase No.:</label>
-                    <select id="phase-select" class="form-control" multiple size="4">
-                        {% for num in phase_numbers %}
-                            <option value="{{ num|floatformat:0 }}">{{ num|floatformat:0 }}</option>
-                        {% endfor %}
-                    </select>
-                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple phases</small>
-                </div>
-                <!-- Combination Builder Section -->
-                <div class="form-group">
-                    <label>Create Set-Phase Combinations:</label>
-                    <div class="combination-builder">
-                        <div class="selected-items mb-2">
-                            <strong>Selected Sets:</strong> 
-                            <span id="selected-sets-display">None</span>
-                        </div>
-                        <div class="selected-items mb-2">
-                            <strong>Selected Phases:</strong> 
-                            <span id="selected-phases-display">None</span>
-                        </div>
-                        <button id="create-all-combinations" class="btn btn-primary btn-sm">
-                            Create All Combinations
-                        </button>
-                        <button id="create-single-combination" class="btn btn-success btn-sm">
-                            Create Single Combination
-                        </button>
-                        <button id="clear-combinations" class="btn btn-secondary btn-sm">
-                            Clear All
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Active Combinations Display -->
-                <div class="form-group">
-                    <label>Active Combinations:</label>
-                    <div id="active-combinations" class="active-combinations-list">
-                        <!-- Combinations will be displayed here -->
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Right side - 3D Model Viewer (increased width) -->
-            <div class="col-md-8">
-                <div class="model-viewer-container">
-                    <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
-                        <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
-                            Hide Grid
-                        </button>
-                        <!-- Enhanced Control Panel -->
-                        <div class="movement-controls-panel">
-                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
-
-                        {% comment %} <!-- Drop Mode Selection -->
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
-                                <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
-                                    <option value="precise">Precise Placement</option>
-                                    <option value="free">Free Placement</option>
-                                </select>
-                            </div>
-
-                            <!-- Grid Snapping -->
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
-                                <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
-                                    <option value="0.1">Fine (0.1)</option>
-                                    <option value="0.25" selected>Medium (0.25)</option>
-                                    <option value="0.5">Coarse (0.5)</option>
-                                    <option value="0">Off</option>
-                                </select>
-                            </div> {% endcomment %}
-                        
-                        <!-- Movement Controls -->
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
-                            
-                            <!-- Up/Down Controls -->
-                            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
-                                <button class="movement-btn" data-axis="y" data-direction="1" style="margin: 0 5px;">↑</button>
-                            </div>
-                            
-                            <!-- Left/Right/Front/Back Controls -->
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <button class="movement-btn" data-axis="x" data-direction="-1" style="margin: 0 2px;">←</button>
-                                
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <button class="movement-btn" data-axis="z" data-direction="-1" style="margin: 2px 0; font-size: 10px;">Front</button>
-                                    <button class="movement-btn" data-axis="z" data-direction="1" style="margin: 2px 0; font-size: 10px;">Back</button>
-                                </div>
-                                
-                                <button class="movement-btn" data-axis="x" data-direction="1" style="margin: 0 2px;">→</button>
-                            </div>
-                            
-                            <!-- Down Control -->
-                            <div style="display: flex; justify-content: center; margin-top: 5px;">
-                                <button class="movement-btn" data-axis="y" data-direction="-1" style="margin: 0 5px;">↓</button>
-                            </div>
-                        </div>
-
-                        <!-- Step Size -->
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Step Size:</label>
-                            <input type="range" id="step-size" min="0.05" max="1" step="0.05" value="0.25" style="width: 100%;">
-                            <span id="step-size-value" style="font-size: 11px; text-align: center; display: block;">0.25 units</span>
-                        </div>
-
-                        <!-- Selected Object Info -->
-                        <div id="selected-info" style="font-size: 11px; color: #666; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                            No object selected
-                        </div>
-                    </div>
-                </div>
-                    <canvas id="model-canvas"></canvas>
-                    <div id="joint-markers-container"></div>
-                    <div id="set-markers-container"></div>
-                    <div id="phase-markers-container"></div>
-                    <div id="load-displays-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <a href="{% url 'load_cases' %}" class="btn btn-outline-primary">
-                ⚡ Go to Load Cases Selection
-            </a>
-        </div>
-
-        <!-- NEW: Compact Model Selection & Upload Section -->
-        <div class="model-controls-container">
-            <!-- Model Selection Card -->
-            <div class="model-control-card">
-                <div class="model-control-header">
-                    <h6>Select 3D Tower Model</h6>
-                </div>
-                <div class="model-control-body">
-                <form method="post" class="compact-form">
-                    {% csrf_token %}
-                    <div class="form-group-compact">
-                        <label for="model-select">Model:</label>
-                        <select name="selected_model" id="model-select" class="form-control-sm" onchange="this.form.submit()">
-                            <option value="">-- Default Model --</option>
-                            {% for model in available_models %}
-                                <option value="{{ model.id }}" 
-                                    {% if selected_model and selected_model.id == model.id %}selected{% endif %}>
-                                    {{ model.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="model-status">
-                        {% if selected_model %}
-                            Currently viewing: <strong>{{ selected_model.name }}</strong>
-                            {% if matching_model and selected_model.id == matching_model.id %}
-                                <span class="badge badge-success ml-2">Auto-Matched</span>
-                            {% else %}
-                                <span class="badge badge-info ml-2">Manually Selected</span>
-                            {% endif %}
-                        {% else %}
-                            Using default tower model
-                        {% endif %}
-                    </div>
-                </form>
-            </div>
-
-            </div>
-
-            <!-- Model Upload Card -->
-            <div class="model-control-card">
-    <div class="model-control-header">
-        <h6>Upload New 3D Tower Model</h6>
-    </div>
-    <div class="model-control-body">
-        <form method="post" enctype="multipart/form-data" class="compact-form">
-            {% csrf_token %}
-            <div class="form-row">
-                <div class="form-group-compact">
-                    <label for="model_name">Model Name:</label>
-                    <input type="text" name="model_name" id="model_name" class="form-control-sm" placeholder="Enter model name" required>
-                </div>
-                <div class="form-group-compact">
-                    <label for="tower_model_file">3D Model File:</label>
-                    <div class="file-input-wrapper">
-                        <input type="file" name="tower_model_file" id="tower_model_file" accept=".glb,.gltf" required>
-                        <div class="file-input-display">
-                            <span>Choose file...</span>
-                            <span class="file-input-icon">📁</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- ADD THESE FIELDS FOR CATEGORIZATION -->
-            <div class="form-row">
-                <div class="form-group-compact">
-                    <label for="structure_type">Structure Type:</label>
-                    <select name="structure_type" id="structure_type" class="form-control-sm" required>
-                        <option value="">Select...</option>
-                        <option value="towers">Towers</option>
-                        <option value="hframes">H-Frames</option>
-                        <option value="monopoles">Monopoles</option>
-                    </select>
-                </div>
-                <div class="form-group-compact">
-                    <label for="attachment_points">Attachment Points:</label>
-                    <select name="attachment_points" id="attachment_points" class="form-control-sm" required>
-                        <option value="">Select...</option>
-                        <option value="deadend">Deadend</option>
-                        <option value="tangent">Tangent</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group-compact">
-                    <label for="configuration">Configuration:</label>
-                    <select name="configuration" id="configuration" class="form-control-sm" required>
-                        <option value="">Select...</option>
-                        <option value="vertical">Vertical</option>
-                        <option value="horizontal">Horizontal</option>
-                        <option value="delta">Delta</option>
-                        <option value="hetic">Hetic</option>
-                    </select>
-                </div>
-                <div class="form-group-compact">
-                    <label for="circuit_type">Circuit Type:</label>
-                    <select name="circuit_type" id="circuit_type" class="form-control-sm" required>
-                        <option value="">Select...</option>
-                        <option value="sc">Single Circuit</option>
-                        <option value="dc">Double Circuit</option>
-                        <option value="tc">Triple Circuit</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-group-compact">
-                <button type="submit" class="btn-sm-compact btn-success-sm">Upload</button>
-            </div>
-            
-            <div class="form-text">
-                <small class="text-muted">Supported formats: .glb, .gltf (Max file size: 10MB)</small>
-            </div>
-        </form>
-    </div>
-</div>
-
-        </div>
-        
-        <!-- Load Display Table - now placed below and full width -->
-        <div id="load-display">
-            <h5>Load Values</h5>
-            <div class="btn-container">
-                <button id="calculate-btn" class="calculation-btn" disabled>
-                    <span>Calculate Selected Records</span>
-                </button>
-                <span id="selected-count" class="selected-count">0 selected</span>
-            </div>
-
-            <div class="table-container">
-                <table class="table table-bordered" id="load-table">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            {% for column in all_columns %}
-                                <th>{{ column }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="aheadBackModal" tabindex="-1" role="dialog" aria-labelledby="aheadBackModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="aheadBackModalLabel">Select Combination Direction</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Please select the direction for the following newly created Set-Phase combinations:</p>
-                <ul id="new-combinations-list" class="list-group mb-3">
-                    <!-- Combinations will be listed here -->
-                </ul>
-            </div>
-            <div class="modal-footer">
-                <!-- MODIFIED: Added Both button and updated styling -->
-                <button type="button" class="btn btn-success" id="btn-ahead" data-dismiss="modal">Ahead</button>
-                <button type="button" class="btn btn-warning" id="btn-back" data-dismiss="modal">Back</button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="model-matching-info" style="background-color: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
-    <h5>🎯 3D Model Matching</h5>
-    
-    <div class="row">
-        <div class="col-md-6">
-        <h6>User Selections:</h6>
-        <ul>
-            <li><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</li>
-            <li><strong>Attachment Points:</strong> {{ session_popup_selections.attachment_points|default:"Not set" }}</li>
-            <li><strong>Configuration:</strong> {{ session_popup_selections.configuration|default:"Not set" }}</li>
-            <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"0" }}</li>
-            <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"0" }}</li>
-            <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"0" }}</li>
-            <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"0" }}</li>
-            <li><strong>Total Circuits:</strong> 
-                {% with num_3_phase=session_circuit_definition.num_3_phase_circuits|default:0|add:0 num_1_phase=session_circuit_definition.num_1_phase_circuits|default:0|add:0 num_comm=session_circuit_definition.num_communication_cables|default:0|add:0 %}
-                    {{ num_3_phase|add:num_1_phase|add:num_comm }}
-                {% endwith %}
-            </li>
-        </ul>
-    </div>
-        
-        <div class="col-md-6">
-            <h6>Matched 3D Model:</h6>
-            {% if matching_model %}
-                <div class="alert alert-success">
-                    <strong>✓ Model Found!</strong><br>
-                    <strong>Name:</strong> {{ matching_model.name }}<br>
-                    <strong>Type:</strong> {{ matching_model.get_structure_type_display }}<br>
-                    <strong>Attachment:</strong> {{ matching_model.get_attachment_points_display|default:"-" }}<br>
-                    <strong>Configuration:</strong> {{ matching_model.get_configuration_display|default:"-" }}<br>
-                    <strong>Circuit:</strong> {{ matching_model.get_circuit_type_display|default:"-" }}
-                </div>
-            {% else %}
-                <div class="alert alert-warning">
-                    <strong>⚠ No Exact Match Found</strong><br>
-                    Using default model or manually selected model.
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-<div class="session-debug" style="background-color: #e8f4f8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196F3;">
-    <h5>📊 Session Data Summary</h5>
-    
-    <div class="row">
-        <div class="col-md-6">
-            <h6>Home Page Data:</h6>
-            <ul>
-               
-                <li><strong>Active Popups:</strong> 
-                    {% if session_active_popups %}
-                        {{ session_active_popups|join:", " }}
-                    {% else %}
-                        None
-                    {% endif %}
-                </li>
-            </ul>
-            
-            <h6>Popup Selections:</h6>
-            <ul>
-                {% for key, value in session_popup_selections.items %}
-                    <li><strong>{{ key }}:</strong> {{ value }}</li>
-                {% empty %}
-                    <li>No popup selections</li>
-                {% endfor %}
-            </ul>
-        </div>
-        
-        <div class="col-md-6">
-            <h6>Circuit Definition Data:</h6>
-            {% if session_circuit_definition %}
-                <ul>
-                    <li><strong>3-Phase Circuits:</strong> {{ session_circuit_definition.num_3_phase_circuits|default:"Not set" }}</li>
-                    <li><strong>Shield Wires:</strong> {{ session_circuit_definition.num_shield_wires|default:"Not set" }}</li>
-                    <li><strong>1-Phase Circuits:</strong> {{ session_circuit_definition.num_1_phase_circuits|default:"Not set" }}</li>
-                    <li><strong>Communication Cables:</strong> {{ session_circuit_definition.num_communication_cables|default:"Not set" }}</li>
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm5(request.POST, request.FILES)   # *************
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile5.objects.get(structure=structure)  # *************
+                
+                # Delete the old file from storage
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases5(uploaded_file)     # ****************
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload5_update')     # ****************
                   
-                </ul>
-            {% else %}
-                <p>No circuit definition data available</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
+            except mUploadedFile5.DoesNotExist:     # **************
+                messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm5()       # **************
+
+    return render(request, 'app1/mupload5_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
+    })
 
 
 
-<script>
-    // Load data passed from Django
-    const loadData = JSON.parse('{{ load_data_json|escapejs }}');
+class MUDeadendForm5(forms.ModelForm):   # *************
+    class Meta:
+        model = mUploadedFile5               # *************
+        fields = ('structure', 'file')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove the filtering if we're hardcoding the structure in the view
+        used_structures = mUploadedFile5.objects.values_list('structure_id', flat=True)   # *************
+        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
+        self.fields['structure'].empty_label = "Select Structure"
+        # Make the field not required since we're setting it in the view
+        self.fields['structure'].required = False
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ['.xls', '.xlsx']:
+            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
+
+class MUDeadendUpdateForm5(forms.Form):    # ************
+    structure = forms.ModelChoiceField(
+        queryset=ListOfStructure.objects.none(),
+        empty_label="Select Structure to Update",
+        required=True
+    )
     
-    // Three.js variables
-    let scene, camera, renderer, model, controls, raycaster, mouse;
-    const jointMarkers = {};
-    const selectedJoints = new Set();
-    const loadDisplays = {};
-    const setMarkers = {};
-    const phaseMarkers = {};
-    const selectedSets = new Set();
-    const selectedPhases = new Set();
-    let activeJoint = null;
-    const selectedRecords = new Set();
-    let allTableData = [];
-    const setPhaseCombinations = new Map(); // Track all active combinations
-    let combinationCounter = 0; // Counter to make each combination unique
-    const activeCombinations = new Map();
-    let currentDroppingItem = null; // Stores data of the label being dragged from the sidebar
-    let combinationsToConfirm = []; 
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    let gridHelpers = []; // Array to store all grid helpers
-    let isGridVisible = true;
-    let transformControls;
-    let selectedObject = null;
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
 
-    // NEW: Enhanced movement and drag variables
-    let isDragging = false;
-    let dragStartPosition = new THREE.Vector3();
-    let currentDragObject = null;
-    let dropMode = 'precise'; // 'precise' or 'free'
-    let gridSnapValue = 0.25;
-    let movementStep = 0.25;
-    let isDragOverCanvas = false;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-    // Ensure the canvas container is visible and properly sized
-    const canvasContainer = document.querySelector('.model-viewer-container');
-    const canvas = document.getElementById('model-canvas');
-    
-    if (canvasContainer && canvas) {
-        // Force the container to be visible and properly sized
-        canvasContainer.style.display = 'block';
-        canvas.style.display = 'block';
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show structures that have uploaded files
+        used_structures = mUploadedFile5.objects.values_list('structure_id', flat=True)   # ************
+        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        structure = cleaned_data.get('structure')
         
-        // Initialize the model viewer regardless of button type
-        initModelViewer();
-        updateTable();
+        if structure and not mUploadedFile5.objects.filter(structure=structure).exists():   # ************
+            raise ValidationError("No uploaded file found for this structure.")
         
-        // Initialize the appropriate selection based on button type
-        {% if button_type == 'set_phase' %}
-            initSetPhaseSelection();
-        {% elif button_type == 'joint_labels' %}
-            // Ensure joint labels functionality is initialized
-            initJointLabelsSelection();
-        {% endif %}
-    }
-});
+        return cleaned_data
 
-// Add this function if it doesn't exist
-function initJointLabelsSelection() {
-    const jointContainer = document.getElementById('joint-labels');
-    if (jointContainer) {
-        jointContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const jointValue = this.value;
-                if (this.checked) {
-                    selectedJoints.add(jointValue);
-                    if (!jointMarkers[jointValue]) {
-                        addJointMarker(jointValue);
-                    }
-                } else {
-                    selectedJoints.delete(jointValue);
-                    removeJointMarker(jointValue);
-                }
-                updateTable();
-                syncSelectionsWithSession();
-            });
-        });
-    }
-}
-    // Initialize the 3D model viewer
-        // Initialize the 3D model viewer
-    function initModelViewer() {
-        // Existing scene setup code remains the same until after renderer creation...
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf0f0f0);
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get('file')
+        if uploaded_file:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in ['.xls', '.xlsx']:
+                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
+        return uploaded_file
 
-        const axesHelper = new THREE.AxesHelper(5);
-        scene.add(axesHelper);
-
-        const canvasContainer = document.querySelector('.model-viewer-container');
-        camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
-        camera.position.set(5, 5, 5);
-
-        const canvas = document.getElementById('model-canvas');
-        renderer = new THREE.WebGLRenderer({
-            canvas,
-            antialias: true,
-            alpha: true
-        });
-
-        updateRendererSize();
-        initTransformControls();
-
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.25;
-
-        raycaster = new THREE.Raycaster();
-        mouse = new THREE.Vector2();
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 1);
-        scene.add(directionalLight);
-
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-        directionalLight2.position.set(-1, -1, -1);
-        scene.add(directionalLight2);
-
-        // Load GLB model
-        const loader = new THREE.GLTFLoader();
-        function loadTowerModel(modelUrl) {
-    // Remove existing model if any
-    if (model) {
-        scene.remove(model);
-        model = null;
-    }
-    
-    loader.load(
-        modelUrl,
-        function (gltf) {
-            model = gltf.scene;
-            scene.add(model);
-            console.log('✅ Model loaded successfully:', modelUrl);
-            
-            // Center and scale model
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            model.position.sub(center);
-            
-            create3DGridCage(box);
-            model.rotation.y = Math.PI / 4;
-            
-            // Initialize event listeners
-            initEnhancedEventListeners();
-            animate();
-        },
-        undefined,
-        function (error) {
-            console.error('❌ Error loading model:', error);
-            console.log('Trying to load fallback model...');
-            
-            // Try to load any available model as fallback
-            {% if available_models and available_models.0 %}
-                const fallbackUrl = "{{ available_models.0.get_file_url }}";
-                console.log('Loading fallback model:', fallbackUrl);
-                loadTowerModel(fallbackUrl);
-            {% else %}
-                // Ultimate fallback
-                const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
-                console.log('Loading ultimate fallback model:', defaultModelUrl);
-                loadTowerModel(defaultModelUrl);
-            {% endif %}
-        }
-    );
-}
-
-{% if matching_model %}
-    // Get URLs for both matched and selected models
-    const matchedModelUrl = "{{ matching_model.get_file_url }}";
-    const selectedModelUrl = "{{ selected_model.get_file_url|default:'' }}";
-    
-    console.log('🔍 Model Loading Analysis:');
-    console.log('  Matched Model:', "{{ matching_model.name }}", matchedModelUrl);
-    console.log('  Selected Model:', "{{ selected_model.name|default:'None' }}", selectedModelUrl);
-    
-    // Verify they're the same
-    if (selectedModelUrl && matchedModelUrl === selectedModelUrl) {
-        console.log('✅ Matched and selected models are the same');
-        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
-        console.log('Model details:', {
-            name: "{{ matching_model.name }}",
-            type: "{{ matching_model.structure_type }}",
-            attachment: "{{ matching_model.attachment_points }}",
-            config: "{{ matching_model.configuration }}",
-            circuit: "{{ matching_model.circuit_type }}"
-        });
-        loadTowerModel(matchedModelUrl);
-    } else if (selectedModelUrl && selectedModelUrl !== matchedModelUrl) {
-        console.log('⚠️ Matched and selected models differ!');
-        console.log('Loading selected model (user choice overrides match):', selectedModelUrl);
-        loadTowerModel(selectedModelUrl);
-    } else {
-        // No selected model, use matched model
-        console.log('🎯 Auto-loading matched model:', matchedModelUrl);
-        console.log('Model details:', {
-            name: "{{ matching_model.name }}",
-            type: "{{ matching_model.structure_type }}",
-            attachment: "{{ matching_model.attachment_points }}",
-            config: "{{ matching_model.configuration }}",
-            circuit: "{{ matching_model.circuit_type }}"
-        });
-        loadTowerModel(matchedModelUrl);
-    }
-{% else %}
-    // No matching model found, use selected or default
-    {% if selected_model %}
-        const selectedModelUrl = "{{ selected_model.get_file_url }}";
-        console.log('📌 Loading manually selected model:', selectedModelUrl);
-        loadTowerModel(selectedModelUrl);
-    {% else %}
-        const defaultModelUrl = "{% static 'app1/images/powerTransmissionTower.glb' %}";
-        console.log('⚙ Loading default model:', defaultModelUrl);
-        loadTowerModel(defaultModelUrl);
-    {% endif %}
-{% endif %}
-
-// Function to load default model
-function loadDefaultModel() {
-    loader.load(
-       modelUrl,
-        function (gltf) {
-            model = gltf.scene;
-            scene.add(model);
-
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            model.position.sub(center);
-
-            create3DGridCage(box);
-            model.rotation.y = Math.PI / 4;
-
-            initEnhancedEventListeners();
-            animate();
-        },
-        undefined,
-        function (error) {
-            console.error('Error loading default model:', error);
-        }
-    );
-}
-
-
-        window.addEventListener('resize', onWindowResize);
-        renderer.domElement.addEventListener('click', onCanvasClick);
-        
-        // NEW: Add enhanced mouse event listeners for smooth dragging
-        initEnhancedDragListeners();
-    }
-
-    function initEnhancedEventListeners() {
-        // Drop mode selection
-        const dropModeSelect = document.getElementById('drop-mode');
-        if (dropModeSelect) {
-            dropModeSelect.addEventListener('change', function(e) {
-                dropMode = e.target.value;
-            });
-        }
-
-        // Grid snapping
-        const gridSnapSelect = document.getElementById('grid-snap');
-        if (gridSnapSelect) {
-            gridSnapSelect.addEventListener('change', function(e) {
-                gridSnapValue = parseFloat(e.target.value);
-            });
-        }
-
-        // Step size control
-        const stepSizeInput = document.getElementById('step-size');
-        const stepSizeValue = document.getElementById('step-size-value');
-        if (stepSizeInput && stepSizeValue) {
-            stepSizeInput.addEventListener('input', function(e) {
-                movementStep = parseFloat(e.target.value);
-                stepSizeValue.textContent = movementStep.toFixed(2) + ' units';
-            });
-        }
-
-        // Movement buttons
-        document.querySelectorAll('.movement-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                if (selectedObject) {
-                    const axis = this.dataset.axis;
-                    const direction = parseInt(this.dataset.direction);
-                    moveSelectedObject(axis, direction * movementStep);
-                }
-            });
-        });
-
-        // Keyboard arrow key support
-        document.addEventListener('keydown', function(event) {
-            if (!selectedObject) return;
-            
-            const step = movementStep;
-            switch(event.key) {
-                case 'ArrowUp':
-                    event.preventDefault();
-                    moveSelectedObject('y', step);
-                    break;
-                case 'ArrowDown':
-                    event.preventDefault();
-                    moveSelectedObject('y', -step);
-                    break;
-                case 'ArrowLeft':
-                    event.preventDefault();
-                    moveSelectedObject('x', -step);
-                    break;
-                case 'ArrowRight':
-                    event.preventDefault();
-                    moveSelectedObject('x', step);
-                    break;
-                case 'PageUp':
-                    event.preventDefault();
-                    moveSelectedObject('z', step);
-                    break;
-                case 'PageDown':
-                    event.preventDefault();
-                    moveSelectedObject('z', -step);
-                    break;
-            }
-        });
-    }
-
-    // NEW: Enhanced drag listeners for smooth dragging
-    function initEnhancedDragListeners() {
-        const canvas = renderer.domElement;
-        
-        // Improved drag start for markers
-        document.addEventListener('mousedown', function(e) {
-            if (e.target.classList.contains('value-marker')) {
-                startMarkerDrag(e);
-            }
-        });
-
-        // Enhanced canvas drag events
-        canvas.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            isDragOverCanvas = true;
-            canvas.classList.add('drag-over');
-            
-            if (currentDroppingItem && dropMode === 'free') {
-                // Update visual feedback for free placement
-                updateDragPosition(e);
-            }
-        });
-
-        canvas.addEventListener('dragleave', function() {
-            isDragOverCanvas = false;
-            canvas.classList.remove('drag-over');
-        });
-
-        canvas.addEventListener('drop', function(e) {
-            e.preventDefault();
-            isDragOverCanvas = false;
-            canvas.classList.remove('drag-over');
-            
-            handleCanvasDrop(e);
-        });
-    }
-
-    // NEW: Start dragging marker
-    function startMarkerDrag(e) {
-        const marker = e.target;
-        const jointLabel = marker.dataset.jointLabel;
-        const combinedId = marker.dataset.combinedId;
-        
-        if (jointLabel && jointMarkers[jointLabel]) {
-            currentDragObject = jointMarkers[jointLabel].mesh;
-        } else if (combinedId && setMarkers[combinedId]) {
-            currentDragObject = setMarkers[combinedId].mesh;
-        }
-        
-        if (currentDragObject) {
-            isDragging = true;
-            dragStartPosition.copy(currentDragObject.position);
-            marker.classList.add('dragging');
-            
-            document.addEventListener('mousemove', onMarkerDrag);
-            document.addEventListener('mouseup', stopMarkerDrag);
-        }
-    }
-
-    // NEW: Handle marker dragging
-    function onMarkerDrag(e) {
-        if (!isDragging || !currentDragObject) return;
-        
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        
-        raycaster.setFromCamera(mouse, camera);
-        
-        // Create a plane at the object's current height for smooth dragging
-        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentDragObject.position.y);
-        const intersectionPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
-        
-        if (intersectionPoint) {
-            // Apply grid snapping if enabled
-            if (gridSnapValue > 0) {
-                intersectionPoint.x = Math.round(intersectionPoint.x / gridSnapValue) * gridSnapValue;
-                intersectionPoint.y = Math.round(intersectionPoint.y / gridSnapValue) * gridSnapValue;
-                intersectionPoint.z = Math.round(intersectionPoint.z / gridSnapValue) * gridSnapValue;
-            }
-            
-            currentDragObject.position.copy(intersectionPoint);
-        }
-    }
-
-    // NEW: Stop marker dragging
-    function stopMarkerDrag() {
-        isDragging = false;
-        currentDragObject = null;
-        
-        document.querySelectorAll('.value-marker').forEach(marker => {
-            marker.classList.remove('dragging');
-        });
-        
-        document.removeEventListener('mousemove', onMarkerDrag);
-        document.removeEventListener('mouseup', stopMarkerDrag);
-    }
-
-    // NEW: Move selected object with arrow controls
-    function moveSelectedObject(axis, distance) {
-        if (!selectedObject) return;
-        
-        const newPosition = selectedObject.object.position.clone();
-        
-        switch(axis) {
-            case 'x':
-                newPosition.x += distance;
-                break;
-            case 'y':
-                newPosition.y += distance;
-                break;
-            case 'z':
-                newPosition.z += distance;
-                break;
-        }
-        
-        // Apply grid snapping
-        if (gridSnapValue > 0) {
-            newPosition.x = Math.round(newPosition.x / gridSnapValue) * gridSnapValue;
-            newPosition.y = Math.round(newPosition.y / gridSnapValue) * gridSnapValue;
-            newPosition.z = Math.round(newPosition.z / gridSnapValue) * gridSnapValue;
-        }
-        
-        selectedObject.object.position.copy(newPosition);
-        
-        // Update associated HTML elements
-        updateObjectUI(selectedObject);
-    }
-
-    // NEW: Update UI when object moves
-    function updateObjectUI(selectedObj) {
-        const object = selectedObj.object;
-        const value = selectedObj.value;
-        const type = selectedObj.type;
-        
-        if (type === 'joint' && jointMarkers[value]) {
-            updateMarkerPosition(object, jointMarkers[value].div);
-            if (loadDisplays[value]) {
-                updateLoadDisplayPosition(loadDisplays[value].div, object.position);
-            }
-        } else if (type === 'set-phase' && setMarkers[value]) {
-            updateMarkerPosition(object, setMarkers[value].div);
-        }
-        
-        updateSelectedInfo(selectedObj);
-    }
-
-    // NEW: Update selected object info panel
-    function updateSelectedInfo(selectedObj) {
-        const infoDiv = document.getElementById('selected-info');
-        if (!infoDiv) return;
-        
-        const pos = selectedObj.object.position;
-        infoDiv.innerHTML = `
-            <strong>Selected:</strong> ${selectedObj.value}<br>
-            <strong>Position:</strong><br>
-            X: ${pos.x.toFixed(2)}<br>
-            Y: ${pos.y.toFixed(2)}<br>
-            Z: ${pos.z.toFixed(2)}
-        `;
-    }
-
-    // NEW: Enhanced canvas drop handler
-    function handleCanvasDrop(e) {
-        let droppedData;
-        try {
-            droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
-        } catch (error) {
-            console.error('Error parsing dropped data:', error);
-            return;
-        }
-        
-        if (!droppedData) return;
-        
-        const itemType = droppedData.type;
-        const itemValue = droppedData.value;
-        
-        if (dropMode === 'precise') {
-            // Original precise placement logic
-            handlePrecisePlacement(e, itemType, itemValue);
-        } else {
-            // NEW: Free placement logic
-            handleFreePlacement(e, itemType, itemValue);
-        }
-        
-        currentDroppingItem = null;
-        renderer.domElement.style.cursor = 'grab';
-    }
-
-    // NEW: Handle free placement
-    function handleFreePlacement(e, itemType, itemValue) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        // Convert screen coordinates to 3D position
-        const position = screenToWorldPosition(mouseX, mouseY);
-        
-        if (position) {
-            placeItemAtPosition(itemType, itemValue, position);
-            checkAndSelectSource(itemType, itemValue);
-        }
-    }
-
-    // NEW: Convert screen coordinates to 3D world position
-    function screenToWorldPosition(screenX, screenY) {
-        const vector = new THREE.Vector3(
-            (screenX / renderer.domElement.clientWidth) * 2 - 1,
-            -(screenY / renderer.domElement.clientHeight) * 2 + 1,
-            0.5
-        );
-        
-        vector.unproject(camera);
-        
-        // Create a plane at a reasonable height for new objects
-        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const direction = vector.sub(camera.position).normalize();
-        const raycaster = new THREE.Raycaster(camera.position, direction);
-        const intersectionPoint = new THREE.Vector3();
-        
-        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-            return intersectionPoint;
-        }
-        
-        return null;
-    }
-
-    // NEW: Update drag position visual feedback
-    function updateDragPosition(e) {
-        // This can be enhanced to show a preview of where the item will be placed
-        const rect = renderer.domElement.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        // Could add a temporary preview object here
-    }
-
-    // NEW: Generic function to place items at specific positions
-    function placeItemAtPosition(itemType, itemValue, position) {
-        if (itemType === 'joint') {
-            addJointMarker(itemValue, position);
-        } else if (itemType === 'set' || itemType === 'phase') {
-            if (selectedSets.size === 0 || selectedPhases.size === 0) {
-                showSelectionRequiredMessage();
-                return;
-            }
-            const currentSet = Array.from(selectedSets).pop();
-            const currentPhase = Array.from(selectedPhases).pop();
-            addSetPhaseMarker(currentSet, currentPhase, position);
-        }
-    }
-
-    // NEW: Check and select source checkbox
-    function checkAndSelectSource(itemType, itemValue) {
-        const checkbox = document.querySelector(`input[name="${getCheckboxName(itemType)}"][value="${itemValue}"]`);
-        if (checkbox && !checkbox.checked) {
-            checkbox.checked = true;
-            const changeEvent = new Event('change');
-            checkbox.dispatchEvent(changeEvent);
-        }
-    }
-
-    // NEW: Helper function to get checkbox name
-    function getCheckboxName(itemType) {
-        switch(itemType) {
-            case 'joint': return 'joint-labels';
-            case 'set': return 'set-numbers';
-            case 'phase': return 'phase-numbers';
-            default: return '';
-        }
-    }
-
-    function initTransformControls() {
-        // Create transform controls
-        transformControls = new THREE.TransformControls(camera, renderer.domElement);
-        transformControls.setSize(0.8);
-        transformControls.addEventListener('dragging-changed', function(event) {
-            controls.enabled = !event.value;
-        });
-        
-        // Hide initially
-        transformControls.visible = false;
-        scene.add(transformControls);
-    }
-
-    function toggleGrid() {
-        isGridVisible = !isGridVisible;
-        
-        gridHelpers.forEach(grid => {
-            grid.visible = isGridVisible;
-        });
-        
-        // Update button text
-        const gridToggleBtn = document.getElementById('grid-toggle-btn');
-        if (gridToggleBtn) {
-            gridToggleBtn.textContent = isGridVisible ? 'Hide Grid' : 'Show Grid';
-            gridToggleBtn.className = isGridVisible ? 'btn btn-warning btn-sm' : 'btn btn-success btn-sm';
-        }
-    }"
 
