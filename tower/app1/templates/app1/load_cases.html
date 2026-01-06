@@ -539,33 +539,24 @@ h3, h4, h5 {
                 <hr>
 
                 <div class="filter-section mb-3">
-                <form method="post" id="filter-previous-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="filter_by_previous" value="true">
-                    <button type="submit" class="btn btn-info" id="filter-previous-btn">
-                        🔍 Filter by attachment selection
-                    </button>
-                    <small class="text-muted ms-2">
-                        {% if filter_criteria %}
-                            Active filters: 
-                            {% if filter_criteria.joint_labels %}
-                                Joint Labels ({{ filter_criteria.joint_labels|length }})
+                    <form method="post" id="filter-previous-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="filter_by_previous" value="true">
+                        <button type="submit" class="btn btn-info" id="filter-previous-btn">
+                            🔍 Filter by previous selection
+                        </button>
+                        <small class="text-muted ms-2">
+                            {% if filter_display %}
+                                Active filters: 
+                                {% for filter_text in filter_display %}
+                                    {{ filter_text }}{% if not forloop.last %}; {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                No previous selection found
                             {% endif %}
-                            {% if filter_criteria.set_phase_combinations %}
-                                Set+Phase Combinations ({{ filter_criteria.set_phase_combinations|length }})
-                                <div class="debug-info small text-info mt-1">
-                                    Combinations ({{ filter_criteria.set_phase_combinations|length }} total): 
-                                    {% for combo in filter_criteria.set_phase_combinations %}
-                                        Set {{ combo.set }} - Phase {{ combo.phase }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        {% else %}
-                            No previous selection found
-                        {% endif %}
-                    </small>
-                </form>
-            </div>
+                        </small>
+                    </form>
+                </div>
 
 
                 <!-- Load Values Display Section -->
@@ -2099,6 +2090,7 @@ function getCurrentCustomGroupsData() {
 });
     
     // Function to show notifications
+// Update the filter form submission handler
 document.getElementById('filter-previous-form')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -2116,7 +2108,7 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     // Add selection source
     formData.append('selection_source', selectionSource);
     
-    // NEW: Add selected_groups for 'custom'
+    // Add selected_groups for 'custom'
     if (selectionSource === 'custom') {
         selectedGroups.forEach(groupName => {
             formData.append('selected_groups', groupName);
@@ -2130,9 +2122,7 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
     console.log('=== FILTER DEBUG INFO ===');
     console.log('Current selected load cases:', Array.from(selectedLoadCases));
     console.log('Selection source:', selectionSource);
-    console.log('Selected groups:', Array.from(selectedGroups));  // NEW: Debug selected groups
-    console.log('Filter criteria from template:', {{ filter_criteria|default:"{}"|safe }});
-    console.log('Structure ID:', structureId);
+    console.log('Selected groups:', Array.from(selectedGroups));
     console.log('========================');
     
     fetch(this.action, {
@@ -2148,24 +2138,23 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
         console.log('=== FILTER RESPONSE ===');
         console.log('Filter response:', data);
         console.log('Record count:', data.record_count);
-        console.log('Group count:', data.grouped_data ? Object.keys(data.grouped_data).length : 0);
-        console.log('Is grouped:', data.is_grouped);
+        console.log('Filter display:', data.filter_display);
         console.log('========================');
         
         if (data.success) {
             if (data.is_grouped && data.grouped_data) {
                 updateTableWithGroupedData(data.grouped_data, data.all_columns);
                 
-                let filterType = '';
-                if (data.filter_criteria && data.filter_criteria.joint_labels) {
-                    filterType = `Joint Labels (${data.filter_criteria.joint_labels.length})`;
-                }
-                if (data.filter_criteria && data.filter_criteria.set_phase_combinations) {
-                    filterType = `Set+Phase Combinations (${data.filter_criteria.set_phase_combinations.length})`;
+                // NEW: Update the filter display text
+                if (data.filter_display && data.filter_display.length > 0) {
+                    const filterInfo = document.querySelector('.filter-section small');
+                    if (filterInfo) {
+                        filterInfo.innerHTML = 'Active filters: ' + data.filter_display.join('; ');
+                    }
                 }
                 
                 const groupCount = Object.keys(data.grouped_data).length;
-                showNotification(`✅ Filter applied! Found ${data.record_count} records in ${groupCount} groups matching ${filterType}`, 'success');
+                showNotification(`✅ Filter applied! Found ${data.record_count} records in ${groupCount} groups`, 'success');
             } else {
                 loadTableBody.innerHTML = '<tr><td colspan="100%" class="text-center text-warning py-4">No matching records found for the current selection</td></tr>';
                 selectedCount.textContent = '0 records';
@@ -2181,7 +2170,7 @@ document.getElementById('filter-previous-form')?.addEventListener('submit', func
         showNotification('❌ Error applying filter: ' + error, 'error');
     })
     .finally(() => {
-        filterBtn.innerHTML = '🔍 Filter by attachment selection';
+        filterBtn.innerHTML = '🔍 Filter by previous selection';
         filterBtn.disabled = false;
     });
 });

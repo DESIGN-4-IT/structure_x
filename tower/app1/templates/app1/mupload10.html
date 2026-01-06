@@ -9,657 +9,521 @@
     <style>
         
 
-/* Main content wrapper */
+.content {
+    /* Retain original layout logic, update background for a softer, more modern feel */
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 90px 20px 20px;
+    /* Soft, professional gradient */
+    background: linear-gradient(to bottom right, #f0f4f8, #e0e7ee);
+    min-height: 100vh;
+}
+
+.form-container {
+    background: #ffffff;
+    border-radius: 16px; /* Slightly more rounded corners */
+    padding: 40px 30px;
+    width: 90%;
+    max-width: 750px; /* Slightly wider for better content space */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); /* Deeper, softer shadow */
+    animation: fadeIn 0.8s ease-out;
+}
+
+.form-container h2 {
+    text-align: center;
+    font-size: 28px; /* Slightly larger title */
+    margin-bottom: 30px; /* More space below the title */
+    color: #1a202c; /* Darker, more professional text */
+    font-weight: 700;
+}
+
+/* --- Info & Alert Sections --- */
+.selected-structure-info {
+    background: #e6f7ff; /* Lighter blue for info */
+    border: 1px solid #91d5ff;
+    border-left: 5px solid #1890ff; /* Stronger visual indicator on the left */
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 30px;
+    font-size: 17px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.existing-data-badge {
+    background: #faad14; /* Standard warning/alert color */
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.existing-data-message .alert {
+    background: #fffbe6; /* Softer alert background */
+    border: 1px solid #ffe58f;
+    color: #ad8b00; /* Darker warning text */
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* --- Universal Button Styles (Primary Focus) --- */
+/* Set a new, modern color for all general buttons. Deep blue is professional. */
+:root {
+    --primary-color: #2c5282; /* Deep Blue/Slate */
+    --primary-hover: #244165;
+    --success-color: #047857; /* Richer Green */
+    --success-hover: #065f46;
+    --warning-color: #f59e0b; /* Amber */
+    --warning-hover: #d97706;
+}
+
+.btn {
+    padding: 14px 28px; /* Slightly larger for better tap/click target */
+    border-radius: 10px; /* Modern, softer corners */
+    font-size: 16px; /* Clearer font size */
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother, more advanced transition curve */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle lift */
+    min-width: 160px; /* Consistent minimum width */
+}
+
+/* Primary Button: Used for main actions (e.g., Go to Circuit Definition, Set/Phase) */
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-3px); /* Deeper lift on hover */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Success Button: Used for upload/confirmations, or 'Attachment Joint Labels' */
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    border: none;
+}
+
+.btn-success:hover {
+    background: var(--success-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Secondary Button: Used for less important actions (e.g., Back to Home, Update Existing File) */
+.btn-secondary {
+    background: #e2e8f0; /* Light, neutral background */
+    color: #4a5568; /* Darker neutral text */
+    border: none;
+    box-shadow: none; /* Less emphasis */
+}
+
+.btn-secondary:hover {
+    background: #cbd5e1;
+    color: #2d3748;
+    transform: translateY(-1px); /* Less dramatic lift */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Action Buttons Container --- */
+.action-buttons {
+    display: flex;
+    gap: 20px; /* Increased gap */
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.selection-buttons {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.selection-buttons h3 {
+    margin-bottom: 20px;
+    color: #4a5568;
+    font-weight: 600;
+}
+
+.selection-buttons form {
+    margin: 10px; /* Add margin around individual form buttons */
+    display: inline-block;
+}
+
+.selection-buttons .btn-lg {
+    padding: 15px 35px; /* Large buttons for key choices */
+    font-size: 18px;
+    min-width: 220px;
+}
+
+/* --- Upload Section --- */
 .content {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 20px;
-    margin-top: 80px;
-    min-height: calc(100vh - 80px);
+    padding: 70px 20px 20px; /* Reduced top padding */
+    background: linear-gradient(to bottom right, #f0f4f8, #e0e7ee);
+    min-height: 100vh;
 }
 
-/* Form container */
 .form-container {
-    background-color: #fff;
-    border: 1px solid #e1e4e8;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    border-radius: 12px; /* Slightly less rounded */
+    padding: 25px 20px; /* Reduced padding */
     width: 90%;
-    max-width: 800px;
-    transition: all 0.3s ease;
+    max-width: 650px; /* Reduced max-width */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+    animation: fadeIn 0.8s ease-out;
 }
 
-/* Heading */
-h2 {
+.form-container h2 {
     text-align: center;
-    margin-bottom: 25px;
-    color: #1252a7;
+    font-size: 24px; /* Smaller title */
+    margin-bottom: 20px; /* Less space below title */
+    color: #1a202c;
+    font-weight: 700;
+}
+
+/* --- Info & Alert Sections --- */
+.selected-structure-info {
+    background: #e6f7ff;
+    border: 1px solid #91d5ff;
+    border-left: 5px solid #1890ff;
+    border-radius: 8px;
+    padding: 12px 16px; /* Reduced padding */
+    margin-bottom: 20px; /* Less margin */
+    font-size: 15px; /* Smaller font */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.existing-data-badge {
+    background: #faad14;
+    color: white;
+    padding: 4px 12px; /* Reduced padding */
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.existing-data-message .alert {
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    color: #ad8b00;
+    padding: 15px; /* Reduced padding */
+    border-radius: 8px;
+    margin-bottom: 20px; /* Less margin */
+    font-size: 14px; /* Smaller font */
+    font-weight: 500;
+}
+
+/* --- Universal Button Styles --- */
+.btn {
+    padding: 12px 24px; /* Reduced padding */
+    border-radius: 8px;
+    font-size: 14px; /* Smaller font */
     font-weight: 600;
-    font-size: 28px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    min-width: 140px; /* Reduced min-width */
 }
 
-h3, h4, h5 {
-    color: #2c3e50;
-    margin-bottom: 15px;
+.btn-primary:hover,
+.btn-success:hover {
+    transform: translateY(-2px); /* Less lift */
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Upload section layout */
+/* --- Action Buttons Container --- */
+.action-buttons {
+    display: flex;
+    gap: 15px; /* Reduced gap */
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 15px; /* Reduced margin */
+}
+
+.selection-buttons {
+    text-align: center;
+    margin-bottom: 20px; /* Reduced margin */
+}
+
+.selection-buttons h3 {
+    margin-bottom: 15px; /* Reduced margin */
+    color: #4a5568;
+    font-weight: 600;
+    font-size: 16px; /* Smaller font */
+}
+
+.selection-buttons form {
+    margin: 8px; /* Reduced margin */
+    display: inline-block;
+}
+
+.selection-buttons .btn-lg {
+    padding: 12px 25px; /* Reduced padding */
+    font-size: 16px; /* Smaller font */
+    min-width: 180px; /* Reduced min-width */
+}
+
+/* --- Upload Section --- */
 .upload-section {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 20px; /* Reduced margin */
 }
 
-/* Upload box style */
 .upload-box {
-    padding: 25px;
-    border: 2px dashed #ccc;
+    padding: 20px; /* Reduced padding */
+    border: 2px dashed #a0aec0;
     border-radius: 10px;
-    text-align: center;
-    background-color: #fafafa;
+    background-color: #ffffff;
     width: 100%;
-    max-width: 500px;
-    transition: all 0.3s ease;
+    max-width: 500px; /* Reduced max-width */
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
 }
 
 .upload-box:hover {
-    border-color: #1252a7;
-    background-color: #f8f9ff;
+    border-color: var(--primary-color);
+    background-color: #f7f9fb;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 .upload-box p {
-    margin: 12px 0;
-    font-weight: 500;
-    color: #444;
-}
-
-/* File input fields */
-.upload-box input[type="file"], 
-.upload-box select,
-.form-control {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 15px;
-    transition: border-color 0.3s;
-}
-
-.upload-box input[type="file"]:focus, 
-.upload-box select:focus,
-.form-control:focus {
-    border-color: #1252a7;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
-}
-
-/* Attachment section */
-.attachment-section {
-    background-color: #f9f9d8;
-    padding: 20px;
-    margin-top: 30px;
-    text-align: center;
-    border-radius: 8px;
-    font-weight: 500;
-    border-left: 4px solid #e6c229;
-}
-
-/* Buttons section */
-.buttons {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 25px;
-    flex-wrap: wrap;
-    gap: 15px;
-    position: relative;
-}
-
-.buttons::before {
-    content: "OR";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 0 10px;
-    color: #666;
-    font-weight: 500;
-    z-index: 1;
-}
-
-.buttons::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #ddd;
-    z-index: 0;
-}
-
-/* Upload button */
-.upload-button {
-    margin-top: 20px;
-    width: 100%;
-    background-color: #1252a7;
-    color: white;
-    padding: 12px 0;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
+    font-size: 16px; /* Smaller font */
+    margin-bottom: 20px; /* Reduced margin */
+    color: #2d3748;
     font-weight: 600;
+}
+
+/* File Input Container */
+.file-input-container {
+    position: relative;
+    margin: 15px 0; /* Reduced margin */
+}
+
+.file-input-container input[type="file"] {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+}
+
+.file-input-label {
+    display: block;
+    padding: 25px 20px; /* Reduced padding */
+    border: 2px dashed var(--primary-color);
+    border-radius: 10px;
+    background: #f0f4f8;
+    color: var(--primary-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px; /* Reduced letter spacing */
     cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    font-size: 14px; /* Smaller font */
+}
+
+.file-input-label:hover {
+    background: #e2e8f0;
+    border-color: var(--primary-hover);
+    transform: translateY(-1px); /* Less lift */
+}
+
+.file-input-label i {
+    font-size: 28px; /* Smaller icon */
+    margin-bottom: 8px; /* Reduced margin */
+    display: block;
+}
+
+#file-name {
+    display: block;
+    margin-top: 12px; /* Reduced margin */
+    color: #718096;
+    font-weight: 500;
+    font-size: 13px; /* Smaller font */
+}
+
+/* File Upload Button */
+.upload-button {
+    background: var(--success-color);
+    color: white;
+    padding: 14px 25px; /* Reduced padding */
+    border-radius: 8px;
+    font-size: 16px; /* Smaller font */
+    font-weight: 700;
+    margin-top: 20px; /* Reduced margin */
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(4, 120, 87, 0.4);
+    width: 100%;
+    max-width: 250px; /* Reduced max-width */
 }
 
 .upload-button:hover {
-    background-color: #0e4285;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    background: var(--success-hover);
+    transform: translateY(-2px); /* Less lift */
+    box-shadow: 0 5px 12px rgba(4, 120, 87, 0.6);
 }
 
-.upload-button:active {
-    transform: translateY(0);
-}
-
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Go button styling */
-.set-phase-button, .attachments-button {
-    flex: 1;
-    min-width: 180px;
-    background-color: #1252a7;
-    color: white;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: center;
-    font-size: 16px;
-    font-weight: 600;
-    transition: all 0.3s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 2;
-}
-
-.attachments-button {
-    background-color: #00b32d;
-}
-
-.set-phase-button:hover {
-    background-color: #0e4285;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.attachments-button:hover {
-    background-color: #028a27;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.set-phase-button:active, .attachments-button:active {
-    transform: translateY(0);
-}
-
-/* Load Cases Section */
-.load-cases-section {
-    margin-top: 25px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e1e4e8;
-}
-
-.load-case-links {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.load-case-link {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #f0f0f0;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    text-decoration: none;
-    color: #333;
-    font-weight: 500;
-    transition: all 0.3s;
-}
-
-.load-case-link:hover {
-    background-color: #e0e0e0;
-    transform: translateY(-2px);
-}
-
-.load-case-link.active {
-    background-color: #1252a7;
-    color: white;
-    border-color: #1252a7;
-}
-
-#load-cases-results {
-    margin-top: 20px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 15px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e1e4e8;
-}
-
-.load-cases-list, .group-load-cases-list {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-.load-cases-list li, .group-load-cases-list li {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-}
-
-.load-cases-list li:hover, .group-load-cases-list li:hover {
-    background-color: #f0f4f8;
-}
-
-.load-case-group {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #e1e4e8;
-    border-radius: 8px;
-    background: white;
-}
-
-.load-case-group h5 {
-    margin-top: 0;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    color: #1252a7;
-}
-
-.group-select-all {
-    margin-bottom: 10px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Selected Load Cases */
-.selected-load-cases {
-    margin-top: 25px;
-    padding: 20px;
-    background: #e8f4ff;
-    border-radius: 8px;
-    border: 1px solid #c3d9f8;
-}
-
-.selected-case {
-    display: inline-block;
-    margin: 5px;
-    padding: 8px 15px;
-    background: white;
-    border-radius: 20px;
-    border: 1px solid #c3d9f8;
-    position: relative;
-}
-
-.remove-case {
-    margin-left: 8px;
-    cursor: pointer;
-    color: #ff4757;
-    font-weight: bold;
-}
-
-.remove-case:hover {
-    color: #ff2e43;
-}
-
-/* Custom Group Creation Section */
-#create-custom-group {
-    margin-top: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e1e4e8;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-#custom-group-name {
-    flex: 1;
-    min-width: 200px;
-    padding: 10px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.3s;
-}
-
-#custom-group-name:focus {
-    border-color: #1252a7;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(18, 82, 167, 0.1);
-}
-
-#create-custom-group-btn {
-    background-color: #1252a7;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    white-space: nowrap;
-}
-
-#create-custom-group-btn:hover {
-    background-color: #0e4285;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-#create-custom-group-btn:active {
-    transform: translateY(0);
-}
-
-/* Data tables */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.data-table th, .data-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
-
-.data-table th {
-    background-color: #f2f2f2;
-    font-weight: 600;
-}
-
-.joint-labels-list {
-    list-style-type: none;
-    padding: 0;
-}
-
-.joint-labels-list li {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.2s;
-}
-
-.joint-labels-list li:hover {
-    background-color: #f9f9f9;
-}
-
-.error {
-    color: #ff4757;
-    margin-top: 10px;
-    padding: 10px;
-    background: #ffeaea;
-    border-radius: 6px;
-    border-left: 4px solid #ff4757;
-}
-
-/* Form elements styling */
-input[type="checkbox"] {
-    margin-right: 10px;
-    transform: scale(1.2);
-}
-
+/* --- Update Link Section --- */
 .update-link {
     text-align: center;
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
+    margin: 20px 0; /* Reduced margin */
+    padding: 20px; /* Reduced padding */
+    background: #f7fafc;
+    border-radius: 10px;
+    border: 1px solid #edf2f7;
 }
 
 .update-link p {
-    margin-bottom: 10px;
-    color: #666;
+    margin-bottom: 12px; /* Reduced margin */
+    color: #4a5568;
+    font-size: 14px; /* Smaller font */
 }
 
 .update-button {
-    background: #ff9800;
+    background: var(--warning-color);
     color: white;
-    padding: 12px 30px;
+    padding: 12px 24px; /* Reduced padding */
+    border-radius: 8px;
+    font-weight: 700;
     text-decoration: none;
-    border-radius: 4px;
-    transition: background 0.3s;
     display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4);
+    border: none;
+    font-size: 14px; /* Smaller font */
 }
 
 .update-button:hover {
-    background: #f57c00;
+    background: var(--warning-hover);
+    transform: translateY(-2px); /* Less lift */
+    box-shadow: 0 5px 12px rgba(245, 158, 11, 0.6);
+    color: white;
+    text-decoration: none;
 }
 
-/* Mobile responsiveness */
+/* --- Responsive & Animations --- */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsive */
 @media (max-width: 768px) {
     .content {
-        padding: 15px;
-        margin-top: 70px;
+        padding: 60px 15px 15px; /* Reduced padding for mobile */
     }
     
     .form-container {
-        width: 100%;
-        padding: 20px;
+        padding: 20px 15px; /* Reduced padding for mobile */
+        border-radius: 10px;
+    }
+    
+    .form-container h2 {
+        font-size: 22px; /* Smaller title for mobile */
+        margin-bottom: 15px;
+    }
+    
+    .action-buttons, .selection-buttons, .buttons {
+        gap: 12px; /* Tighter gap on mobile */
+    }
+    
+    .btn {
+        padding: 10px 18px;
+        min-width: 100%;
+        font-size: 13px;
+    }
+    
+    .selection-buttons .btn-lg {
+        padding: 11px 20px;
+        font-size: 14px;
+        min-width: 100%;
+        margin: 4px 0;
     }
     
     .upload-box {
-        padding: 20px;
+        padding: 15px 12px; /* Reduced padding for mobile */
     }
     
-    .buttons {
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .set-phase-button, .attachments-button {
-        width: 100%;
-    }
-    
-    .attachment-section {
-        padding: 15px;
-    }
-    
-    .buttons::before, .buttons::after {
-        display: none;
-    }
-    
-    .load-case-links {
-        flex-direction: column;
-    }
-    
-    .load-case-link {
-        text-align: center;
-    }
-    
-    h2 {
-        font-size: 24px;
-    }
-}
-
-@media (max-width: 480px) {
-    .content {
-        padding: 10px;
-        margin-top: 60px;
-    }
-    
-    .form-container {
-        padding: 15px;
-    }
-    
-    .upload-box {
-        padding: 15px;
+    .file-input-label {
+        padding: 20px 15px; /* Reduced padding for mobile */
+        font-size: 13px;
     }
     
     .upload-button {
-        padding: 10px 0;
-    }
-    
-    .set-phase-button, .attachments-button {
-        padding: 12px;
-        font-size: 15px;
-    }
-    
-    .alert {
         padding: 12px 20px;
+        font-size: 14px;
+        max-width: 200px; /* Smaller on mobile */
+    }
+}
+
+/* --- Responsive & Animations --- */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Additional button styles (set-phase-button, attachments-button) */
+.set-phase-button {
+    background-color: var(--primary-color);
+}
+.set-phase-button:hover {
+    background-color: var(--primary-hover);
+}
+
+.attachments-button {
+    background-color: var(--success-color);
+}
+.attachments-button:hover {
+    background-color: var(--success-hover);
+}
+
+/* Update Media Query for mobile to ensure buttons look good */
+@media (max-width: 768px) {
+    .action-buttons, .selection-buttons, .buttons {
+        gap: 15px;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        min-width: 100%;
+    }
+    
+    .selection-buttons .btn-lg {
+        padding: 14px 25px;
+        font-size: 16px;
+        min-width: 100%;
+        margin: 5px 0;
+    }
+    
+    .upload-box {
+        padding: 20px 15px;
+    }
+    
+    .file-input-label {
+        padding: 30px 20px;
         font-size: 14px;
     }
 }
-
-@media (max-width: 768px) {
-    #create-custom-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    #custom-group-name {
-        min-width: auto;
-        margin-bottom: 10px;
-    }
-    
-    #create-custom-group-btn {
-        width: 100%;
-    }
-}
-
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .popup {
-            background-color: white;
-            padding: 20px;
-            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
-            text-align: center;
-            width: 500px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: none;
-            position: relative;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-            overflow: hidden; /* Ensures content does not overflow */
-        }
-        
-        .popup .popup-header {
-            background-color: #ffec00;
-            color: black;
-            font-size: 12px;
-            padding: 10px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 0px 0px 0 0;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: calc(100% + 40px);  /* Ensure it covers full width */
-            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
-            box-sizing: border-box;  /* Prevent overflow beyond the container */
-        }
-        
-        
-        .popup-close {
-            position: absolute;
-            top: 10%;
-            right: 1px;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 30px;
-            color: black;
-            background-color: transparent;
-            padding: 5px;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .popup h3 {
-            margin: 20px 0;
-            font-size: 14px;
-            color: black;
-        }
-        
-        .popup .popup-btn {
-            padding: 10px 15px; /* Increase padding for better button size */
-            margin: 15px 30px;  /* Increase the margin between buttons */
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 20px;
-            color: white;
-            transition: background-color 0.3s ease;
-        }
-        
-        .popup-btn.blue {
-            background-color: #1252a7;
-        }
-        
-        .popup-btn.green {
-            background-color: green;
-        }
-        
-        .popup-btn.red {
-            background-color: red;
-        }
-        
-        .popup-btn.yellow {
-            background-color: yellow;
-            color: black;
-        }
-        
-        .popup-btn:hover {
-            opacity: 0.9;
-        }
-        
-        .blur {
-            filter: blur(0.3spx);
-        }
-       
-        
+   
         
         
     </style>
@@ -667,20 +531,95 @@ input[type="checkbox"] {
 
 {% block content %}
     
-    
 <div class="content">
-    
     <div class="form-container">
         <h2>File Upload</h2>
-        <form method="post" enctype="multipart/form-data">
+        
+        <!-- Display selected structure info -->
+        {% if selected_structure %}
+        <div class="selected-structure-info">
+            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
+            {% if existing_file %}
+            <span class="existing-data-badge">File Exists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not circuit_data_exists %}
+        <!-- Show message if circuit data doesn't exist -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>Please complete circuit definition first.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'mdeadend10' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">   <!-- ****************** -->
+                    Go to Circuit Definition
+                </a>
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+        
+        {% elif existing_file %}
+        <!-- Show options when file exists -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>File already exists for this structure.</strong>
+            </div>
+            
+            <!-- Simplified selection buttons -->
+            <div class="selection-buttons">
+                <h3>Select Data Type to Continue</h3>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
+                    <button type="submit" name="set_phase_button" class="btn btn-primary btn-lg">
+                        Set / Phase
+                    </button>
+                </form>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="structure_id" value="{{ structure_id }}">
+                    <button type="submit" name="joint_labels_button" class="btn btn-success btn-lg">
+                        Attachment Joint Labels
+                    </button>
+                </form>
+            </div>
+            
+            <div class="update-link">
+                <a href="{% url 'mupload10_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-secondary">Update Existing File</a>    <!-- ***************** -->
+            </div>
+
+            <div class="action-buttons">
+                <a href="{% url 'mdeadend10' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-primary">   <!-- ****************** -->
+                    Go to Circuit Definition
+                </a>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Show upload form if no file exists -->
+        <form method="post" enctype="multipart/form-data" id="upload-form">
             {% csrf_token %}
+            
+            <!-- Hide the structure dropdown since it's hardcoded -->
+            <div style="display: none;">
+                {{ form.structure }}
+            </div>
+            
             <div class="upload-section">
                 <div class="upload-box">
-                    <p>Select Structure</p>
-                    {{ form.structure }}
-
-                    <p>Drag files to upload</p>
-                    <input type="file" name="file" accept=".xls,.xlsx" required>
+                    <p>Upload File for: <strong>{{ selected_structure.structure }}</strong></p>
+                    
+                    <div class="file-input-container">
+                        <input type="file" name="file" id="file-input" accept=".xls,.xlsx" required>
+                        <label for="file-input" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Choose Excel File (.xls, .xlsx)
+                        </label>
+                        <span id="file-name">No file chosen</span>
+                    </div>
 
                     <button type="submit" class="upload-button">Upload File</button>
                 </div>
@@ -689,118 +628,49 @@ input[type="checkbox"] {
 
         <div class="update-link">
             <p>Need to update an existing file?</p>
-            <a href="{% url 'mupload10_update' %}" class="update-button">  <!-- Change here -->
+            <a href="{% url 'mupload10_update' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="update-button">   <!-- ***************** -->
                 Update Existing File
             </a>
         </div>
 
-        <div class="attachment-section">
-            <p>Select Structure to Extract Data</p>
-            <select id="structure-select" class="form-control">
-                <option value="">-- Select Structure --</option>
-                {% for structure in structures_with_files %}
-                <option value="{{ structure.id }}">{{ structure.structure }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- New Load Cases Section -->
-        <div class="load-cases-section" style="margin-top: 20px; display: none;" id="load-cases-section">
-            <h3>Load Cases</h3>
-            <div class="load-case-links">
-                <a href="#" id="imported-load-cases-link" class="load-case-link">Imported Load Cases</a>
-                <a href="#" id="group-load-cases-link" class="load-case-link">Group Load Cases</a>
-                <a href="#" id="custom-groups-link" class="load-case-link">Custom Groups</a>
-            </div>
-            
-            <div id="load-cases-results" style="margin-top: 20px;">
-                <!-- Load cases results will be displayed here -->
-            </div>
-        </div>
-
-        <div class="selected-load-cases" id="selected-load-cases" style="margin-top: 20px; display: none;">
-            <h4>Selected Load Cases:</h4>
-            <div id="selected-cases-list"></div>
-            
-            <!-- Create Custom Group Form -->
-            <div id="create-custom-group" style="margin-top: 10px; display: none;">
-                <input type="text" id="custom-group-name" placeholder="Enter custom group name" style="padding: 5px; margin-right: 10px;">
-                <button id="create-custom-group-btn" class="btn btn-primary">Create Custom Group</button>
-            </div>
-        </div>
-
-        <div class="buttons">
-            <form id="set-phase-form" method="post" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="structure_id" id="structure-id-input">
-                <input type="hidden" name="go_button" value="set_phase">
-                <input type="hidden" name="load_case_values" id="load-case-values-input">
-                <button type="submit" class="set-phase-button">Set / Phase</button>
-            </form>
-
-            <form id="joint-labels-form" method="post" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="structure_id" id="structure-id-input-joint">
-                <input type="hidden" name="go_button" value="joint_labels">
-                <input type="hidden" name="load_case_values" id="load-case-values-input-joint">
-                <button type="submit" class="attachments-button">Attachments Joint Labels</button>
-            </form>
-        </div>
-
-        <div id="results-container" style="margin-top: 20px;">
-            <!-- Results will be displayed here -->
-        </div>
+       
+        {% endif %}
     </div>
 </div>
-
-
-
+    
+    
     {% endblock %}
 
 {% block extra_js %}
 
-    <script>
-        // Get the popup overlay and popups
-        const monopolePopupOverlay = document.getElementById('monopole-popup-overlay');
-        const monopolePopup1 = document.getElementById('monopole-popup1');
-        const monopolePopup2 = document.getElementById('monopole-popup2'); // Add more popups as needed
+ 
+   <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const structureId = '{{ structure_id }}';
     
-        // Initialize a stack to keep track of opened popups
-        let popupStack = [];
+    // File input handling
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
     
-        // Function to show a popup
-        function showPopup(popup) {
-            monopolePopupOverlay.style.display = 'flex'; // Show the popup overlay
-            popup.style.display = 'block'; // Show the specified popup
-            popupStack.push(popup); // Push the popup to the stack
-        }
-    
-        // Function to close the current popup
-        function closePopup() {
-            const currentPopup = popupStack.pop(); // Remove the current popup from the stack
-            if (currentPopup) {
-                currentPopup.style.display = 'none'; // Hide the current popup
-            }
-            
-            if (popupStack.length > 0) {
-                const previousPopup = popupStack[popupStack.length - 1]; // Get the previous popup
-                previousPopup.style.display = 'block'; // Show the previous popup
+    if (fileInput && fileName) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
             } else {
-                monopolePopupOverlay.style.display = 'none'; // Hide the overlay if no popups left
+                fileName.textContent = 'No file chosen';
             }
-        }
+        });
+    }
     
-    
-    </script>
-    
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const structureSelect = document.getElementById('structure-select');
+    // Load cases functionality (same as tupload1.html)
+    const structureSelect = document.getElementById('structure-select');
+    if (structureSelect) {
         const loadCasesSection = document.getElementById('load-cases-section');
         const importedLoadCasesLink = document.getElementById('imported-load-cases-link');
         const groupLoadCasesLink = document.getElementById('group-load-cases-link');
         const customGroupsLink = document.getElementById('custom-groups-link');
         const loadCasesResults = document.getElementById('load-cases-results');
+        const actionButtons = document.getElementById('action-buttons');
 
         const selectedLoadCases = new Set();
         const selectedLoadCasesSection = document.getElementById('selected-load-cases');
@@ -812,17 +682,18 @@ input[type="checkbox"] {
         const createCustomGroupSection = document.getElementById('create-custom-group');
         const customGroupNameInput = document.getElementById('custom-group-name');
         const createCustomGroupBtn = document.getElementById('create-custom-group-btn');
-
         
         // Show load cases section when a structure is selected
         structureSelect.addEventListener('change', function() {
             if (this.value) {
                 loadCasesSection.style.display = 'block';
+                actionButtons.style.display = 'block';
             } else {
                 loadCasesSection.style.display = 'none';
                 loadCasesResults.innerHTML = '';
                 selectedLoadCasesSection.style.display = 'none';
                 createCustomGroupSection.style.display = 'none';
+                actionButtons.style.display = 'none';
             }
         });
 
@@ -858,8 +729,8 @@ input[type="checkbox"] {
             }
         
             // Update hidden inputs
-            loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
-            loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
+            if (loadCaseValuesInput) loadCaseValuesInput.value = Array.from(selectedLoadCases).join(',');
+            if (loadCaseValuesInputJoint) loadCaseValuesInputJoint.value = Array.from(selectedLoadCases).join(',');
         }
 
         function clearAllSelections() {
@@ -883,7 +754,7 @@ input[type="checkbox"] {
                 return;
             }
 
-            fetch(`/mupload10/?get_load_cases=true&structure_id=${structureId}`, {
+            fetch(`/mupload10/?get_load_cases=true&structure_id=${structureId}`, {      // *****************
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -895,7 +766,7 @@ input[type="checkbox"] {
                     return;
                 }
 
-                let html = '<h4>Imported Load Cases</h4>';
+                let html = '<h5>Imported Load Cases</h5>';
                 if (data.values && data.values.length > 0) {
                     html += '<form id="load-cases-form">';
                     html += '<ul class="load-cases-list">';
@@ -941,7 +812,7 @@ input[type="checkbox"] {
                 return;
             }
 
-            fetch(`/mupload10/?get_grouped_load_cases=true&structure_id=${structureId}`, {
+            fetch(`/mupload10/?get_grouped_load_cases=true&structure_id=${structureId}`, {    // *****************
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -953,13 +824,13 @@ input[type="checkbox"] {
                     return;
                 }
 
-                let html = '<h4>Group Load Cases</h4>';
+                let html = '<h5>Group Load Cases</h5>';
                 if (data.groups && Object.keys(data.groups).length > 0) {
                     html += '<form id="grouped-load-cases-form">';
                     
                     for (const [groupName, cases] of Object.entries(data.groups)) {
                         html += `<div class="load-case-group">
-                            <h5>${groupName}</h5>
+                            <h6>${groupName}</h6>
                             <div class="group-select-all">
                                 <input type="checkbox" id="select-all-${groupName}" class="select-all-group">
                                 <label for="select-all-${groupName}">Select All</label>
@@ -1034,8 +905,7 @@ input[type="checkbox"] {
                 return;
             }
 
-
-            fetch(`/mupload10/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {
+            fetch(`/mupload10/?get_custom_groups_for_selection=true&structure_id=${structureId}`, {    // ***************
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -1047,15 +917,22 @@ input[type="checkbox"] {
                     return;
                 }
 
-                let html = '<h4>Custom Groups - Select Load Cases</h4>';
+                let html = '<h5>Custom Groups - Select Load Cases</h5>';
                 if (data.custom_groups && Object.keys(data.custom_groups).length > 0) {
                     html += '<form id="custom-groups-form">';
                     
                     for (const [groupName, cases] of Object.entries(data.custom_groups)) {
-                        html += `<div class="load-case-group">
-                            <h5>${groupName} 
-                                <button class="btn btn-sm btn-danger delete-group" data-group="${groupName}" style="margin-left: 10px;">Delete</button>
-                            </h5>
+                        html += `<div class="load-case-group" id="group-${groupName.replace(/\s+/g, '-')}">
+                            <h6>
+                                <span class="group-name-display">${groupName}</span>
+                                <button class="btn btn-sm btn-primary edit-group d-inline-block" data-group="${groupName}" style="margin-left: 10px;">Rename</button>
+                                <button class="btn btn-sm btn-danger delete-group d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Delete</button>
+                            </h6>
+                            <div class="group-edit-form" style="display: none; margin-bottom: 10px;">
+                                <input type="text" class="form-control-sm edit-group-input" value="${groupName}" style="display: inline-block;">
+                                <button class="btn btn-sm btn-success save-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Save</button>
+                                <button class="btn btn-sm btn-secondary cancel-edit d-inline-block" data-group="${groupName}" style="margin-left: 5px;">Cancel</button>
+                            </div>
                             <div class="group-select-all">
                                 <input type="checkbox" id="select-all-custom-${groupName}" class="select-all-custom-group">
                                 <label for="select-all-custom-${groupName}">Select All</label>
@@ -1096,6 +973,115 @@ input[type="checkbox"] {
                     });
                 });
 
+                // Add edit functionality
+                document.querySelectorAll('.edit-group').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const groupName = this.dataset.group;
+                        const groupElement = this.closest('.load-case-group');
+                        const displayElement = groupElement.querySelector('.group-name-display');
+                        const editForm = groupElement.querySelector('.group-edit-form');
+                        
+                        // Show edit form, hide display
+                        displayElement.style.display = 'none';
+                        this.style.display = 'none';
+                        groupElement.querySelector('.delete-group').style.display = 'none';
+                        editForm.style.display = 'block';
+                    });
+                });
+
+                document.querySelectorAll('.cancel-edit').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const groupName = this.dataset.group;
+                        const groupElement = this.closest('.load-case-group');
+                        const displayElement = groupElement.querySelector('.group-name-display');
+                        const editForm = groupElement.querySelector('.group-edit-form');
+                        
+                        // Hide edit form, show display
+                        editForm.style.display = 'none';
+                        displayElement.style.display = 'inline';
+                        groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                        groupElement.querySelector('.delete-group').style.display = 'inline-block';
+                    });
+                });
+
+                document.querySelectorAll('.save-edit').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const oldGroupName = this.dataset.group;
+                        const newGroupName = this.closest('.group-edit-form').querySelector('.edit-group-input').value.trim();
+                        
+                        if (!newGroupName) {
+                            alert('Group name cannot be empty');
+                            return;
+                        }
+                        
+                        if (newGroupName === oldGroupName) {
+                            // Just cancel if name didn't change
+                            this.closest('.group-edit-form').querySelector('.cancel-edit').click();
+                            return;
+                        }
+                        
+                        const formData = new FormData();
+                        formData.append('update_custom_group', 'true');
+                        formData.append('old_group_name', oldGroupName);
+                        formData.append('new_group_name', newGroupName);
+                        formData.append('structure_id', structureId);
+                        
+                        fetch('/mupload10/', {            // *****************
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update the UI
+                                const groupElement = this.closest('.load-case-group');
+                                groupElement.querySelector('.group-name-display').textContent = newGroupName;
+                                groupElement.querySelector('.edit-group').dataset.group = newGroupName;
+                                groupElement.querySelector('.delete-group').dataset.group = newGroupName;
+                                groupElement.querySelector('.save-edit').dataset.group = newGroupName;
+                                groupElement.querySelector('.cancel-edit').dataset.group = newGroupName;
+                                
+                                // Also update all checkboxes in this group
+                                groupElement.querySelectorAll('.custom-group-case-checkbox').forEach(cb => {
+                                    cb.dataset.group = newGroupName;
+                                });
+                                
+                                // Update the group ID
+                                groupElement.id = `group-${newGroupName.replace(/\s+/g, '-')}`;
+                                
+                                // Update select-all checkbox ID if it exists
+                                const selectAllCheckbox = groupElement.querySelector('.select-all-custom-group');
+                                if (selectAllCheckbox) {
+                                    selectAllCheckbox.id = `select-all-custom-${newGroupName}`;
+                                    const selectAllLabel = groupElement.querySelector('label[for="select-all-custom-' + oldGroupName + '"]');
+                                    if (selectAllLabel) {
+                                        selectAllLabel.setAttribute('for', `select-all-custom-${newGroupName}`);
+                                    }
+                                }
+                                
+                                // Hide edit form
+                                groupElement.querySelector('.group-edit-form').style.display = 'none';
+                                groupElement.querySelector('.group-name-display').style.display = 'inline';
+                                groupElement.querySelector('.edit-group').style.display = 'inline-block';
+                                groupElement.querySelector('.delete-group').style.display = 'inline-block';
+                                
+                            } else {
+                                alert('Error updating group: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Error updating group: ' + error);
+                        });
+                    });
+                });
+
                 // Add event listener for individual checkbox changes in custom groups
                 document.querySelectorAll('.custom-group-case-checkbox').forEach(checkbox => {
                     checkbox.addEventListener('change', function() {
@@ -1116,19 +1102,32 @@ input[type="checkbox"] {
 
                 // Add delete functionality
                 document.querySelectorAll('.delete-group').forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
                         const groupName = this.dataset.group;
                         if (confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-                            fetch(`/mupload10/?delete_custom_group=true&structure_id=${structureId}&group_name=${encodeURIComponent(groupName)}`, {
+                            const formData = new FormData();
+                            formData.append('delete_custom_group', 'true');
+                            formData.append('structure_id', structureId);
+                            formData.append('group_name', groupName);
+                            
+                            fetch('/mupload10/', {      // *****************
+                                method: 'POST',
                                 headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                },
+                                body: formData
                             })
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    // Reload custom groups
-                                    customGroupsLink.click();
+                                    // Remove the group from UI without refreshing
+                                    this.closest('.load-case-group').remove();
+                                    // If no groups left, show message
+                                    if (!document.querySelector('.load-case-group')) {
+                                        loadCasesResults.innerHTML = '<p>No custom groups found</p>';
+                                    }
                                 } else {
                                     alert('Error deleting group: ' + data.error);
                                 }
@@ -1144,6 +1143,7 @@ input[type="checkbox"] {
                 loadCasesResults.innerHTML = `<div class="error">Error loading data: ${error}</div>`;
             });
         });
+
         // Handle Create Custom Group button
         createCustomGroupBtn.addEventListener('click', function() {
             const structureId = structureSelect.value;
@@ -1174,7 +1174,7 @@ input[type="checkbox"] {
             });
             
             // Send request
-            fetch('/mupload10/', {
+            fetch('/mupload10/', {             // *****************
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1187,7 +1187,7 @@ input[type="checkbox"] {
                 if (data.success) {
                     alert(`Custom group "${groupName}" created successfully!`);
                     customGroupNameInput.value = '';
-                    clearAllSelections();  // <-- clear selections and checkboxes
+                    clearAllSelections();
                 } else {
                     alert('Error creating custom group: ' + data.error);
                 }
@@ -1197,62 +1197,50 @@ input[type="checkbox"] {
             });
         });
 
-
-
-
         // Handle form submissions
-        setPhaseForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input').value = structureId;
-            document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        jointLabelsForm.addEventListener('submit', function(e) {
-            const structureId = structureSelect.value;
-            if (!structureId) {
-                e.preventDefault();
-                alert('Please select a structure first');
-                return;
-            }
-            
-            if (selectedLoadCases.size === 0) {
-                e.preventDefault();
-                alert('Please select at least one load case');
-                return;
-            }
-            
-            document.getElementById('structure-id-input-joint').value = structureId;
-            document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
-        });
-
-        // Auto-hide messages
-        setTimeout(function() {
-            const messages = document.querySelectorAll('.alert');
-            messages.forEach(function(message) {
-                message.style.transition = 'opacity 0.5s ease-out';
-                message.style.opacity = '0';
-                setTimeout(function() {
-                    message.remove();
-                }, 500);
+        if (setPhaseForm) {
+            setPhaseForm.addEventListener('submit', function(e) {
+                const structureId = structureSelect.value;
+                if (!structureId) {
+                    e.preventDefault();
+                    alert('Please select a structure first');
+                    return;
+                }
+                
+                if (selectedLoadCases.size === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one load case');
+                    return;
+                }
+                
+                document.getElementById('structure-id-input').value = structureId;
+                document.getElementById('load-case-values-input').value = Array.from(selectedLoadCases).join(',');
             });
-        }, 3000); 
-    });
+        }
+
+        if (jointLabelsForm) {
+            jointLabelsForm.addEventListener('submit', function(e) {
+                const structureId = structureSelect.value;
+                if (!structureId) {
+                    e.preventDefault();
+                    alert('Please select a structure first');
+                    return;
+                }
+                
+                if (selectedLoadCases.size === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one load case');
+                    return;
+                }
+                
+                document.getElementById('structure-id-input-joint').value = structureId;
+                document.getElementById('load-case-values-input-joint').value = Array.from(selectedLoadCases).join(',');
+            });
+        }
+    }
+});
 </script>
 
-    {% endblock %}
-
-
+{% endblock %}
 
 

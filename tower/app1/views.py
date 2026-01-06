@@ -1116,6 +1116,8 @@ def hdata1(request):
     # Store joint labels if any are selected
     if selected_joints:
         filter_criteria['joint_labels'] = selected_joints
+        # NEW: Also store joint labels in a display-friendly format
+        filter_criteria['joint_labels_display'] = selected_joints
 
     # Store set-phase combinations if any are active - UPDATED to always use dicts
     set_phase_pairs = []
@@ -1330,11 +1332,22 @@ def apply_previous_selection_filter(structure_id, filter_criteria, selected_load
         
         # Filter by joint labels if present
         if filter_criteria and 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
-            if 'Joint Label' in df.columns:
+            # Check for different possible column names
+            joint_column = None
+            possible_joint_columns = ['Attach. Joint Labels', 'Joint Label', 'Attachment Joint Labels', 'Joint Labels']
+            
+            for col in possible_joint_columns:
+                if col in df.columns:
+                    joint_column = col
+                    break
+            
+            if joint_column:
                 # Convert joint labels to strings for comparison
                 joint_labels = [str(label) for label in filter_criteria['joint_labels']]
-                print(f"DEBUG: Filtering by joint labels: {joint_labels}")
-                filtered_df = filtered_df[filtered_df['Joint Label'].astype(str).isin(joint_labels)]
+                print(f"DEBUG: Filtering by joint labels in column '{joint_column}': {joint_labels}")
+                
+                # Handle both string and numeric comparisons
+                filtered_df = filtered_df[filtered_df[joint_column].astype(str).isin(joint_labels)]
                 print(f"DEBUG: After joint filter: {filtered_df.shape}")
         
         # Filter by set+phase combinations if present - FIXED VERSION
@@ -1545,15 +1558,31 @@ def load_cases_page(request):
     structure_id = selected_values.get('structure_id')
     selected_load_cases = selected_values.get('load_cases', [])
     
-    # NEW: Get filter criteria from previous page
+    # Get filter criteria from previous page
     filter_criteria = selected_values.get('filter_criteria', {})
     
     print(f"DEBUG load_cases_page: Session selected_values = {selected_values}")
     print(f"DEBUG: Filter criteria from session: {filter_criteria}")
-    if 'set_phase_combinations' in filter_criteria:
-        print(f"DEBUG: Number of combinations in filter_criteria: {len(filter_criteria['set_phase_combinations'])}")
-        for i, combo in enumerate(filter_criteria['set_phase_combinations']):
-            print(f"DEBUG: Combination {i}: Set={combo.get('set')}, Phase={combo.get('phase')}")
+    
+    # NEW: Create display text for filter criteria
+    filter_display = []
+    
+    if 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
+        joint_labels_count = len(filter_criteria['joint_labels'])
+        # NEW: Create formatted display for joint labels
+        joint_labels_display = ', '.join(filter_criteria['joint_labels'])
+        filter_display.append(f'Joint Labels ({joint_labels_count}): {joint_labels_display}')
+    
+    if 'set_phase_combinations' in filter_criteria and filter_criteria['set_phase_combinations']:
+        combinations_count = len(filter_criteria['set_phase_combinations'])
+        # Create formatted display for set/phase combinations
+        combinations_text = ', '.join([
+            f'Set {combo.get("set", "")} - Phase {combo.get("phase", "")}'
+            for combo in filter_criteria['set_phase_combinations']
+        ])
+        filter_display.append(f'Combinations ({combinations_count}): {combinations_text}')
+    
+    print(f"DEBUG: Filter display: {filter_display}")
     
     # Handle load cases selection via AJAX only
     if request.method == 'POST' and 'load_cases_selection' in request.POST:
@@ -1576,7 +1605,6 @@ def load_cases_page(request):
             
             # Get filter criteria directly from session
             session_values = request.session.get('selected_values', {})
-            # NEW: Add this type check/conversion here
             if isinstance(session_values, list):
                 print(f"⚠️ DEBUG load_cases_page (filter_by_previous): session_values was a list, converting to dict")
                 request.session['selected_values'] = {}
@@ -1591,7 +1619,7 @@ def load_cases_page(request):
             print(f"DEBUG: Selected load cases from session: {selected_load_cases}")
             print(f"DEBUG: Selected groups: {selected_groups}")
             
-            # NEW: Determine selection source from the request
+            # Determine selection source from the request
             selection_source = request.POST.get('selection_source', 'imported')
             print(f"DEBUG: Selection source for filtering: {selection_source}")
             
@@ -1606,7 +1634,8 @@ def load_cases_page(request):
             
             print(f"DEBUG: Filtered grouped data - {filtered_result['record_count']} records in {len(filtered_result['grouped_data'])} groups")
             
-            return JsonResponse({
+            # NEW: Create response with detailed filter info
+            response_data = {
                 'success': True, 
                 'grouped_data': filtered_result['grouped_data'],
                 'all_columns': filtered_result['all_columns'],
@@ -1614,8 +1643,27 @@ def load_cases_page(request):
                 'is_grouped': True,
                 'current_selected_cases': selected_load_cases,
                 'selection_source': selection_source,
-                'filter_criteria': filter_criteria  # Return filter criteria for frontend display
-            })
+                'filter_criteria': filter_criteria
+            }
+            
+            # NEW: Add filter display info
+            filter_display_info = []
+            if 'joint_labels' in filter_criteria and filter_criteria['joint_labels']:
+                joint_labels_count = len(filter_criteria['joint_labels'])
+                joint_labels_display = ', '.join(filter_criteria['joint_labels'])
+                filter_display_info.append(f'Joint Labels ({joint_labels_count}): {joint_labels_display}')
+            
+            if 'set_phase_combinations' in filter_criteria and filter_criteria['set_phase_combinations']:
+                combinations_count = len(filter_criteria['set_phase_combinations'])
+                combinations_text = ', '.join([
+                    f'Set {combo.get("set", "")} - Phase {combo.get("phase", "")}'
+                    for combo in filter_criteria['set_phase_combinations']
+                ])
+                filter_display_info.append(f'Combinations ({combinations_count}): {combinations_text}')
+            
+            response_data['filter_display'] = filter_display_info
+            
+            return JsonResponse(response_data)
     
     # AJAX handlers (moved from hdata1)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -1700,6 +1748,7 @@ def load_cases_page(request):
         'selected_load_cases': selected_load_cases,
         'structure_id': structure_id,
         'filter_criteria': filter_criteria,  # NEW: Pass filter criteria to template
+        'filter_display': filter_display,
     })
     
 def get_filtered_load_data(request):
@@ -13516,40 +13565,386 @@ def m_deadend_view5(request):
     return render(request, 'app1/m_deadend_view5.html', {'h': h})
 
 
-def mdeadend6(request):
+def mdeadend6(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend6 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend6.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend6.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend6.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload6/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm6(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend6.html', {   # *************
+                'form': MDeadendForm6(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm6(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload6/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend6',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend6] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend6] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload6/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend6 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm6()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm6(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend6',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm6()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm6 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend6.html', {'form': form})
+    return render(request, 'app1/mdeadend6.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload6(request):
+def mupload6(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload6] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload6] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload6] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload6] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload6] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload6] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend6 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend6.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend6.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend6] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload6] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload6] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend6.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload6] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend6.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload6] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend6.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend6.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload6] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload6] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload6] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend6.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend6.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload6] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend6.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend6.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload6] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload6] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload6] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend6/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend6',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload6] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm6(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile6.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload6.html', {
+                    'form': MUDeadendForm6(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files6__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm6(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases6(uploaded_file)
+                    mextract_load_cases6(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload6')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload6/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -13574,35 +13969,51 @@ def mupload6(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm6()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile6.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm6()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files6__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files6__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -13610,7 +14021,7 @@ def mupload6(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile6.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -13624,7 +14035,7 @@ def mupload6(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -13655,7 +14066,7 @@ def mupload6(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -13668,24 +14079,22 @@ def mupload6(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload6.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload6.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -13747,40 +14156,386 @@ def m_deadend_view6(request):
 
 
 
-def mdeadend7(request):
+def mdeadend7(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [mdeadend7 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend7.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend7.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend7.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload7/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm7(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend7.html', {   # *************
+                'form': MDeadendForm7(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm7(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload7/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend7',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend7] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend7] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload7/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend7 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm7()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm7(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend7',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm7()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm7 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend7.html', {'form': form})
+    return render(request, 'app1/mdeadend7.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload7(request):
+def mupload7(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload7] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload7] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload7] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload7] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload7] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload7] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend7 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend7.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend7.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend7] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload7] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload7] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend7.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload7] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend7.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload7] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend7.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend7.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload7] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload7] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload7] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend7.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend7.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload7] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend7.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend7.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload7] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload7] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload7] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend7/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend7',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload7] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm7(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile7.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload7.html', {
+                    'form': MUDeadendForm7(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files7__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm7(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases7(uploaded_file)
+                    mextract_load_cases7(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload7')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload7/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -13805,35 +14560,51 @@ def mupload7(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm7()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile7.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm7()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files7__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files7__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -13841,7 +14612,7 @@ def mupload7(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile7.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -13855,7 +14626,7 @@ def mupload7(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -13886,7 +14657,7 @@ def mupload7(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -13899,24 +14670,22 @@ def mupload7(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload7.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload7.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -13976,40 +14745,386 @@ def m_deadend_view7(request):
     return render(request, 'app1/m_deadend_view7.html', {'h': h})
 
 
-def mdeadend8(request):
+def mdeadend8(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend8 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend8.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend8.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend8.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload8/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm8(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend8.html', {   # *************
+                'form': MDeadendForm8(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm8(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload8/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend8',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend8] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend8] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload8/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend8 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm8()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm8(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend8',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm8()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm8 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend8.html', {'form': form})
+    return render(request, 'app1/mdeadend8.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload8(request):
+def mupload8(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload8] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload8] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload8] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload8] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload8] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload8] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend8 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend8.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend8.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend8] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload8] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload8] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend8.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload8] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend8.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload8] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend8.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend8.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload8] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload8] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload8] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend8.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend8.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload8] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend8.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend8.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload8] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload8] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload8] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend8/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend8',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload8] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm8(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile8.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload8.html', {
+                    'form': MUDeadendForm8(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files8__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm8(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases8(uploaded_file)
+                    mextract_load_cases8(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload8')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload8/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -14034,35 +15149,51 @@ def mupload8(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm8()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile8.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm8()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files8__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files8__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -14070,7 +15201,7 @@ def mupload8(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile8.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -14084,7 +15215,7 @@ def mupload8(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -14115,7 +15246,7 @@ def mupload8(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -14128,24 +15259,22 @@ def mupload8(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload8.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload8.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -14206,40 +15335,386 @@ def m_deadend_view8(request):
 
 
 
-def mdeadend9(request):
+def mdeadend9(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend9 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend9.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend9.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend9.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload9/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm9(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend9.html', {   # *************
+                'form': MDeadendForm9(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm9(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload9/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend9',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend9] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend9] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload9/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend9 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm9()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm9(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend9',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm9()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm9 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend9.html', {'form': form})
+    return render(request, 'app1/mdeadend9.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload9(request):
+def mupload9(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload9] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload9] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload9] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload9] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload9] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload9] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend9 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend9.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend9.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend9] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload9] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload9] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend9.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload9] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend9.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload9] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend9.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend9.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload9] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload9] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload9] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend9.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend9.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload9] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend9.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend9.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload9] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload9] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload9] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend9/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend9',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload9] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm9(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile9.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload9.html', {
+                    'form': MUDeadendForm9(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files9__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm9(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases9(uploaded_file)
+                    mextract_load_cases9(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload9')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload9/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -14264,35 +15739,51 @@ def mupload9(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm9()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile9.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm9()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files9__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files9__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -14300,7 +15791,7 @@ def mupload9(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile9.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -14314,7 +15805,7 @@ def mupload9(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -14345,7 +15836,7 @@ def mupload9(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -14358,24 +15849,22 @@ def mupload9(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload9.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload9.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -14435,40 +15924,387 @@ def m_deadend_view9(request):
     return render(request, 'app1/m_deadend_view9.html', {'h': h})
 
 
-def mdeadend10(request):
+def mdeadend10(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend10 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend10.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend10.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend10.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload10/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm10(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend10.html', {   # *************
+                'form': MDeadendForm10(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm10(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload10/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend10',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend10] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend10] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload10/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend10 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm10()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm10(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend10',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm10()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm10 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend10.html', {'form': form})
-
-def mupload10(request):
+    return render(request, 'app1/mdeadend10.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
+    
+    
+def mupload10(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload10] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload10] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload10] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload10] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload10] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload10] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend10 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend10.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend10.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend10] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload10] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload10] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend10.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload10] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend10.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload10] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend10.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend10.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload10] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload10] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload10] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend10.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend10.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload10] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend10.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend10.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload10] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload10] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload10] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend10/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend10',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload10] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm10(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile10.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload10.html', {
+                    'form': MUDeadendForm10(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files10__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm10(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases10(uploaded_file)
+                    mextract_load_cases10(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload10')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload10/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -14493,35 +16329,51 @@ def mupload10(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm10()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile10.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm10()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files10__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files10__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -14529,7 +16381,7 @@ def mupload10(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile10.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -14543,7 +16395,7 @@ def mupload10(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -14574,7 +16426,7 @@ def mupload10(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -14587,24 +16439,22 @@ def mupload10(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload10.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload10.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -14665,40 +16515,386 @@ def m_deadend_view10(request):
 
 
 
-def mdeadend11(request):
+def mdeadend11(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend11 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend11.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend11.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend11.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload11/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm11(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend11.html', {   # *************
+                'form': MDeadendForm11(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm11(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload11/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend11',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend11] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend11] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload11/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend11 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm11()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm11(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend11',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm11()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm11 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend11.html', {'form': form})
+    return render(request, 'app1/mdeadend11.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload11(request):
+def mupload11(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload11] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload11] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload11] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload11] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload11] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload11] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend11 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend11.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend11.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend11] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload11] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload11] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend11.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload11] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend11.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload11] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend11.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend11.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload11] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload11] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload11] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend11.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend11.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload11] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend11.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend11.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload11] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload11] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload11] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend11/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend11',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload11] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm11(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile11.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload11.html', {
+                    'form': MUDeadendForm11(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files11__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm11(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases11(uploaded_file)
+                    mextract_load_cases11(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload11')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload11/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -14723,35 +16919,51 @@ def mupload11(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm11()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile11.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm11()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files11__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files11__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -14759,7 +16971,7 @@ def mupload11(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -14773,7 +16985,7 @@ def mupload11(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -14804,7 +17016,7 @@ def mupload11(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -14817,24 +17029,22 @@ def mupload11(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload11.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload11.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -14895,40 +17105,386 @@ def m_deadend_view11(request):
 
 
 
-def mdeadend12(request):
+def mdeadend12(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend12 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend12.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend12.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend12.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload12/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm12(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend12.html', {   # *************
+                'form': MDeadendForm12(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm12(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload12/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend12',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend12] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend12] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload12/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend12 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm12()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm12(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend12',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm12()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm12 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend12.html', {'form': form})
+    return render(request, 'app1/mdeadend12.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload12(request):
+def mupload12(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload12] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload12] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload12] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload12] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload12] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload12] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend12 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend12.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend12.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend12] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload12] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload12] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend12.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload12] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend12.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload12] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend12.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend12.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload12] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload12] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload12] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend12.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend12.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload12] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend12.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend12.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload12] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload12] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload12] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend12/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend12',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload12] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm12(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile12.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload12.html', {
+                    'form': MUDeadendForm12(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files12__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm12(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases12(uploaded_file)
+                    mextract_load_cases12(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload12')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload12/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -14953,35 +17509,51 @@ def mupload12(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm12()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile12.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm12()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files12__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files12__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -14989,7 +17561,7 @@ def mupload12(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile12.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile11.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -15003,7 +17575,7 @@ def mupload12(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -15034,7 +17606,7 @@ def mupload12(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -15047,24 +17619,22 @@ def mupload12(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload12.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload12.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -15125,40 +17695,386 @@ def m_deadend_view12(request):
 
 
 
-def mdeadend13(request):
+def mdeadend13(request):        # **************
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    # DEBUG: Print session data at the start of circuit definition
+    print(f"DEBUG [MDeadend13 Page] - Session data received:")    # **************
+    print(f"  selected_structure_type: {request.session.get('selected_structure_type')}")
+    print(f"  selected_structure_id: {request.session.get('selected_structure_id')}")
+    print(f"  active_popups: {request.session.get('active_popups', [])}")
+    print(f"  popup_selections: {request.session.get('popup_selections', {})}")
+    print(f"  Query params - structure_type: {structure_type}, structure_id: {structure_id}")
+    
+    # Use session data if query params are missing
+    if not structure_type and 'selected_structure_type' in request.session:
+        structure_type = request.session['selected_structure_type']
+    
+    if not structure_id and 'selected_structure_id' in request.session:
+        structure_id = request.session['selected_structure_id']
+    
+    # Initialize variables
+    structure = None
+    existing_data = False
+    existing_circuit_data = None
+    
+    # Get structure object safely
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            # Check if data already exists for this structure
+            existing_data = MDeadend13.objects.filter(structure=structure).exists()   # **************
+            
+            # NEW: If data exists, get the latest record
+            if existing_data:
+                existing_circuit_data = MDeadend13.objects.filter(structure=structure).latest('id')  # **************
+                print(f"DEBUG [Existing Data Found] - Found existing MonopoleDeadend data for structure ID: {structure_id}")  # **************
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+        except MDeadend13.DoesNotExist:         # *******************
+            existing_circuit_data = None
+            print(f"DEBUG [No Existing Data] - No MonopoleDeadend data found for structure ID: {structure_id}")  # **************
+    
+    # Handle Next button click
+    if request.method == 'GET' and request.GET.get('next') == 'true':
+        if structure_id and structure_type and existing_data:
+            # Redirect to upload page
+            return HttpResponseRedirect(f'/mupload13/?structure_id={structure_id}&structure_type={structure_type}')  # **************
+        else:
+            return redirect('home')
+    
     if request.method == 'POST':
-        form = MDeadendForm13(request.POST)
+        # If data already exists, prevent saving new data
+        if existing_data:
+            return render(request, 'app1/mdeadend13.html', {   # *************
+                'form': MDeadendForm13(instance=existing_circuit_data),    # *************
+                'structure_type': structure_type,
+                'selected_structure': structure,
+                'structure_id': structure_id,
+                'existing_data': existing_data,
+                'session_popups': request.session.get('active_popups', []),
+                'session_structure_type': request.session.get('selected_structure_type', ''),
+                'session_circuit_definition': request.session.get('circuit_definition', {}),
+            })
+        
+        form = MDeadendForm13(request.POST)     # ****************
         if form.is_valid():
             try:
-                form.save()
-                return HttpResponseRedirect('/mupload13/')  # Redirect after successful save
+                # Force the structure from URL parameter
+                instance = form.save(commit=False)
+                if structure:
+                    instance.structure = structure
+                instance.save()
+                
+                # Store structure info in session for upload page
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+                request.session['circuit_structure_id'] = instance.id
+                
+                # NEW: Store circuit definition data in session
+                circuit_definition_data = {
+                    'num_3_phase_circuits': form.cleaned_data.get('num_3_phase_circuits'),
+                    'num_shield_wires': form.cleaned_data.get('num_shield_wires'),
+                    'num_1_phase_circuits': form.cleaned_data.get('num_1_phase_circuits'),
+                    'num_communication_cables': form.cleaned_data.get('num_communication_cables'),
+                    'circuit_model': 'MDeadend13',    # **************
+                    'circuit_id': instance.id,
+                    'timestamp': time.time(),
+                }
+                
+                # Store in session
+                request.session['circuit_definition'] = circuit_definition_data
+                
+                # Debug: Print stored circuit definition data
+                print(f"DEBUG [MDeadend13] - Stored in session:")    # *************
+                print(f"  Circuit Definition Data: {circuit_definition_data}")
+                
+                # Debug: Print complete session data
+                print(f"DEBUG [Complete Session - MDeadend13] - All session data:")   # **********
+                print(f"  Structure Type: {request.session.get('selected_structure_type')}")
+                print(f"  Structure ID: {request.session.get('selected_structure_id')}")
+                print(f"  Active Popups: {request.session.get('active_popups', [])}")
+                print(f"  Popup Selections: {request.session.get('popup_selections', {})}")
+                print(f"  Circuit Definition: {request.session.get('circuit_definition', {})}")
+                
+                # Redirect directly to upload page after successful save
+                return HttpResponseRedirect(f'/mupload13/?structure_id={structure_id}&structure_type={structure_type}')   # ****************
             except IntegrityError:
                 form.add_error('structure', 'Data already added for this structure.')
-        # if error: fall through to render form with errors
-
+            except Exception as e:
+                form.add_error(None, f'Error saving data: {str(e)}')
+        else:
+            # Form is invalid - debug print errors
+            print(f"DEBUG [MDeadend13 Form Errors] - Form validation failed:")  # **************
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
     else:
-        form = MDeadendForm13()
+        # GET request - create form
+        if existing_data and existing_circuit_data:
+            # NEW: If data exists, populate form with database data
+            form = MDeadendForm13(instance=existing_circuit_data)   # **************
+            
+            # NEW: Also update session with existing database data
+            circuit_definition_data = {
+                'num_3_phase_circuits': existing_circuit_data.num_3_phase_circuits,
+                'num_shield_wires': existing_circuit_data.num_shield_wires,
+                'num_1_phase_circuits': existing_circuit_data.num_1_phase_circuits,
+                'num_communication_cables': existing_circuit_data.num_communication_cables,
+                'circuit_model': 'MDeadend13',               # *******************
+                'circuit_id': existing_circuit_data.id,
+                'timestamp': time.time(),
+            }
+            
+            # Update session with existing database data
+            request.session['circuit_definition'] = circuit_definition_data
+            
+            print(f"DEBUG [Existing Data Loaded] - Loaded existing data from database:")
+            print(f"  Circuit Definition Data: {circuit_definition_data}")
+        else:
+            # Create empty form for new data
+            form = MDeadendForm13()                # ***************
+        
+        # Debug: Print session state on GET request
+        print(f"DEBUG [MDeadendForm13 GET Request] - Current session state:")   # ***************
+        print(f"  Circuit Definition in session: {request.session.get('circuit_definition', 'Not set')}")
 
-    return render(request, 'app1/mdeadend13.html', {'form': form})
+    return render(request, 'app1/mdeadend13.html', {     # ***************
+        'form': form,
+        'structure_type': structure_type,
+        'selected_structure': structure,
+        'structure_id': structure_id,
+        'existing_data': existing_data,
+        'session_popups': request.session.get('active_popups', []),
+        'session_structure_type': request.session.get('selected_structure_type', ''),
+        'session_circuit_definition': request.session.get('circuit_definition', {}),
+    })
 
-def mupload13(request):
+def mupload13(request):    # ***************
+    structure_id = (
+        request.GET.get('structure_id') or
+        request.POST.get('structure_id') or
+        request.session.get('selected_structure_id')
+    )
+    
+    # Validate and sanitize structure_id
+    if structure_id:
+        try:
+            structure_id = int(structure_id)
+        except (ValueError, TypeError):
+            structure_id = None
+    
+    # Fallback to session if still None
+    if not structure_id:
+        session_structure_id = request.session.get('selected_structure_id')
+        if session_structure_id:
+            try:
+                structure_id = int(session_structure_id)
+            except (ValueError, TypeError):
+                structure_id = None
+    
+    # If still invalid, redirect (structure_id is required)
+    if not structure_id:
+        return redirect('home')
+    
+    structure_type = (
+        request.GET.get('structure_type') or
+        request.POST.get('structure_type') or
+        request.session.get('selected_structure_type')
+    )
+    circuit_id = request.GET.get('circuit_id')
+    
+    # Debug loggin
+    print(f"DEBUG [mupload13] - Received structure_id: {structure_id}")   # **************
+    print(f"DEBUG [mupload13] - Received circuit_id: '{circuit_id}' (type: {type(circuit_id)})")  # **************
+    
+    # Check if circuit_id is the string 'null' or 'undefined'
+    if circuit_id in ['null', 'undefined', 'None', '']:
+        print(f"DEBUG [mupload13] - circuit_id is invalid string: '{circuit_id}', setting to None")   # **************
+        circuit_id = None
+    
+    structure = None
+    existing_file = False
+    circuit_data_exists = False
+    circuit_data = None
+    
+    if structure_id:
+        try:
+            structure = ListOfStructure.objects.get(id=structure_id)
+            
+            # If circuit_id is None, try to get it from session
+            if not circuit_id:
+                print(f"DEBUG [mupload13] - No circuit_id in URL, checking session")  # **************
+                # Check session for circuit_definition
+                circuit_definition = request.session.get('circuit_definition')
+                if circuit_definition and 'circuit_id' in circuit_definition:
+                    circuit_id = circuit_definition.get('circuit_id')
+                    print(f"DEBUG [mupload13] - Got circuit_id from session circuit_definition: {circuit_id}")   # **************
+                
+                # Check if we have a circuit_structure_id in session
+                if not circuit_id and 'circuit_structure_id' in request.session:
+                    circuit_id = request.session.get('circuit_structure_id')
+                    print(f"DEBUG [mupload13] - Got circuit_id from circuit_structure_id: {circuit_id}")  # **************
+                
+                # Check if there's any MDeadend13 data for this structure
+                if not circuit_id:
+                    circuit_exists = MDeadend13.objects.filter(structure=structure).exists()  # *************
+                    if circuit_exists:
+                        circuit_data = MDeadend13.objects.filter(structure=structure).latest('id')  # *************
+                        circuit_id = circuit_data.id
+                        print(f"DEBUG [MDeadend13] - Found circuit data by structure lookup: {circuit_id}")   # *************
+            
+            # Now process circuit_id if we have one
+            if circuit_id:
+                # Convert to integer if it's a string
+                if isinstance(circuit_id, str):
+                    if circuit_id.isdigit():
+                        circuit_id = int(circuit_id)
+                        print(f"DEBUG [mupload13] - Converted circuit_id to int: {circuit_id}")  # *************
+                    else:
+                        print(f"DEBUG [mupload13] - circuit_id is string but not digit: '{circuit_id}', setting to None")  # *************
+                        circuit_id = None
+                
+                # Try to get circuit data by circuit_id
+                if circuit_id:
+                    try:
+                        circuit_data = MDeadend13.objects.get(id=circuit_id, structure=structure)  # *************
+                        circuit_data_exists = True
+                        print(f"DEBUG [mupload13] - Found circuit data by circuit_id: {circuit_id}")  # *************
+                    except MDeadend13.DoesNotExist:    # *************
+                        print(f"DEBUG [mupload13] - Circuit not found by circuit_id {circuit_id}, trying structure lookup")  # *************
+                        # Fall back to structure lookup
+                        circuit_exists = MDeadend13.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend13.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload13] - Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+                            print(f"DEBUG [mupload13] - No circuit data found for structure")   # *************
+                    except ValueError as e:
+                        print(f"DEBUG [mupload13] - ValueError with circuit_id {circuit_id}: {e}")   # *************
+                        # Try structure lookup as fallback
+                        circuit_exists = MDeadend13.objects.filter(structure=structure).exists()  # *************
+                        if circuit_exists:
+                            circuit_data = MDeadend13.objects.filter(structure=structure).latest('id')  # *************
+                            circuit_data_exists = True
+                            circuit_id = circuit_data.id
+                            print(f"DEBUG [mupload13] - Fallback: Found circuit data by structure: {circuit_id}")  # *************
+                        else:
+                            circuit_data_exists = False
+            else:
+                # No circuit_id at all, check if circuit data exists for structure
+                circuit_exists = MDeadend13.objects.filter(structure=structure).exists()  # *************
+                if circuit_exists:
+                    circuit_data = MDeadend13.objects.filter(structure=structure).latest('id')  # *************
+                    circuit_data_exists = True
+                    circuit_id = circuit_data.id
+                    print(f"DEBUG [mupload13] - No circuit_id provided, found by structure: {circuit_id}")  # *************
+                else:
+                    circuit_data_exists = False
+                    print(f"DEBUG [mupload13] - No circuit_id and no circuit data found for structure")  # *************
+                    
+        except ListOfStructure.DoesNotExist:
+            return redirect('home')
+    else:
+        return redirect('home')
+    
+    # Check if circuit data exists
+    if not circuit_data_exists:
+        print(f"DEBUG [mupload13] - No circuit data found, redirecting to mdeadend")  # *************
+        # Redirect to circuit definition page
+        redirect_url = f'/mdeadend13/?structure_id={structure_id}&structure_type={structure_type}'  # *************
+        if circuit_id:
+            redirect_url += f'&circuit_id={circuit_id}'
+        return HttpResponseRedirect(redirect_url)
+    
+    # Ensure session has circuit data
+    if circuit_data:
+        circuit_definition_data = {
+            'num_3_phase_circuits': circuit_data.num_3_phase_circuits,
+            'num_shield_wires': circuit_data.num_shield_wires,
+            'num_1_phase_circuits': circuit_data.num_1_phase_circuits,
+            'num_communication_cables': circuit_data.num_communication_cables,
+            'circuit_model': 'MDeadend13',  # *************
+            'circuit_id': circuit_data.id,
+            'timestamp': time.time(),
+        }
+        request.session['circuit_definition'] = circuit_definition_data
+        request.session['circuit_structure_id'] = circuit_data.id
+        print(f"DEBUG [mupload13] - Updated session with circuit_id: {circuit_data.id}")    # *************
+    
     if request.method == 'POST':
-        # Handle file upload form
+        # Handle file upload
         if 'file' in request.FILES:
-            form = MUDeadendForm13(request.POST, request.FILES)
+            # Check if file already exists for this structure
+            existing_file_check = mUploadedFile13.objects.filter(structure=structure).exists()  # ***********
+            
+            if existing_file_check:
+                return render(request, 'app1/mupload13.html', {
+                    'form': MUDeadendForm13(),    # ***************
+                    'structures_with_files': ListOfStructure.objects.filter(muploaded_files13__isnull=False).distinct(),  # ************
+                    'selected_structure': structure,
+                    'structure_type': structure_type,
+                    'structure_id': structure_id,
+                    'circuit_id': circuit_id,
+                    'existing_file': existing_file_check,
+                    'circuit_data_exists': circuit_data_exists
+                })
+            
+            form = MUDeadendForm13(request.POST, request.FILES)  # ***************
             if form.is_valid():
                 try:
-                    uploaded_file = form.save()
+                    # Force the structure from URL parameter
+                    instance = form.save(commit=False)
+                    instance.structure = structure
+                    instance.save()
                     
-                    # Extract load cases from the uploaded file
-                    mextract_load_cases13(uploaded_file)
+                    mextract_load_cases13(instance)   # ***************
                     
-                    messages.success(request, 'File uploaded successfully!')
-                    return redirect('mupload13')
-                except IntegrityError:
+                    # Don't clear circuit-related session data
+                    request.session.pop('selected_structure_id', None)
+                    request.session.pop('selected_structure_type', None)
+                    
+                    # Redirect to show updated state
+                    redirect_url = f'/mupload13/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                    if circuit_id:
+                        redirect_url += f'&circuit_id={circuit_id}'
+                    return HttpResponseRedirect(redirect_url)
+                    
+                except IntegrityError as e:
                     form.add_error('structure', 'A file has already been uploaded for this structure.')
+                except Exception as e:
+                    form.add_error(None, f'Error uploading file: {str(e)}')
+            else:
+                # Form is invalid, show errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         
-        # Handle custom group creation
+        # Handle Set/Phase or Attachment Joint Label selection and redirect
+        elif 'set_phase_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'set_phase',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+            
+        elif 'joint_labels_button' in request.POST:
+            # Store selection in session and redirect to canvas container
+            selected_values = {
+                'button_type': 'joint_labels',
+                'structure_id': structure_id,
+                'circuit_id': circuit_id
+            }
+            request.session['selected_values'] = selected_values
+            return redirect('hdata1')
+        
+        # Handle custom group operations
         elif 'create_custom_group' in request.POST:
             structure_id = request.POST.get('structure_id')
             group_name = request.POST.get('group_name')
@@ -15183,35 +18099,51 @@ def mupload13(request):
                             structure=structure
                         )
                     
-                    messages.success(request, f'Custom group "{group_name}" created successfully!')
                     return JsonResponse({'success': True})
                 except Exception as e:
                     return JsonResponse({'success': False, 'error': str(e)})
         
-        # Handle the Go button POST request
-        elif 'go_button' in request.POST:
-            button_type = request.POST.get('go_button')
-            load_case_values = request.POST.get('load_case_values', '')
+        elif 'update_custom_group' in request.POST:
+            old_group_name = request.POST.get('old_group_name')
+            new_group_name = request.POST.get('new_group_name')
             
-            # Convert comma-separated string to list
-            if load_case_values:
-                load_cases = [case.strip() for case in load_case_values.split(',') if case.strip()]
-            else:
-                load_cases = []
-                
-            selected_values = {
-                'button_type': button_type,  # Store which button was clicked
-                'load_cases': load_cases,
-                'structure_id': request.POST.get('structure_id')
-            }
-            request.session['selected_values'] = selected_values
-            return redirect('hdata1')
-    else:
-        form = MUDeadendForm13()
+            if old_group_name and new_group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    group = LoadCaseGroup.objects.get(
+                        structure=structure,
+                        name=old_group_name,
+                        is_custom=True
+                    )
+                    group.name = new_group_name
+                    group.save()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+        
+        elif 'delete_custom_group' in request.POST:
+            group_name = request.POST.get('group_name')
+            
+            if group_name and structure_id:
+                try:
+                    structure = ListOfStructure.objects.get(id=structure_id)
+                    LoadCaseGroup.objects.filter(
+                        structure=structure,
+                        name=group_name,
+                        is_custom=True
+                    ).delete()
+                    return JsonResponse({'success': True})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': str(e)})
+    
+    else:  # GET request
+        # GET request - check for existing file
+        existing_file = mUploadedFile13.objects.filter(structure=structure).exists()  # ***************
+        form = MUDeadendForm13()    # ************
+        
+    structures_with_files = ListOfStructure.objects.filter(muploaded_files13__isnull=False).distinct()  # ***************
 
-    structures_with_files = ListOfStructure.objects.filter(muploaded_files13__isnull=False).distinct()
-
-    # Handle AJAX requests for data
+    # Handle AJAX requests for data (GET requests only)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         structure_id = request.GET.get('structure_id')
         if not structure_id:
@@ -15219,7 +18151,7 @@ def mupload13(request):
 
         try:
             structure = ListOfStructure.objects.get(id=structure_id)
-            latest_file = mUploadedFile13.objects.filter(structure=structure).latest('uploaded_at')
+            latest_file = mUploadedFile13.objects.filter(structure=structure).latest('uploaded_at')  # ***************
             df = pd.read_excel(latest_file.file.path, engine='openpyxl')
 
             if request.GET.get('get_set_phase'):
@@ -15233,7 +18165,7 @@ def mupload13(request):
                 # Process joint labels
                 joint_labels = df['Attach. Joint Labels'].dropna().unique().tolist()
                 return JsonResponse({'values': joint_labels})
-                
+            
             elif request.GET.get('get_load_cases'):
                 # Process load cases - extract unique load cases
                 if 'Load Case Description' in df.columns:
@@ -15264,7 +18196,7 @@ def mupload13(request):
                 else:
                     return JsonResponse({'error': 'Load Case Description column not found'}, status=400)
             
-            # New: Get custom groups for a structure
+            # Get custom groups for a structure
             elif request.GET.get('get_custom_groups_for_selection'):
                 custom_groups = LoadCaseGroup.objects.filter(
                     structure=structure, 
@@ -15277,24 +18209,22 @@ def mupload13(request):
                 
                 return JsonResponse({'custom_groups': groups_data})
                 
-            # New: Delete a custom group
-            elif request.GET.get('delete_custom_group'):
-                group_name = request.GET.get('group_name')
-                if group_name:
-                    LoadCaseGroup.objects.filter(
-                        structure=structure, 
-                        name=group_name, 
-                        is_custom=True
-                    ).delete()
-                    return JsonResponse({'success': True})
-                return JsonResponse({'success': False, 'error': 'Group name not provided'})
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    return render(request, 'app1/mupload13.html', {
+    # Ensure circuit_id is always passed to template
+    if not circuit_id and circuit_data:
+        circuit_id = circuit_data.id
+    
+    return render(request, 'app1/mupload13.html', {     # ****************
         'form': form,
-        'structures_with_files': structures_with_files
+        'structures_with_files': structures_with_files,
+        'selected_structure': structure,
+        'structure_type': structure_type,
+        'structure_id': structure_id,
+        'circuit_id': circuit_id,
+        'existing_file': existing_file,
+        'circuit_data_exists': circuit_data_exists
     })
 
 
@@ -15390,148 +18320,292 @@ def mdeadend5_update(request, pk):                    # ***************
     })
 
 
-def mdeadend6_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend6, pk=pk)  # Here
-    
+def mdeadend6_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend6, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend6FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend6FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view6/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload6/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend6FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend6FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend6_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend6_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend7_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend7, pk=pk)  # Here
-    
+def mdeadend7_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend7, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend7FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend7FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view7/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload7/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend7FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend7FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend7_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend7_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend8_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend8, pk=pk)  # Here
-    
+def mdeadend8_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend8, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend8FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend8FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view8/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload8/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend8FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend8FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend8_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend8_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend9_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend9, pk=pk)  # Here
-    
+def mdeadend9_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend9, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend9FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend9FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view9/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload9/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend9FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend9FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend9_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend9_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend10_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend10, pk=pk)  # Here
-    
+def mdeadend10_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend10, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend10FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend10FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view10/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload10/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend10FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend10FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend10_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend10_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend11_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend11, pk=pk)  # Here
-    
+def mdeadend11_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend11, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend11FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend11FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view11/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload11/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend11FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend11FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend11_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend11_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend12_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend12, pk=pk)  # Here
-    
+def mdeadend12_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend12, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend12FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend12FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view12/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload12/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend12FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend12FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend12_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend12_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
-def mdeadend13_update(request, pk):    # Here
-    # Get the existing record or return 404
-    hdeadend = get_object_or_404(MDeadend13, pk=pk)  # Here
-    
+def mdeadend13_update(request, pk):                    # ***************
+    hdeadend = get_object_or_404(MDeadend13, pk=pk)       # ***************
+
+    selected_structure = hdeadend.structure
+    structure_id = selected_structure.id
+
+    # ✅ Correct: Always fech TYPE from URL (same as create flow)
+    structure_type = request.GET.get('structure_type') or request.session.get('selected_structure_type')
+
     if request.method == 'POST':
-        form = MDeadend13FormUpdateForm(request.POST, instance=hdeadend)  # Here
+        form = MDeadend13FormUpdateForm(request.POST, instance=hdeadend)   # ***************
         if form.is_valid():
             try:
                 form.save()
-                return HttpResponseRedirect('/m_deadend_view13/')  # Here
+
+                # ✅ Save structure type correctly into session
+                request.session['selected_structure_id'] = structure_id
+                request.session['selected_structure_type'] = structure_type
+
+                return HttpResponseRedirect(
+                    f'/mupload13/?structure_id={structure_id}&structure_type={structure_type}'  # ***************
+                )
+
             except Exception as e:
                 form.add_error(None, f'Error updating record: {str(e)}')
     else:
-        form = MDeadend13FormUpdateForm(instance=hdeadend)   # Here
+        form = MDeadend13FormUpdateForm(instance=hdeadend)    # ***************
 
-    return render(request, 'app1/mdeadend13_update.html', {'form': form, 'hdeadend': hdeadend}) # Here
+    return render(request, 'app1/mdeadend13_update.html', {    # ***************
+        'form': form,
+        'hdeadend': hdeadend,
+        'structure_id': structure_id,
+        'structure_type': structure_type,  # ✅ Pass correct type
+    })
 
 
 
@@ -16196,314 +19270,378 @@ def mupload5_update(request):    # *************
     })
     
     
-def mupload6_update(request):   # Change here 
+def mupload6_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm6(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm6(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile6.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile6.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases6(uploaded_file)       # Change here 
+                mextract_load_cases6(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload6_update')    # Change here 
-                
-            except mUploadedFile6.DoesNotExist:       # Change here 
+                return redirect('mupload6_update')     # ****************
+                  
+            except mUploadedFile6.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm6()         # Change here 
+        form = MUDeadendUpdateForm6()       # **************
 
-    return render(request, 'app1/mupload6_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload6_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     
-def mupload7_update(request):   # Change here 
+def mupload7_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm7(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm7(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile7.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile7.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases7(uploaded_file)       # Change here 
+                mextract_load_cases7(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload7_update')    # Change here 
-                
-            except mUploadedFile7.DoesNotExist:       # Change here 
+                return redirect('mupload7_update')     # ****************
+                  
+            except mUploadedFile7.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm7()         # Change here 
+        form = MUDeadendUpdateForm7()       # **************
 
-    return render(request, 'app1/mupload7_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload7_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     
-def mupload8_update(request):   # Change here 
+def mupload8_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm8(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm8(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile8.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile8.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases8(uploaded_file)       # Change here 
+                mextract_load_cases8(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload8_update')    # Change here 
-                
-            except mUploadedFile8.DoesNotExist:       # Change here 
+                return redirect('mupload8_update')     # ****************
+                  
+            except mUploadedFile8.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm8()         # Change here 
+        form = MUDeadendUpdateForm8()       # **************
 
-    return render(request, 'app1/mupload8_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload8_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     
-def mupload9_update(request):   # Change here 
+def mupload9_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm9(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm9(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile9.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile9.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases9(uploaded_file)       # Change here 
+                mextract_load_cases9(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload9_update')    # Change here 
-                
-            except mUploadedFile9.DoesNotExist:       # Change here 
+                return redirect('mupload9_update')     # ****************
+                  
+            except mUploadedFile9.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm9()         # Change here 
+        form = MUDeadendUpdateForm9()       # **************
 
-    return render(request, 'app1/mupload9_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload9_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     
-def mupload10_update(request):   # Change here 
+def mupload10_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm10(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm10(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile10.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile10.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases10(uploaded_file)       # Change here 
+                mextract_load_cases10(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload10_update')    # Change here 
-                
-            except mUploadedFile10.DoesNotExist:       # Change here 
+                return redirect('mupload10_update')     # ****************
+                  
+            except mUploadedFile10.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm10()         # Change here 
+        form = MUDeadendUpdateForm10()       # **************
 
-    return render(request, 'app1/mupload10_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload10_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
-def mupload11_update(request):   # Change here 
+def mupload11_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm11(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm11(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile11.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile11.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases11(uploaded_file)       # Change here 
+                mextract_load_cases11(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload11_update')    # Change here 
-                
-            except mUploadedFile11.DoesNotExist:       # Change here 
+                return redirect('mupload11_update')     # ****************
+                  
+            except mUploadedFile11.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm11()         # Change here 
+        form = MUDeadendUpdateForm11()       # **************
 
-    return render(request, 'app1/mupload11_update.html', {         # Change here 
-        'form': form
-    })
-    
-    
-def mupload12_update(request):   # Change here 
-    """
-    Single page update view with structure selection and file upload
-    """
-    if request.method == 'POST':
-        form = MUDeadendUpdateForm12(request.POST, request.FILES)   # Change here 
-        if form.is_valid():
-            try:
-                structure = form.cleaned_data['structure']
-                new_file = form.cleaned_data['file']
-                
-                # Get the existing file for this structure
-                uploaded_file = mUploadedFile12.objects.get(structure=structure)  # Change here 
-                
-                # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
-                
-                # Update the file field and save
-                uploaded_file.file = new_file
-                uploaded_file.save()
-                
-                # Re-extract load cases from the updated file
-                mextract_load_cases12(uploaded_file)       # Change here 
-                
-                messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload12_update')    # Change here 
-                
-            except mUploadedFile12.DoesNotExist:       # Change here 
-                messages.error(request, 'No uploaded file found for this structure.')
-            except Exception as e:
-                messages.error(request, f'Error updating file: {str(e)}')
-    else:
-        form = MUDeadendUpdateForm12()         # Change here 
-
-    return render(request, 'app1/mupload12_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload11_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     
-def mupload13_update(request):   # Change here 
+def mupload12_update(request):    # *************
     """
     Single page update view with structure selection and file upload
     """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
     if request.method == 'POST':
-        form = MUDeadendUpdateForm13(request.POST, request.FILES)   # Change here 
+        form = MUDeadendUpdateForm12(request.POST, request.FILES)   # *************
         if form.is_valid():
             try:
                 structure = form.cleaned_data['structure']
                 new_file = form.cleaned_data['file']
                 
                 # Get the existing file for this structure
-                uploaded_file = mUploadedFile13.objects.get(structure=structure)  # Change here 
+                uploaded_file = mUploadedFile12.objects.get(structure=structure)  # *************
                 
                 # Delete the old file from storage
-                uploaded_file.file.delete(save=False)
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
                 
                 # Update the file field and save
                 uploaded_file.file = new_file
                 uploaded_file.save()
                 
                 # Re-extract load cases from the updated file
-                mextract_load_cases13(uploaded_file)       # Change here 
+                mextract_load_cases12(uploaded_file)     # ****************
                 
                 messages.success(request, f'File for {structure.structure} updated successfully!')
-                return redirect('mupload13_update')    # Change here 
-                
-            except mUploadedFile13.DoesNotExist:       # Change here 
+                return redirect('mupload12_update')     # ****************
+                  
+            except mUploadedFile12.DoesNotExist:     # **************
                 messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
             except Exception as e:
                 messages.error(request, f'Error updating file: {str(e)}')
     else:
-        form = MUDeadendUpdateForm13()         # Change here 
+        form = MUDeadendUpdateForm12()       # **************
 
-    return render(request, 'app1/mupload13_update.html', {         # Change here 
-        'form': form
+    return render(request, 'app1/mupload12_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
+    })
+    
+    
+def mupload13_update(request):    # *************
+    """
+    Single page update view with structure selection and file upload
+    """
+    structure_id = request.GET.get('structure_id')
+    structure_type = request.GET.get('structure_type')
+    
+    if request.method == 'POST':
+        form = MUDeadendUpdateForm13(request.POST, request.FILES)   # *************
+        if form.is_valid():
+            try:
+                structure = form.cleaned_data['structure']
+                new_file = form.cleaned_data['file']
+                
+                # Get the existing file for this structure
+                uploaded_file = mUploadedFile13.objects.get(structure=structure)  # *************
+                
+                # Delete the old file from storage
+                if uploaded_file.file:
+                    uploaded_file.file.delete(save=False)
+                
+                # Update the file field and save
+                uploaded_file.file = new_file
+                uploaded_file.save()
+                
+                # Re-extract load cases from the updated file
+                mextract_load_cases13(uploaded_file)     # ****************
+                
+                messages.success(request, f'File for {structure.structure} updated successfully!')
+                return redirect('mupload13_update')     # ****************
+                  
+            except mUploadedFile13.DoesNotExist:     # **************
+                messages.error(request, 'No uploaded file found for this structure.')
+            except IntegrityError as e:
+                messages.error(request, 'File with this structure already exists.')
+            except Exception as e:
+                messages.error(request, f'Error updating file: {str(e)}')
+    else:
+        form = MUDeadendUpdateForm13()       # **************
+
+    return render(request, 'app1/mupload13_update.html', {       # **************
+        'form': form,
+        'structure_id': structure_id,
+        'structure_type': structure_type
     })
     
     

@@ -9,215 +9,284 @@
     <style>
     
 
-        /* Main Content Styling */
-        .content {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 90px 20px 20px; /* Top padding adjusted to leave space for fixed header */
-            background: linear-gradient(to right,rgb(247, 248, 248),rgb(234, 252, 252));
-            min-height: 100vh;
-        }
+    .content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 90px 20px 20px;
+    background: linear-gradient(to right, rgb(247, 248, 248), rgb(234, 252, 252));
+    min-height: 100vh;
+}
 
-        /* Form Styling */
-        .form-container {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 40px 30px;
-            width: 80%;
-            max-width: 600px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.8s ease;
-        }
+.form-container {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 40px 30px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.8s ease;
+}
 
-        .form-container h2 {
-            text-align: center;
-            font-size: 25px;
-            margin-bottom: 22px;
-            color: #333;
-        }
+.form-container h2 {
+    text-align: center;
+    font-size: 25px;
+    margin-bottom: 22px;
+    color: #333;
+}
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+.selected-structure-info {
+    background: #e8f4fd;
+    border: 1px solid #b6d7f2;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 25px;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        .form-group label {
-            display: block;
-            font-size: 16px;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
-        }
+.existing-data-badge {
+    background: #f39c12;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
 
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #f5f7fa;
-            font-size: 13px;
-            transition: border-color 0.3s;
-        }
+.existing-data-message {
+    text-align: center;
+    padding: 30px 20px;
+}
 
-        .form-group select:focus,
-        .form-group input:focus {
-            border-color: #4facfe;
-            background-color: #ffffff;
-            outline: none;
-        }
+.existing-data-message .alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
 
-        /* Buttons */
-        .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
-        }
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
 
-        .save-button, .view-button {
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            text-align: center;
-        }
+.form-group {
+    margin-bottom: 20px;
+}
 
-        .save-button {
-            background-color: #4CAF50;
-            color: white;
-        }
+.form-group label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+}
 
-        .view-button {
-            background-color: #1252a7;
-            color: white;
-            text-decoration: none;
-        }
+.form-group select,
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
 
-        .save-button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
+.form-group select:focus,
+.form-group input:focus {
+    border-color: #4facfe;
+    background-color: #ffffff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
 
-        .view-button:hover {
-            background-color: #2259a2ff;
-            transform: translateY(-2px);
-        }
+.error-message {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 5px;
+}
 
-        /* Fade-in Animation */
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+.help-text {
+    color: #7f8c8d;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
 
+.form-buttons {
+    margin-top: 30px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
 
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .popup {
-            background-color: white;
-            padding: 20px;
-            border-radius: 0 0 10px 10px; /* Rounded only at the bottom */
-            text-align: center;
-            width: 500px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: none;
-            position: relative;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-            overflow: hidden; /* Ensures content does not overflow */
-        }
-        
-        .popup .popup-header {
-            background-color: #ffec00;
-            color: black;
-            font-size: 12px;
-            padding: 10px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 0px 0px 0 0;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: calc(100% + 40px);  /* Ensure it covers full width */
-            margin: -20px -20px 0 -20px;  /* Remove gaps and extend header to popup edges */
-            box-sizing: border-box;  /* Prevent overflow beyond the container */
-        }
-        
-        
-        .popup-close {
-            position: absolute;
-            top: 10%;
-            right: 1px;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 30px;
-            color: black;
-            background-color: transparent;
-            padding: 5px;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .popup h3 {
-            margin: 20px 0;
-            font-size: 14px;
-            color: black;
-        }
-        
-        .popup .popup-btn {
-            padding: 10px 15px; /* Increase padding for better button size */
-            margin: 15px 30px;  /* Increase the margin between buttons */
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 20px;
-            color: white;
-            transition: background-color 0.3s ease;
-        }
-        
-        .popup-btn.blue {
-            background-color: #1252a7;
-        }
-        
-        .popup-btn.green {
-            background-color: green;
-        }
-        
-        .popup-btn.red {
-            background-color: red;
-        }
-        
-        .popup-btn.yellow {
-            background-color: yellow;
-            color: black;
-        }
-        
-        .popup-btn:hover {
-            opacity: 0.9;
-        }
-        
-        .blur {
-            filter: blur(0.3spx);
-        }
-        
+.save-button, .next-button, .view-button, .cancel-button {
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 140px;
+}
+
+.save-button {
+    background: #27ae60;
+    color: white;
+}
+
+.save-button:hover {
+    background: #219a52;
+    transform: translateY(-2px);
+}
+
+.next-button {
+    background: #e67e22;
+    color: white;
+}
+
+.next-button:hover {
+    background: #d35400;
+    transform: translateY(-2px);
+}
+
+.view-button {
+    background: #3498db;
+    color: white;
+}
+
+.view-button:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.cancel-button {
+    background: #95a5a6;
+    color: white;
+}
+
+.cancel-button:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.btn-next {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-next:hover {
+    background: #219a52;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .content {
+        padding: 80px 15px 15px;
+    }
+    
+    .form-container {
+        padding: 30px 20px;
+        width: 95%;
+    }
+    
+    .form-buttons {
+        flex-direction: column;
+    }
+    
+    .save-button, .next-button, .view-button, .cancel-button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-container h2 {
+        font-size: 22px;
+    }
+    
+    .form-group label {
+        font-size: 14px;
+    }
+    
+    .form-group select,
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    .save-button, .next-button, .view-button, .cancel-button {
+        padding: 12px 20px;
+        font-size: 13px;
+    }
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
         
     </style>
 
@@ -226,44 +295,155 @@
 {% block content %}
    
     
-    <div class="content">
-        <div class="form-container">
-            <h2>Circuit Definition</h2>
-            <form method="POST" id="monopole-form">
-                {% csrf_token %}
+ <div class="content">
+    <div class="form-container">
+        {% comment %} <h2>Circuit Definition - {{ structure_type|title }}</h2> {% endcomment %}
+        <h2>Circuit Definition</h2>
+        <!-- Display selected structure info -->
+        {% if selected_structure %}
+        <div class="selected-structure-info">
+            <strong>Selected Structure:</strong> {{ selected_structure.structure }}
+            {% if existing_data %}
+            <span class="existing-data-badge">Data Exists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if existing_data %}
+        <!-- Show view options when data exists -->
+        <div class="existing-data-message">
+            <div class="alert">
+                <strong>Circuit definition already exists for this structure.</strong>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'm_deadend_view11' %}" class="btn btn-primary">View Existing Data</a>  <!--  ************here************* -->
+                <a href="{% url 'mupload11' %}?structure_id={{ structure_id }}&structure_type={{ structure_type }}" class="btn btn-next">Continue to Upload</a>  <!--  ************here************* -->  
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Show form only if no existing data -->
+        <form method="POST" id="circuit-form">
+            {% csrf_token %}
+            
+            <!-- Hidden field for structure -->
+            {% if selected_structure %}
+            <input type="hidden" name="structure" value="{{ selected_structure.id }}">
+            {% endif %}
+            
+            <!-- Display form fields -->
+            <div class="form-group">
+                <label>Define number of 3-phase circuits</label>
+                {{ form.num_3_phase_circuits }}
+                {% if form.num_3_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_3_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of shield wires</label>
+                {{ form.num_shield_wires }}
+                {% if form.num_shield_wires.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_shield_wires.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of 1-phase circuits</label>
+                {{ form.num_1_phase_circuits }}
+                {% if form.num_1_phase_circuits.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_1_phase_circuits.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label>Define number of communication cables</label>
+                {{ form.num_communication_cables }}
+                {% if form.num_communication_cables.errors %}
+                    <div class="error-message">
+                        {% for error in form.num_communication_cables.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Display any other form fields -->
+            {% for field in form %}
+                {% if field.name not in 'structure,num_3_phase_circuits,num_shield_wires,num_1_phase_circuits,num_communication_cables' and field.name != 'csrfmiddlewaretoken' %}
                 <div class="form-group">
-                    <label>Select Structure</label>
-                    {{ form.structure }}
-                    {% if form.structure.errors %}
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
                         <div class="error-message">
-                            {% for error in form.structure.errors %}
+                            {% for error in field.errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                         </div>
                     {% endif %}
+                    {% if field.help_text %}
+                        <small class="help-text">{{ field.help_text }}</small>
+                    {% endif %}
                 </div>
-                <div class="form-group">
-                    <label>Define number of 3 - phase circuits</label>
-                    {{ form.num_3_phase_circuits }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of shield wires associated with each phase</label>
-                    {{ form.num_shield_wires }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of 1 - phase circuits</label>
-                    {{ form.num_1_phase_circuits }}
-                </div>
-                <div class="form-group">
-                    <label>Define number of communication cables</label>
-                    {{ form.num_communication_cables }}
-                </div>
-                <button class="save-button" type="submit">Save</button>
-                <a href="{% url 'm_deadend_view11' %}" class="view-button">View</a>   <!-- ********************* -->
-            </form>
-        </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Display non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="error-message">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="form-buttons">
+                <button class="save-button" type="submit">Save & Continue</button>
+                <a href="{% url 'home' %}" class="cancel-button">Cancel</a>
+            </div>
+        </form>
+        {% endif %}
     </div>
+</div>
+
+<!-- Add this to hdeadend2.html, hdeadend3.html, and hdeadend4.html -->
+<div class="session-info" style="background-color: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+    <h4>Session Debug Information:</h4>
+    <p><strong>Structure Type:</strong> {{ session_structure_type|default:"Not set" }}</p>
+    <p><strong>Structure ID:</strong> {{ structure_id|default:"Not set" }}</p>
+    <p><strong>Popup Actions:</strong></p>
+    <ul>
+        {% for popup in session_popups %}
+            <li>{{ popup }}</li>
+        {% empty %}
+            <li>No popup actions stored</li>
+        {% endfor %}
+    </ul>
     
+    <!-- Circuit Definition Data -->
+    <p><strong>Circuit Definition (from session):</strong></p>
+    {% if session_circuit_definition %}
+        <ul>
+            {% for key, value in session_circuit_definition.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No circuit definition data in session yet</p>
+    {% endif %}
+</div>
     
   {% endblock %}
 
@@ -282,5 +462,29 @@
         
 </script>
     
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const structureId = urlParams.get('structure_id');
+    const structureType = urlParams.get('structure_type');
+    
+    // Store in sessionStorage for consistency
+    if (structureId) {
+        sessionStorage.setItem('selectedStructureId', structureId);
+    }
+    if (structureType) {
+        sessionStorage.setItem('selectedStructureType', structureType);
+    }
+    
+    // Auto-focus first input field
+    const firstInput = document.querySelector('.form-group input, .form-group select');
+    if (firstInput) {
+        firstInput.focus();
+    }
+});
+</script>
+
   {% endblock %}
 
