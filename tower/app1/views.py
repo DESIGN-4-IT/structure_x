@@ -687,192 +687,135 @@ def debug_session_selections(session_data):
 
 def find_matching_model(session_data):
     """
-    Find a 3D model that matches ALL session selections including complete circuit definition
+    Find a 3D model that matches ALL session selections, aligned with Home page popup flows.
+    Prioritizes exact matches based on popup selections and circuit type.
     """
     from .models import TowerModel
     
-    # Extract data from session
+    # Extract data from session (directly from popup selections)
     structure_type = session_data.get('selected_structure_type')
     popup_selections = session_data.get('popup_selections', {})
     circuit_definition = session_data.get('circuit_definition', {})
     
-    # Get attachment points and configuration from popups
-    attachment_points = popup_selections.get('attachment_points')
-    configuration = popup_selections.get('configuration')
+    # Validate required fields from popups
+    if not structure_type:
+        print("⚠️ No structure_type in session. Cannot match model.")
+        return None
     
-    # DEBUG: Print all selection data
-    print(f"\n🎯 DEBUG [find_matching_model] - User Selections:")
-    print(f"  Structure Type: {structure_type}")
-    print(f"  Attachment Points: {attachment_points}")
-    print(f"  Configuration: {configuration}")
-    print(f"  Circuit Definition: {circuit_definition}")
+    attachment_points = popup_selections.get('attachment_points')  # 'deadend' or 'tangent'
+    configuration = popup_selections.get('configuration')  # 'vertical', 'horizontal', 'delta'
+    has_arms = popup_selections.get('has_arms')  # 'yes' or 'no' (for towers/monopoles)
+    insulator_type = popup_selections.get('insulator_type')  # e.g., 'post_insulator', 'v_string'
     
-    # Convert to integers safely
-    num_3_phase = 0
-    num_1_phase = 0
-    
-    try:
-        num_3_phase = int(circuit_definition.get('num_3_phase_circuits', 0) or 0)
-    except (ValueError, TypeError):
-        num_3_phase = 0
-        
-    try:
-        num_1_phase = int(circuit_definition.get('num_1_phase_circuits', 0) or 0)
-    except (ValueError, TypeError):
-        num_1_phase = 0
-    
-    # CORRECT CIRCUIT TYPE CALCULATION FOR TRANSMISSION LINE STRUCTURES:
-    # Priority: 3-Phase Circuits > 1-Phase Circuits
-    # Shield wires and comm cables typically don't count as separate circuits
+    # Calculate circuit type from circuit definition
+    num_3_phase = int(circuit_definition.get('num_3_phase_circuits', 0) or 0)
+    num_1_phase = int(circuit_definition.get('num_1_phase_circuits', 0) or 0)
     
     if num_3_phase >= 3:
-        circuit_type = 'tc'  # Triple Circuit
+        circuit_type = 'tc'
     elif num_3_phase == 2:
-        circuit_type = 'dc'  # Double Circuit
+        circuit_type = 'dc'
     elif num_3_phase == 1:
-        circuit_type = 'sc'  # Single Circuit
+        circuit_type = 'sc'
     elif num_1_phase >= 3:
-        circuit_type = 'tc'  # Triple Circuit (1-phase bundles)
+        circuit_type = 'tc'
     elif num_1_phase == 2:
-        circuit_type = 'dc'  # Double Circuit (1-phase bundles)
+        circuit_type = 'dc'
     elif num_1_phase == 1:
-        circuit_type = 'sc'  # Single Circuit (1-phase bundle)
+        circuit_type = 'sc'
     else:
-        circuit_type = 'sc'  # Default to Single Circuit
+        circuit_type = 'sc'  # Default
     
-    print(f"  Calculated Circuit Type: {circuit_type}")
-    print(f"    Based on: 3-Phase Circuits={num_3_phase}, 1-Phase Circuits={num_1_phase}")
+    print(f"🎯 Matching for: Structure={structure_type}, Attachment={attachment_points}, Config={configuration}, Arms={has_arms}, Insulator={insulator_type}, Circuit={circuit_type}")
     
-    # Try to find EXACT match first
-    matching_model = TowerModel.objects.filter(
+    # STEP 1: Exact match based on popup selections
+    exact_match = TowerModel.objects.filter(
         structure_type=structure_type,
         attachment_points=attachment_points,
         configuration=configuration,
         circuit_type=circuit_type
     ).first()
     
-    if matching_model:
-        print(f"  ✓ Found EXACT match: {matching_model.name}")
-        return matching_model
+    if exact_match:
+        print(f"✅ Exact match: {exact_match.name}")
+        return exact_match
     
-    print(f"  ⚠ No exact match found, trying naming convention...")
+    # STEP 2: Naming convention fallback (aligned with popup flows and URLs)
+    prefix_map = {'towers': 'Tower', 'monopoles': 'MP', 'hframes': 'HFrame'}
+    prefix = prefix_map.get(structure_type, structure_type.capitalize())
     
-    # FIXED NAMING CONVENTION MAPPING:
-    # Structure type prefix
-    if structure_type == 'hframes':
-        prefix = "HFrame"
-    elif structure_type == 'towers':
-        prefix = "Tower"
-    elif structure_type == 'monopoles':
-        prefix = "MP"
-    else:
-        prefix = structure_type.capitalize() if structure_type else ""
+    attachment_map = {'deadend': 'DE', 'tangent': 'Tan'}
+    attachment_code = attachment_map.get(attachment_points, attachment_points or '')
     
-    # FIXED: Attachment points mapping (DE vs Tan)
-    if attachment_points == 'deadend':
-        attachment_code = "DE"
-    elif attachment_points == 'tangent':
-        attachment_code = "Tan"
-    else:
-        attachment_code = ""
+    config_map = {'vertical': 'Vert', 'horizontal': 'Horiz', 'delta': 'Delta'}
+    config_code = config_map.get(configuration, configuration or '')
     
-    # FIXED: Configuration mapping (Vert vs Horiz)
-    if configuration == 'vertical':
-        config_code = "Vert"
-    elif configuration == 'horizontal':
-        config_code = "Horiz"
-    elif configuration == 'delta':
-        config_code = "Delta"
-    elif configuration == 'hetic':
-        config_code = "Hetic"
-    else:
-        config_code = configuration.capitalize() if configuration else ""
+    circuit_code = circuit_type.upper()
     
-    # Circuit type code
-    circuit_code = circuit_type.upper()  # SC, DC, TC
-    
-    # Generate the expected name based on your naming pattern
     expected_name = f"{prefix}_{attachment_code}_{config_code}_{circuit_code}"
-    print(f"  Looking for model with name pattern: {expected_name}")
+    print(f"Expected name from popups: {expected_name}")
     
-    # FIRST: Try to find by exact name
-    exact_name_match = TowerModel.objects.filter(name__iexact=expected_name).first()
-    if exact_name_match:
-        print(f"  ✓ Found EXACT name match: {exact_name_match.name}")
-        return exact_name_match
+    name_match = TowerModel.objects.filter(name__iexact=expected_name).first()
+    if name_match:
+        print(f"✅ Name match: {name_match.name}")
+        return name_match
     
-    # SECOND: Try to find by name containing all parts
-    name_query = TowerModel.objects.all()
-    
-    # Add filters based on name parts
-    if prefix:
-        name_query = name_query.filter(name__icontains=prefix)
-    if attachment_code:
-        name_query = name_query.filter(name__icontains=attachment_code)
-    if config_code:
-        name_query = name_query.filter(name__icontains=config_code)
-    if circuit_code:
-        name_query = name_query.filter(name__icontains=circuit_code)
-    
-    # Get all matching by name
-    name_matches = list(name_query)
-    
-    if name_matches:
-        print(f"  Found {len(name_matches)} name matches:")
-        for match in name_matches:
-            print(f"    - {match.name} ({match.structure_type}/{match.attachment_points}/{match.configuration}/{match.circuit_type})")
-        return name_matches[0]
-    
-    # THIRD: Try fuzzy matching
-    print(f"  Trying fuzzy matching...")
+    # STEP 3: Fuzzy matching with popup-aware scoring
     all_models = TowerModel.objects.all()
     best_match = None
     best_score = 0
     
     for model in all_models:
         score = 0
-        
-        # Check structure type (most important - 30 points)
+        # Structure type (highest priority)
         if model.structure_type == structure_type:
-            score += 30
-        
-        # Check attachment points (25 points)
+            score += 50
+        # Attachment points
         if model.attachment_points == attachment_points:
-            score += 25
-        
-        # Check configuration (25 points)
+            score += 30
+        # Configuration
         if model.configuration == configuration:
-            score += 25
-        
-        # Check circuit type (20 points)
-        if model.circuit_type == circuit_type:
             score += 20
-        
-        # Check name contains expected parts
-        model_name_upper = model.name.upper()
-        expected_parts = [prefix.upper(), attachment_code.upper(), config_code.upper(), circuit_code]
-        for part in expected_parts:
-            if part and part in model_name_upper:
-                score += 5
+        # Circuit type
+        if model.circuit_type == circuit_type:
+            score += 10
+        # Name contains popup-derived parts
+        name_lower = model.name.lower()
+        if prefix.lower() in name_lower:
+            score += 5
+        if attachment_code.lower() in name_lower:
+            score += 5
+        if config_code.lower() in name_lower:
+            score += 5
+        if circuit_code.lower() in name_lower:
+            score += 5
         
         if score > best_score:
             best_score = score
             best_match = model
     
-    if best_match and best_score >= 50:
-        print(f"  ✓ Found BEST fuzzy match: {best_match.name} (score: {best_score})")
-        print(f"    Details: {best_match.structure_type}/{best_match.attachment_points}/{best_match.configuration}/{best_match.circuit_type}")
+    if best_match and best_score >= 60:  # Higher threshold for popup-aligned matches
+        print(f"✅ Fuzzy match: {best_match.name} (score: {best_score})")
         return best_match
     
-    # FINAL FALLBACK: Get first model of the correct structure type
-    print(f"  ⚠ Falling back to first {structure_type} model")
+    # STEP 4: Fallback to first model of structure type
     fallback = TowerModel.objects.filter(structure_type=structure_type).first()
     if fallback:
-        print(f"  Using: {fallback.name}")
+        print(f"⚠️ Fallback: {fallback.name}")
+    else:
+        print("❌ No models available.")
     return fallback
 
 def hdata1(request):
     # DEBUG: Print all session data at the start of hdata1
+    if 'selected_structure_type' not in request.session:
+        # Try to get it from popup_selections
+        popup_selections = request.session.get('popup_selections', {})
+        structure_type = popup_selections.get('structure_type')
+        if structure_type:
+            request.session['selected_structure_type'] = structure_type
+            print(f"⚠️ FIXED: Set selected_structure_type from popup_selections: {structure_type}")
+            
     debug_session_selections(request.session)
     
     print(f"\n📊 DEBUG [hdata1 Page] - Detailed session data:")
@@ -3136,6 +3079,13 @@ def store_popup_selection(request):
         print(f"  selection_value: '{selection_value}'")
         print(f"  structure_type: '{structure_type}'")
         print(f"  structure_id: '{structure_id}'")
+        
+        if structure_type:
+            request.session['selected_structure_type'] = structure_type
+            print(f"DEBUG: Set selected_structure_type to '{structure_type}'")
+        
+        if structure_id:
+            request.session['selected_structure_id'] = structure_id
         
         # Ensure active_popups exists in session
         if 'active_popups' not in request.session:

@@ -1,56 +1,53 @@
-class MUDeadendForm5(forms.Form):
-    structure = forms.ModelChoiceField(
-        queryset=ListOfStructure.objects.none(),
-        empty_label="Select Structure to Update",
-        required=True
-    )
-    
-    file = forms.FileField(
-        required=True,
-        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
-    )
+3D Model Names by Structure Type
+Towers
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Only show structures that have uploaded files
-        used_structures = mUploadedFile5.objects.values_list('structure_id', flat=True)
-        self.fields['structure'].queryset = ListOfStructure.objects.filter(id__in=used_structures)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        structure = cleaned_data.get('structure')
-        
-        if structure and not mUploadedFile5.objects.filter(structure=structure).exists():
-            raise ValidationError("No uploaded file found for this structure.")
-        
-        return cleaned_data
-
-    def clean_file(self):
-        uploaded_file = self.cleaned_data.get('file')
-        if uploaded_file:
-            ext = os.path.splitext(uploaded_file.name)[1].lower()
-            if ext not in ['.xls', '.xlsx']:
-                raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
-        return uploaded_file
+Deadend + Has Arms? Yes + Vertical + Post Insulator → Tower_DE_Vert_SC (URL: /tdeadend3/)
+Deadend + Has Arms? Yes + Vertical + V-String → Tower_DE_Vert_SC (URL: /tdeadend3/)
+Deadend + Has Arms? Yes + Delta + Post Insulator → Tower_DE_Delta_SC (URL: /tdeadend4/)
+Deadend + Has Arms? Yes + Delta + V-String → Tower_DE_Delta_SC (URL: /tdeadend4/)
+Deadend + Has Arms? Yes + Horizontal + Post Insulator → Tower_DE_Horiz_SC (URL: /tdeadend5/)
+Deadend + Has Arms? Yes + Horizontal + V-String → Tower_DE_Horiz_SC (URL: /tdeadend5/)
+Deadend + Has Arms? No + Inline Deadend? Yes → Tower_DE_Vert_SC (URL: /tdeadend/) // Assumes default vertical config
+Deadend + Has Arms? No + Inline Deadend? No + Continue → Tower_DE_Vert_SC (URL: /tdeadend/) // Assumes default vertical config
+Tangent + Has Arms? Yes + I-String + Vertical → Tower_Tan_Vert_SC (URL: /tdeadend6/)
+Tangent + Has Arms? Yes + I-String + Delta → Tower_Tan_Delta_SC (URL: /tdeadend7/)
+Tangent + Has Arms? Yes + I-String + Horizontal → Tower_Tan_Horiz_SC (URL: /tdeadend8/)
+Tangent + Has Arms? Yes + V-String + Vertical → Tower_Tan_Vert_SC (URL: /tdeadend6/)
+Tangent + Has Arms? Yes + V-String + Delta → Tower_Tan_Delta_SC (URL: /tdeadend7/)
+Tangent + Has Arms? Yes + V-String + Horizontal → Tower_Tan_Horiz_SC (URL: /tdeadend8/)
+Tangent + Has Arms? No + Post Insulator + Vertical → Tower_Tan_Vert_SC (URL: /tdeadend9/)
+Tangent + Has Arms? No + Post Insulator + Delta → Tower_Tan_Delta_SC (URL: /tdeadend10/)
+Tangent + Has Arms? No + Post Insulator + Horizontal → Tower_Tan_Horiz_SC (URL: /tdeadend11/)
+Tangent + Has Arms? No + Brace Post Insulator + Vertical → Tower_Tan_Vert_SC (URL: /tdeadend9/)
+Tangent + Has Arms? No + Brace Post Insulator + Delta → Tower_Tan_Delta_SC (URL: /tdeadend10/)
+Tangent + Has Arms? No + Brace Post Insulator + Horizontal → Tower_Tan_Horiz_SC (URL: /tdeadend11/)
 
 
-class MUDeadendForm5(forms.ModelForm):   # *************
-    class Meta:
-        model = mUploadedFile5               # *************
-        fields = ('structure', 'file')
+Monopoles
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Remove the filtering if we're hardcoding the structure in the view
-        used_structures = mUploadedFile5.objects.values_list('structure_id', flat=True)   # *************
-        self.fields['structure'].queryset = ListOfStructure.objects.exclude(id__in=used_structures)
-        self.fields['structure'].empty_label = "Select Structure"
-        # Make the field not required since we're setting it in the view
-        self.fields['structure'].required = False
+Deadend + Has Arms? Yes + Vertical → MP_DE_Vert_SC (URL: /mdeadend5/)
+Deadend + Has Arms? Yes + Delta → MP_DE_Delta_SC (URL: /mdeadend6/)
+Deadend + Has Arms? Yes + Horizontal → MP_DE_Horiz_SC (URL: /mdeadend7/)
+Deadend + Has Arms? No + Inline Deadend? Yes → MP_DE_Vert_SC (URL: /mdeadend1/) // Assumes default vertical config
+Deadend + Has Arms? No + Inline Deadend? No + Continue → MP_DE_Vert_SC (URL: /mdeadend1/) // Assumes default vertical config
+Tangent + Has Arms? Yes + I-String + Vertical → MP_Tan_Vert_SC (URL: /mdeadend8/)
+Tangent + Has Arms? Yes + I-String + Delta → MP_Tan_Delta_SC (URL: /mdeadend9/)
+Tangent + Has Arms? Yes + I-String + Horizontal → MP_Tan_Horiz_SC (URL: /mdeadend10/)
+Tangent + Has Arms? Yes + V-String + Vertical → MP_Tan_Vert_SC (URL: /mdeadend8/)
+Tangent + Has Arms? Yes + V-String + Delta → MP_Tan_Delta_SC (URL: /mdeadend9/)
+Tangent + Has Arms? Yes + V-String + Horizontal → MP_Tan_Horiz_SC (URL: /mdeadend10/)
+Tangent + Has Arms? No + Post Insulator + Vertical → MP_Tan_Vert_SC (URL: /mdeadend11/)
+Tangent + Has Arms? No + Post Insulator + Delta → MP_Tan_Delta_SC (URL: /mdeadend12/)
+Tangent + Has Arms? No + Post Insulator + Horizontal → MP_Tan_Horiz_SC (URL: /mdeadend13/)
+Tangent + Has Arms? No + Brace Post Insulator + Vertical → MP_Tan_Vert_SC (URL: /mdeadend11/)
+Tangent + Has Arms? No + Brace Post Insulator + Delta → MP_Tan_Delta_SC (URL: /mdeadend12/)
+Tangent + Has Arms? No + Brace Post Insulator + Horizontal → MP_Tan_Horiz_SC (URL: /mdeadend13/)
 
-    def clean_file(self):
-        uploaded_file = self.cleaned_data.get('file')
-        ext = os.path.splitext(uploaded_file.name)[1].lower()
-        if ext not in ['.xls', '.xlsx']:
-            raise ValidationError("Only Excel files (.xls or .xlsx) are allowed.")
-        return uploaded_file
+H-Frames
+
+Deadend + Vertical → HFrame_DE_Vert_SC (URL: /hdeadend1/)
+Deadend + Horizontal → HFrame_DE_Horiz_SC (URL: /hdeadend3/)
+Tangent + Vertical + Post Insulator → HFrame_Tan_Vert_SC (URL: /hdeadend2/)
+Tangent + Vertical + V-String → HFrame_Tan_Vert_SC (URL: /hdeadend4/)
+Tangent + Horizontal + Post Insulator → HFrame_Tan_Horiz_SC (URL: /hdeadend2/) // Assumes shared URL
+Tangent + Horizontal + V-String → HFrame_Tan_Horiz_SC (URL: /hdeadend4/) // Assumes shared URL
