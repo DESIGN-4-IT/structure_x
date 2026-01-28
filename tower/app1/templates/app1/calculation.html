@@ -580,6 +580,32 @@
     background-color: #e6f7e6 !important;
     border-left: 4px solid #28a745 !important;
 }
+
+/* Active selection mode button styling */
+.active-selection-mode {
+    background-color: #0056b3 !important;
+    color: white !important;
+    border-color: #004085 !important;
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.5) !important;
+    font-weight: bold !important;
+}
+
+/* Smooth transitions for section visibility */
+.set-wise-section,
+.group-wise-section,
+.card {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.selection-controls button {
+    transition: all 0.2s ease-in-out;
+}
+
+.selection-controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
     </style>
 </head>
 <body>
@@ -2962,6 +2988,170 @@ function goToLoadConditions() {
     document.body.appendChild(form);
     form.submit();
 }
+</script>
+
+<script>
+// Section visibility toggle logic
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all the buttons
+    const selectMaxResultantBtn = document.getElementById('selectMaxResultantBtn');
+    const selectSetMaxResultantBtn = document.getElementById('selectSetMaxResultantBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectNoneBtn = document.getElementById('selectNoneBtn');
+    
+    // Function to show only Group Max sections
+    function showGroupMaxSections() {
+        console.log('Showing Group Max sections');
+        
+        // Hide set-wise sections
+        document.querySelectorAll('.set-wise-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show group-wise sections
+        document.querySelectorAll('.group-wise-section').forEach(section => {
+            section.style.display = 'block';
+        });
+        
+        // Hide Group-wise Set Max Resultant Calculations card
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            const heading = card.querySelector('h3');
+            if (heading && heading.textContent.includes('Group-wise Set Max Resultant Calculations')) {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show Custom Selection Results
+        const customSelectionCard = Array.from(document.querySelectorAll('.card')).find(card => {
+            const h3 = card.querySelector('h3');
+            return h3 && h3.textContent.includes('Custom Selection Results');
+        });
+        if (customSelectionCard) {
+            customSelectionCard.style.display = 'block';
+        }
+        
+        // Show Buffer Configuration
+        const bufferConfigCard = Array.from(document.querySelectorAll('.card')).find(card => {
+            const h3 = card.querySelector('h3');
+            return h3 && h3.textContent.includes('Buffer Configuration') && 
+                   !h3.textContent.includes('Group-wise');
+        });
+        if (bufferConfigCard) {
+            bufferConfigCard.style.display = 'block';
+        }
+        
+        // Hide group buffer configurations
+        document.querySelectorAll('.group-buffer-config').forEach(config => {
+            config.style.display = 'none';
+        });
+    }
+    
+    // Function to show only Set Max sections
+    function showSetMaxSections() {
+        console.log('Showing Set Max sections');
+        
+        // Show set-wise sections
+        document.querySelectorAll('.set-wise-section').forEach(section => {
+            section.style.display = 'block';
+        });
+        
+        // Hide group-wise sections
+        document.querySelectorAll('.group-wise-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show Group-wise Set Max Resultant Calculations card
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            const heading = card.querySelector('h3');
+            if (heading && heading.textContent.includes('Group-wise Set Max Resultant Calculations')) {
+                card.style.display = 'block';
+            }
+        });
+        
+        // Show Custom Selection Results
+        const customSelectionCard = Array.from(document.querySelectorAll('.card')).find(card => {
+            const h3 = card.querySelector('h3');
+            return h3 && h3.textContent.includes('Custom Selection Results');
+        });
+        if (customSelectionCard) {
+            customSelectionCard.style.display = 'block';
+        }
+        
+        // Hide global Buffer Configuration
+        const bufferConfigCard = Array.from(document.querySelectorAll('.card')).find(card => {
+            const h3 = card.querySelector('h3');
+            return h3 && h3.textContent.includes('Buffer Configuration') && 
+                   !h3.textContent.includes('Group-wise');
+        });
+        if (bufferConfigCard) {
+            bufferConfigCard.style.display = 'none';
+        }
+        
+        // Show group buffer configurations
+        document.querySelectorAll('.group-buffer-config').forEach(config => {
+            config.style.display = 'block';
+        });
+    }
+    
+    // Function to show all sections (default state)
+    function showAllSections() {
+        console.log('Showing all sections');
+        
+        document.querySelectorAll('.set-wise-section').forEach(section => {
+            section.style.display = 'block';
+        });
+        
+        document.querySelectorAll('.group-wise-section').forEach(section => {
+            section.style.display = 'block';
+        });
+        
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.display = 'block';
+        });
+        
+        document.querySelectorAll('.group-buffer-config').forEach(config => {
+            config.style.display = 'block';
+        });
+    }
+    
+    // Add click handlers
+    if (selectMaxResultantBtn) {
+        selectMaxResultantBtn.addEventListener('click', function() {
+            setTimeout(showGroupMaxSections, 100);
+            selectMaxResultantBtn.classList.add('active-selection-mode');
+            selectSetMaxResultantBtn.classList.remove('active-selection-mode');
+        });
+    }
+    
+    if (selectSetMaxResultantBtn) {
+        selectSetMaxResultantBtn.addEventListener('click', function() {
+            setTimeout(showSetMaxSections, 100);
+            selectSetMaxResultantBtn.classList.add('active-selection-mode');
+            selectMaxResultantBtn.classList.remove('active-selection-mode');
+        });
+    }
+    
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            setTimeout(showAllSections, 100);
+            selectMaxResultantBtn.classList.remove('active-selection-mode');
+            selectSetMaxResultantBtn.classList.remove('active-selection-mode');
+        });
+    }
+    
+    if (selectNoneBtn) {
+        selectNoneBtn.addEventListener('click', function() {
+            setTimeout(showAllSections, 100);
+            selectMaxResultantBtn.classList.remove('active-selection-mode');
+            selectSetMaxResultantBtn.classList.remove('active-selection-mode');
+        });
+    }
+    
+    // Initial state: show all sections
+    showAllSections();
+});
 </script>
 
 </body>

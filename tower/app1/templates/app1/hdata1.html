@@ -1700,72 +1700,8 @@
             <div class="col-md-8">
                 <div class="model-viewer-container">
                     <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
-                        <button id="grid-toggle-btn" class="btn btn-warning btn-sm">
-                            Hide Grid
-                        </button>
-                        <!-- Enhanced Control Panel -->
-                        <div class="movement-controls-panel">
-                        <h6 style="margin: 0 0 10px 0; color: #333;">Movement Controls</h6>
-
-                        {% comment %} <!-- Drop Mode Selection -->
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Drop Mode:</label>
-                                <select id="drop-mode" style="width: 100%; padding: 5px; font-size: 12px;">
-                                    <option value="precise">Precise Placement</option>
-                                    <option value="free">Free Placement</option>
-                                </select>
-                            </div>
-
-                            <!-- Grid Snapping -->
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Grid Snapping:</label>
-                                <select id="grid-snap" style="width: 100%; padding: 5px; font-size: 12px;">
-                                    <option value="0.1">Fine (0.1)</option>
-                                    <option value="0.25" selected>Medium (0.25)</option>
-                                    <option value="0.5">Coarse (0.5)</option>
-                                    <option value="0">Off</option>
-                                </select>
-                            </div> {% endcomment %}
+                       
                         
-                        <!-- Movement Controls -->
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Arrow Movement:</label>
-                            
-                            <!-- Up/Down Controls -->
-                            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
-                                <button class="movement-btn" data-axis="y" data-direction="1" style="margin: 0 5px;">↑</button>
-                            </div>
-                            
-                            <!-- Left/Right/Front/Back Controls -->
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <button class="movement-btn" data-axis="x" data-direction="-1" style="margin: 0 2px;">←</button>
-                                
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <button class="movement-btn" data-axis="z" data-direction="-1" style="margin: 2px 0; font-size: 10px;">Front</button>
-                                    <button class="movement-btn" data-axis="z" data-direction="1" style="margin: 2px 0; font-size: 10px;">Back</button>
-                                </div>
-                                
-                                <button class="movement-btn" data-axis="x" data-direction="1" style="margin: 0 2px;">→</button>
-                            </div>
-                            
-                            <!-- Down Control -->
-                            <div style="display: flex; justify-content: center; margin-top: 5px;">
-                                <button class="movement-btn" data-axis="y" data-direction="-1" style="margin: 0 5px;">↓</button>
-                            </div>
-                        </div>
-
-                        <!-- Step Size -->
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold;">Step Size:</label>
-                            <input type="range" id="step-size" min="0.05" max="1" step="0.05" value="0.25" style="width: 100%;">
-                            <span id="step-size-value" style="font-size: 11px; text-align: center; display: block;">0.25 units</span>
-                        </div>
-
-                        <!-- Selected Object Info -->
-                        <div id="selected-info" style="font-size: 11px; color: #666; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                            No object selected
-                        </div>
-                    </div>
                 </div>
                     <canvas id="model-canvas"></canvas>
                     <div id="joint-markers-container"></div>
@@ -2073,11 +2009,23 @@
     let isGridVisible = true;
     let transformControls;
     let selectedObject = null;
-
+    let modelBoundingBox = null;
+    let modelSize = new THREE.Vector3();
+    let scaleFactor = 1;
+    const BASE_MARKER_SIZE = 0.06; 
+    const DRAG_UPDATE_THROTTLE = 16; // ~60fps
+    let isSnapModeActive = false;
+    let snapModeIndicator = null;
     // NEW: Enhanced movement and drag variables
     let isDragging = false;
     let dragStartPosition = new THREE.Vector3();
     let currentDragObject = null;
+    let dragPlane = null;
+    let dragOffset = new THREE.Vector3();
+    let lastDragUpdate = 0;
+    let dragAnimationFrame = null;
+    let pendingDragUpdate = null;
+
     let dropMode = 'precise'; // 'precise' or 'free'
     let gridSnapValue = 0.25;
     let movementStep = 0.25;
@@ -2129,6 +2077,624 @@ function initJointLabelsSelection() {
         });
     }
 }
+
+// =============================================================================
+// INITIALIZE SNAP SYSTEM
+// =============================================================================
+function initSnapSystem() {
+    const canvas = renderer.domElement;
+    
+    // Method 1: Shift+Click to snap (PRIMARY - Most reliable)
+    canvas.addEventListener('click', handleSnapClick, true); // Use capture phase
+    
+    // Method 2: Keep triple-click as alternative
+    initTripleClickSnap();
+    
+    // Add snap mode indicator
+    createSnapModeIndicator();
+    
+    // Add keyboard shortcut info
+    addSnapInstructions();
+    
+    console.log('✓ Snap system initialized');
+    console.log('  - Hold SHIFT and click to snap marker to tower part');
+    console.log('  - Or triple-click on tower part');
+}
+
+// =============================================================================
+// PRIMARY METHOD: SHIFT+CLICK SNAP (MOST RELIABLE)
+// =============================================================================
+function handleSnapClick(e) {
+    // Only process if Shift is held and we have a selected object
+    if (!e.shiftKey || !selectedObject) {
+        return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    
+    console.log('🎯 Shift+Click detected - snapping marker');
+    
+    // Calculate mouse position
+    const canvas = renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    // Perform the snap
+    performSnapToClick(mouseX, mouseY);
+}
+
+// =============================================================================
+// ALTERNATIVE METHOD: TRIPLE-CLICK SNAP (BACKUP)
+// =============================================================================
+let clickHistory = [];
+const TRIPLE_CLICK_WINDOW = 600; // ms
+
+function initTripleClickSnap() {
+    const canvas = renderer.domElement;
+    
+    canvas.addEventListener('mousedown', (e) => {
+        const now = Date.now();
+        
+        // Clean old clicks
+        clickHistory = clickHistory.filter(time => now - time < TRIPLE_CLICK_WINDOW);
+        
+        // Add current click
+        clickHistory.push(now);
+        
+        // Check for triple-click
+        if (clickHistory.length >= 3) {
+            console.log('🎯 Triple-click detected - snapping marker');
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            performSnapToClick(mouseX, mouseY);
+            
+            // Clear history
+            clickHistory = [];
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+}
+
+// =============================================================================
+// CORE SNAP LOGIC - IMPROVED RAYCASTING
+// =============================================================================
+function performSnapToClick(mouseX, mouseY) {
+    if (!selectedObject) {
+        showMessage('⚠ No marker selected', 'warning');
+        return;
+    }
+    
+    // Update raycaster
+    raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+    
+    // CRITICAL: Set raycaster params for better precision
+    raycaster.params.Line.threshold = 0.1;
+    raycaster.params.Points.threshold = 0.1;
+    
+    // Get intersections - ONLY from the model
+    let intersects = [];
+    if (model) {
+        intersects = raycaster.intersectObject(model, true);
+    }
+    
+    console.log(`Found ${intersects.length} intersections`);
+    
+    if (intersects.length === 0) {
+        showMessage('⚠ No tower part found - click closer to the structure', 'warning');
+        return;
+    }
+    
+    // Find the best intersection
+    const bestPoint = findBestSnapPoint(intersects, mouseX, mouseY);
+    
+    if (bestPoint) {
+        // Snap immediately
+        snapMarkerImmediately(selectedObject, bestPoint);
+        showMessage('✓ Marker snapped successfully!', 'success');
+    } else {
+        showMessage('⚠ Could not find valid snap point', 'warning');
+    }
+}
+
+// =============================================================================
+// IMPROVED INTERSECTION SELECTION
+// =============================================================================
+function findBestSnapPoint(intersects, mouseX, mouseY) {
+    if (intersects.length === 0) return null;
+    
+    const cameraPos = camera.position.clone();
+    const cameraDir = new THREE.Vector3();
+    camera.getWorldDirection(cameraDir);
+    
+    // Score and filter intersections
+    const scoredPoints = intersects
+        .filter(hit => {
+            // Must be a mesh
+            if (!hit.object.isMesh) return false;
+            
+            // Must be visible
+            if (!hit.object.visible) return false;
+            
+            // Must have a point
+            if (!hit.point) return false;
+            
+            // Reasonable distance check
+            if (hit.distance > 500) return false;
+            
+            return true;
+        })
+        .map(hit => {
+            let score = 1000; // Base score
+            
+            // 1. Closer is better (most important)
+            score -= hit.distance;
+            
+            // 2. Check if surface faces camera
+            if (hit.face && hit.face.normal) {
+                const normal = hit.face.normal.clone();
+                hit.object.updateMatrixWorld(true);
+                normal.transformDirection(hit.object.matrixWorld);
+                normal.normalize();
+                
+                // Dot product: positive = facing camera
+                const facing = -normal.dot(cameraDir);
+                
+                if (facing > 0.1) {
+                    score += facing * 200; // Strongly prefer front-facing
+                } else {
+                    score -= 100; // Penalize back-facing
+                }
+            }
+            
+            // 3. Prefer objects with geometry
+            if (hit.object.geometry && hit.object.geometry.attributes.position) {
+                score += 50;
+            }
+            
+            // 4. Prefer named objects (tower parts usually have names)
+            if (hit.object.name && hit.object.name.length > 0) {
+                score += 30;
+            }
+            
+            return {
+                point: hit.point.clone(),
+                score: score,
+                distance: hit.distance,
+                object: hit.object
+            };
+        })
+        .sort((a, b) => b.score - a.score);
+    
+    if (scoredPoints.length === 0) return null;
+    
+    const best = scoredPoints[0];
+    console.log('Best snap point:', {
+        score: best.score.toFixed(2),
+        distance: best.distance.toFixed(2),
+        position: best.point,
+        objectName: best.object.name || 'unnamed'
+    });
+    
+    return best.point;
+}
+
+// =============================================================================
+// IMMEDIATE SNAP - NO ANIMATION DELAY
+// =============================================================================
+function snapMarkerImmediately(selectedObj, targetPosition) {
+    const marker = selectedObj.object;
+    const markerData = selectedObj.type === 'joint' ? 
+        jointMarkers[selectedObj.value] : 
+        setMarkers[selectedObj.value];
+    
+    if (!marker || !markerData) {
+        console.error('Invalid marker data');
+        return;
+    }
+    
+    // Apply grid snapping if enabled
+    const finalPosition = targetPosition.clone();
+    if (typeof gridSnapValue !== 'undefined' && gridSnapValue > 0) {
+        finalPosition.x = Math.round(finalPosition.x / gridSnapValue) * gridSnapValue;
+        finalPosition.y = Math.round(finalPosition.y / gridSnapValue) * gridSnapValue;
+        finalPosition.z = Math.round(finalPosition.z / gridSnapValue) * gridSnapValue;
+    }
+    
+    console.log('Snapping marker to:', finalPosition);
+    
+    // IMMEDIATE position update - no animation
+    marker.position.copy(finalPosition);
+    
+    // Update HTML marker position
+    updateMarkerPosition(marker, markerData.div);
+    
+    // Update transform controls if attached
+    if (transformControls && transformControls.object === marker) {
+        transformControls.update();
+    }
+    
+    // Visual feedback
+    showSnapVisualFeedback(marker, markerData.div);
+    syncSelectionsWithSession();
+    
+    console.log('✓ Snap complete - marker at:', marker.position);
+}
+
+// =============================================================================
+// VISUAL FEEDBACK
+// =============================================================================
+function showSnapVisualFeedback(marker, markerDiv) {
+    // 1. Flash the marker
+    markerDiv.style.transition = 'all 0.2s ease';
+    markerDiv.style.transform = 'translate(-50%, -50%) scale(1.4)';
+    markerDiv.style.boxShadow = '0 0 25px rgba(76, 175, 80, 1)';
+    markerDiv.style.backgroundColor = '#4CAF50';
+    markerDiv.style.color = 'white';
+    
+    setTimeout(() => {
+        markerDiv.style.transform = 'translate(-50%, -50%) scale(1)';
+        markerDiv.style.boxShadow = '';
+        markerDiv.style.backgroundColor = '';
+        markerDiv.style.color = '';
+    }, 300);
+    
+    // 2. Create temporary 3D highlight
+    const highlightGeom = new THREE.SphereGeometry(0.2 * (scaleFactor || 1), 16, 16);
+    const highlightMat = new THREE.MeshBasicMaterial({
+        color: 0x4CAF50,
+        transparent: true,
+        opacity: 0.7,
+        depthTest: false
+    });
+    
+    const highlight = new THREE.Mesh(highlightGeom, highlightMat);
+    highlight.position.copy(marker.position);
+    scene.add(highlight);
+    
+    // Animate highlight
+    let scale = 1;
+    const interval = setInterval(() => {
+        scale += 0.15;
+        highlight.scale.setScalar(scale);
+        highlight.material.opacity = Math.max(0, 0.7 - (scale - 1) * 0.35);
+        
+        if (scale >= 3) {
+            clearInterval(interval);
+            scene.remove(highlight);
+            highlightGeom.dispose();
+            highlightMat.dispose();
+        }
+    }, 30);
+}
+
+// =============================================================================
+// SNAP MODE INDICATOR
+// =============================================================================
+function createSnapModeIndicator() {
+    snapModeIndicator = document.createElement('div');
+    snapModeIndicator.id = 'snap-mode-indicator';
+    snapModeIndicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(76, 175, 80, 0.95);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        pointer-events: none;
+    `;
+    snapModeIndicator.innerHTML = '🎯 SNAP MODE: Click on tower part to snap selected marker';
+    document.body.appendChild(snapModeIndicator);
+    
+    // Show/hide based on shift key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Shift' && selectedObject) {
+            snapModeIndicator.style.display = 'block';
+        }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+            snapModeIndicator.style.display = 'none';
+        }
+    });
+}
+
+// =============================================================================
+// INSTRUCTION PANEL
+// =============================================================================
+function addSnapInstructions() {
+    const container = document.querySelector('.model-viewer-container');
+    if (!container) return;
+    
+    const instructions = document.createElement('div');
+    instructions.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        z-index: 100;
+        max-width: 280px;
+        line-height: 1.6;
+    `;
+    
+    instructions.innerHTML = `
+        <strong>📍 Snap Controls:</strong><br>
+        • Hold <kbd style="background:#333;padding:2px 6px;border-radius:3px;">SHIFT</kbd> + Click = Snap marker<br>
+        • Triple-click = Also snaps<br>
+        • Select marker first, then snap
+    `;
+    
+    container.appendChild(instructions);
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        instructions.style.transition = 'opacity 0.5s';
+        instructions.style.opacity = '0';
+        setTimeout(() => instructions.remove(), 500);
+    }, 10000);
+}
+
+// =============================================================================
+// MESSAGE SYSTEM
+// =============================================================================
+function showMessage(text, type = 'info') {
+    const messageDiv = document.createElement('div');
+    
+    const colors = {
+        success: { bg: '#4CAF50', border: '#45a049' },
+        warning: { bg: '#ff9800', border: '#f57c00' },
+        error: { bg: '#f44336', border: '#d32f2f' },
+        info: { bg: '#2196F3', border: '#1976D2' }
+    };
+    
+    const color = colors[type] || colors.info;
+    
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${color.bg};
+        color: white;
+        padding: 12px 20px;
+        border-left: 4px solid ${color.border};
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 14px;
+        z-index: 10000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    messageDiv.textContent = text;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.transition = 'all 0.3s ease-out';
+        messageDiv.style.transform = 'translateX(400px)';
+        messageDiv.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(messageDiv), 300);
+    }, 3000);
+}
+
+// =============================================================================
+// CSS ANIMATIONS
+// =============================================================================
+const snapSystemStyles = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    kbd {
+        display: inline-block;
+        padding: 3px 7px;
+        font-family: monospace;
+        font-size: 11px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+`;
+
+// Add styles to document
+if (!document.getElementById('snap-system-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'snap-system-styles';
+    styleEl.textContent = snapSystemStyles;
+    document.head.appendChild(styleEl);
+}
+
+
+
+
+function showSnapErrorFeedback() {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(244, 67, 54, 0.95);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-weight: bold;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    `;
+    messageDiv.textContent = '⚠ No valid snap point found - try clicking a tower part';
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transition = 'opacity 0.3s';
+        setTimeout(() => document.body.removeChild(messageDiv), 300);
+    }, 2000);
+}
+
+
+function findOptimalSnapPosition(mouseX, mouseY) {
+    // Update raycaster with mouse position
+    mouse.x = mouseX;
+    mouse.y = mouseY;
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Get ALL intersections with the model
+    const intersects = raycaster.intersectObject(model, true);
+    
+    if (intersects.length === 0) {
+        console.log('No direct intersections - finding nearest point');
+        return findNearestModelPoint();
+    }
+    
+    // CRITICAL FIX: Filter and rank intersections properly
+    const validIntersects = filterValidIntersections(intersects);
+    
+    if (validIntersects.length === 0) {
+        console.log('No valid intersections after filtering');
+        return findNearestModelPoint();
+    }
+    
+    // Return the best intersection point
+    const bestIntersect = validIntersects[0];
+    console.log('Found optimal intersection:', {
+        distance: bestIntersect.distance.toFixed(2),
+        point: bestIntersect.point,
+        objectName: bestIntersect.object.name
+    });
+    
+    return bestIntersect.point.clone();
+}
+
+
+function findNearestModelPoint() {
+    if (!model || !selectedObject) return null;
+    
+    const currentPosition = selectedObject.object.position;
+    let nearestPoint = null;
+    let minDistance = Infinity;
+    
+    // Traverse all meshes in the model
+    model.traverse((child) => {
+        if (!child.isMesh || !child.geometry) return;
+        
+        // Get world bounding box
+        const bbox = new THREE.Box3().setFromObject(child);
+        
+        // Find closest point on this bounding box to current position
+        const closestPoint = new THREE.Vector3();
+        bbox.clampPoint(currentPosition, closestPoint);
+        
+        const distance = currentPosition.distanceTo(closestPoint);
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestPoint = closestPoint.clone();
+        }
+        
+        // Also check the center of the bounding box
+        const center = bbox.getCenter(new THREE.Vector3());
+        const centerDistance = currentPosition.distanceTo(center);
+        
+        if (centerDistance < minDistance) {
+            minDistance = centerDistance;
+            nearestPoint = center.clone();
+        }
+    });
+    
+    console.log('Nearest point found:', {
+        distance: minDistance.toFixed(2),
+        point: nearestPoint
+    });
+    
+    return nearestPoint;
+}
+
+
+function filterValidIntersections(intersects) {
+    const cameraDirection = new THREE.Vector3();
+    camera.getWorldDirection(cameraDirection);
+    
+    // Filter and score each intersection
+    const scoredIntersects = intersects
+        .filter(intersect => {
+            // Must be visible
+            if (!intersect.object.visible) return false;
+            
+            // Must have a valid point
+            if (!intersect.point) return false;
+            
+            // Must be within reasonable distance
+            if (intersect.distance > 1000) return false;
+            
+            return true;
+        })
+        .map(intersect => {
+            let score = 0;
+            
+            // 1. Prefer closer intersections (primary factor)
+            score += (1000 - intersect.distance) / 10;
+            
+            // 2. Prefer surfaces facing the camera
+            if (intersect.face && intersect.face.normal) {
+                const worldNormal = intersect.face.normal.clone();
+                intersect.object.localToWorld(worldNormal);
+                worldNormal.normalize();
+                
+                // Dot product: 1 = facing camera, -1 = facing away
+                const facingScore = -worldNormal.dot(cameraDirection);
+                if (facingScore > 0) {
+                    score += facingScore * 100;
+                } else {
+                    score -= 50; // Penalize back-facing surfaces
+                }
+            }
+            
+            // 3. Prefer meshes (not helpers or other objects)
+            if (intersect.object.isMesh) {
+                score += 50;
+            }
+            
+            // 4. Prefer named objects (typically structural parts)
+            if (intersect.object.name && intersect.object.name !== '') {
+                score += 30;
+            }
+            
+            return { ...intersect, score };
+        })
+        .sort((a, b) => b.score - a.score); // Sort by score descending
+    
+    return scoredIntersects;
+}
+
+
     // Initialize the 3D model viewer
         // Initialize the 3D model viewer
     function initModelViewer() {
@@ -2152,7 +2718,8 @@ function initJointLabelsSelection() {
 
         updateRendererSize();
         initTransformControls();
-
+        initSnapSystem();
+        
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.25;
@@ -2173,7 +2740,8 @@ function initJointLabelsSelection() {
 
         // Load GLB model
         const loader = new THREE.GLTFLoader();
-        function loadTowerModel(modelUrl) {
+
+    function loadTowerModel(modelUrl) {
     // Remove existing model if any
     if (model) {
         scene.remove(model);
@@ -2187,14 +2755,29 @@ function initJointLabelsSelection() {
             scene.add(model);
             console.log('✅ Model loaded successfully:', modelUrl);
             
-            // Center and scale model
+            // Calculate model bounding box and size
             const box = new THREE.Box3().setFromObject(model);
+            modelBoundingBox = box;
+            modelSize = box.getSize(new THREE.Vector3());
+            
+            // Calculate scale factor based on model size
+            // Use the largest dimension to determine scale
+            const maxDimension = Math.max(modelSize.x, modelSize.y, modelSize.z);
+            scaleFactor = Math.max(0.5, Math.min(3, maxDimension / 10)); // Normalize scale
+            
+            
+
+            console.log('Model size:', modelSize);
+            console.log('Scale factor:', scaleFactor);
+            
             const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
             model.position.sub(center);
             
             create3DGridCage(box);
             model.rotation.y = Math.PI / 4;
+            
+            // Rescale existing markers if any
+            rescaleAllMarkers();
             
             // Initialize event listeners
             initEnhancedEventListeners();
@@ -2269,6 +2852,43 @@ function initJointLabelsSelection() {
         loadTowerModel(defaultModelUrl);
     {% endif %}
 {% endif %}
+
+// Function to rescale all existing markers based on current model size
+function rescaleAllMarkers() {
+    if (!modelBoundingBox) return;
+    
+    // Rescale joint markers
+    Object.keys(jointMarkers).forEach(label => {
+        const marker = jointMarkers[label];
+        if (marker.mesh) {
+            // Update sphere geometry with scaled size
+            const newGeometry = new THREE.SphereGeometry(BASE_MARKER_SIZE * scaleFactor, 16, 16);
+            marker.mesh.geometry.dispose();
+            marker.mesh.geometry = newGeometry;
+            
+            // Update HTML font size
+            const baseFontSize = 12;
+            marker.div.style.fontSize = `${baseFontSize * scaleFactor}px`;
+            marker.originalScale = scaleFactor;
+        }
+    });
+    
+    // Rescale set-phase markers
+    Object.keys(setMarkers).forEach(id => {
+        const marker = setMarkers[id];
+        if (marker.mesh) {
+            // Update sphere geometry with scaled size
+            const newGeometry = new THREE.SphereGeometry(BASE_MARKER_SIZE * scaleFactor, 16, 16);
+            marker.mesh.geometry.dispose();
+            marker.mesh.geometry = newGeometry;
+            
+            // Update HTML font size
+            const baseFontSize = 12;
+            marker.div.style.fontSize = `${baseFontSize * scaleFactor}px`;
+            marker.originalScale = scaleFactor;
+        }
+    });
+}
 
 // Function to load default model
 function loadDefaultModel() {
@@ -2380,37 +3000,28 @@ function loadDefaultModel() {
     function initEnhancedDragListeners() {
         const canvas = renderer.domElement;
         
-        // Improved drag start for markers
-        document.addEventListener('mousedown', function(e) {
-            if (e.target.classList.contains('value-marker')) {
-                startMarkerDrag(e);
-            }
-        });
+        // Remove old event listeners to prevent conflicts
+        canvas.removeEventListener('dragover', handleDragOver);
+        canvas.removeEventListener('drop', handleCanvasDrop);
+        
+        // Canvas drag-over for visual feedback
+        canvas.addEventListener('dragover', handleDragOver);
+        canvas.addEventListener('dragleave', handleDragLeave);
+        canvas.addEventListener('drop', handleCanvasDrop);
+        
+        // Prevent default drag behavior
+        canvas.addEventListener('dragenter', (e) => e.preventDefault());
+    }
 
-        // Enhanced canvas drag events
-        canvas.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            isDragOverCanvas = true;
-            canvas.classList.add('drag-over');
-            
-            if (currentDroppingItem && dropMode === 'free') {
-                // Update visual feedback for free placement
-                updateDragPosition(e);
-            }
-        });
+    function handleDragOver(e) {
+        e.preventDefault();
+        isDragOverCanvas = true;
+        renderer.domElement.classList.add('drag-over');
+    }
 
-        canvas.addEventListener('dragleave', function() {
-            isDragOverCanvas = false;
-            canvas.classList.remove('drag-over');
-        });
-
-        canvas.addEventListener('drop', function(e) {
-            e.preventDefault();
-            isDragOverCanvas = false;
-            canvas.classList.remove('drag-over');
-            
-            handleCanvasDrop(e);
-        });
+    function handleDragLeave(e) {
+        isDragOverCanvas = false;
+        renderer.domElement.classList.remove('drag-over');
     }
 
     // NEW: Start dragging marker
@@ -2419,19 +3030,97 @@ function loadDefaultModel() {
         const jointLabel = marker.dataset.jointLabel;
         const combinedId = marker.dataset.combinedId;
         
+        // Find the corresponding 3D object
         if (jointLabel && jointMarkers[jointLabel]) {
             currentDragObject = jointMarkers[jointLabel].mesh;
         } else if (combinedId && setMarkers[combinedId]) {
             currentDragObject = setMarkers[combinedId].mesh;
         }
         
-        if (currentDragObject) {
-            isDragging = true;
-            dragStartPosition.copy(currentDragObject.position);
-            marker.classList.add('dragging');
+        if (!currentDragObject) return;
+        
+        isDragging = true;
+        marker.classList.add('dragging');
+        renderer.domElement.style.cursor = 'grabbing';
+        
+        // Calculate the drag plane perpendicular to camera view
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+            cameraDirection.normalize(),
+            currentDragObject.position
+        );
+        
+        // Calculate initial offset between mouse and object
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        const intersectionPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
+        
+        if (intersectionPoint) {
+            dragOffset.subVectors(currentDragObject.position, intersectionPoint);
+        }
+        
+        // Attach event listeners
+        document.addEventListener('mousemove', onMarkerDragThrottled);
+        document.addEventListener('mouseup', stopMarkerDrag);
+        
+        // Disable orbit controls during drag
+        if (controls) controls.enabled = false;
+    }
+
+    function onMarkerDragThrottled(e) {
+        if (!isDragging || !currentDragObject) return;
+        
+        const now = performance.now();
+        if (now - lastDragUpdate < DRAG_UPDATE_THROTTLE) {
+            // Store pending update
+            pendingDragUpdate = e;
+            if (!dragAnimationFrame) {
+                dragAnimationFrame = requestAnimationFrame(processPendingDragUpdate);
+            }
+            return;
+        }
+        
+        processDragUpdate(e);
+        lastDragUpdate = now;
+    }
+
+    function processPendingDragUpdate() {
+        if (pendingDragUpdate) {
+            processDragUpdate(pendingDragUpdate);
+            pendingDragUpdate = null;
+            lastDragUpdate = performance.now();
+        }
+        dragAnimationFrame = null;
+    }
+
+    function processDragUpdate(e) {
+        if (!currentDragObject || !dragPlane) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        const intersectionPoint = new THREE.Vector3();
+        
+        if (raycaster.ray.intersectPlane(dragPlane, intersectionPoint)) {
+            // Apply offset for smooth dragging
+            intersectionPoint.add(dragOffset);
             
-            document.addEventListener('mousemove', onMarkerDrag);
-            document.addEventListener('mouseup', stopMarkerDrag);
+            // Apply grid snapping if enabled (only on final position)
+            if (gridSnapValue > 0) {
+                intersectionPoint.x = Math.round(intersectionPoint.x / gridSnapValue) * gridSnapValue;
+                intersectionPoint.y = Math.round(intersectionPoint.y / gridSnapValue) * gridSnapValue;
+                intersectionPoint.z = Math.round(intersectionPoint.z / gridSnapValue) * gridSnapValue;
+            }
+            
+            // Smoothly update position
+            currentDragObject.position.copy(intersectionPoint);
         }
     }
 
@@ -2465,14 +3154,32 @@ function loadDefaultModel() {
     // NEW: Stop marker dragging
     function stopMarkerDrag() {
         isDragging = false;
-        currentDragObject = null;
+        
+        // Clean up
+        if (dragAnimationFrame) {
+            cancelAnimationFrame(dragAnimationFrame);
+            dragAnimationFrame = null;
+        }
+        pendingDragUpdate = null;
         
         document.querySelectorAll('.value-marker').forEach(marker => {
             marker.classList.remove('dragging');
         });
         
-        document.removeEventListener('mousemove', onMarkerDrag);
+        renderer.domElement.style.cursor = 'grab';
+        
+        // Re-enable orbit controls
+        if (controls) controls.enabled = true;
+        
+        // Clean up event listeners
+        document.removeEventListener('mousemove', onMarkerDragThrottled);
         document.removeEventListener('mouseup', stopMarkerDrag);
+        
+        // Clear drag state
+        currentDragObject = null;
+        dragPlane = null;
+        dragOffset.set(0, 0, 0);
+        syncSelectionsWithSession();
     }
 
     // NEW: Move selected object with arrow controls
@@ -2541,6 +3248,10 @@ function loadDefaultModel() {
 
     // NEW: Enhanced canvas drop handler
     function handleCanvasDrop(e) {
+    e.preventDefault();
+        isDragOverCanvas = false;
+        renderer.domElement.classList.remove('drag-over');
+        
         let droppedData;
         try {
             droppedData = JSON.parse(e.dataTransfer.getData('text/plain'));
@@ -2554,16 +3265,222 @@ function loadDefaultModel() {
         const itemType = droppedData.type;
         const itemValue = droppedData.value;
         
-        if (dropMode === 'precise') {
-            // Original precise placement logic
-            handlePrecisePlacement(e, itemType, itemValue);
-        } else {
-            // NEW: Free placement logic
-            handleFreePlacement(e, itemType, itemValue);
+        // Calculate 3D position from drop location
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        const position = getDropPosition(mouseX, mouseY);
+        
+        if (position) {
+            placeItemAtPosition(itemType, itemValue, position);
+            checkAndSelectSource(itemType, itemValue);
         }
         
         currentDroppingItem = null;
-        renderer.domElement.style.cursor = 'grab';
+    }
+
+    function getDropPosition(mouseX, mouseY) {
+        mouse.x = mouseX;
+        mouse.y = mouseY;
+        
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Try to intersect with model first
+        const modelIntersects = raycaster.intersectObject(model, true);
+        if (modelIntersects.length > 0) {
+            return modelIntersects[0].point;
+        }
+        
+        // Fall back to a plane at the model center
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        
+        const center = modelBoundingBox ? 
+            modelBoundingBox.getCenter(new THREE.Vector3()) : 
+            new THREE.Vector3(0, 0, 0);
+        
+        const dropPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+            cameraDirection.normalize(),
+            center
+        );
+        
+        const intersectionPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(dropPlane, intersectionPoint)) {
+            return intersectionPoint;
+        }
+        
+        return null;
+    }
+
+    function makeMarkerDraggable(markerDiv) {
+        markerDiv.style.cursor = 'grab';
+        markerDiv.addEventListener('mousedown', startMarkerDrag);
+        
+        // Prevent text selection during drag
+        markerDiv.addEventListener('selectstart', (e) => e.preventDefault());
+    }
+
+    function addJointMarkerEnhanced(jointLabel, position = null) {
+        if (jointMarkers[jointLabel]) return;
+
+        const markerSize = BASE_MARKER_SIZE * (scaleFactor || 1);
+        const geometry = new THREE.SphereGeometry(markerSize, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.7
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        if (position) {
+            sphere.position.copy(position);
+        } else {
+            const markerCount = Object.keys(jointMarkers).length;
+            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+            const row = Math.floor(markerCount / gridSize);
+            const col = markerCount % gridSize;
+
+            sphere.position.set(
+                (col - gridSize / 2) * 0.8,
+                2 + row * 0.4,
+                (row - gridSize / 2) * 0.4
+            );
+        }
+
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'value-marker joint-marker';
+        markerDiv.textContent = jointLabel;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.color = 'black';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.fontWeight = 'bold';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.jointLabel = jointLabel;
+        
+        // Make draggable
+        makeMarkerDraggable(markerDiv);
+        
+        document.getElementById('joint-markers-container').appendChild(markerDiv);
+
+        jointMarkers[jointLabel] = {
+            mesh: sphere,
+            div: markerDiv,
+            originalScale: scaleFactor || 1,
+            fontSize: 12 * (scaleFactor || 1)
+        };
+
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+    }
+
+    // Similarly update addSetPhaseMarker
+    function addSetPhaseMarkerEnhanced(setNumber, phaseNumber, position = null) {
+        const combination = Array.from(activeCombinations.values()).find(comb => 
+            comb.set === setNumber && comb.phase === phaseNumber
+        );
+        
+        if (!combination) return null;
+
+        const uniqueId = `${combination.id}_${Date.now()}`;
+        
+        const markerSize = BASE_MARKER_SIZE * (scaleFactor || 1);
+        const geometry = new THREE.SphereGeometry(markerSize, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x0000ff,
+            transparent: true,
+            opacity: 0.7
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        if (position) {
+            sphere.position.copy(position);
+        } else {
+            const markerCount = Object.keys(setMarkers).length;
+            const gridSize = Math.ceil(Math.sqrt(markerCount + 1));
+            const row = Math.floor(markerCount / gridSize);
+            const col = markerCount % gridSize;
+
+            sphere.position.set(
+                (col - gridSize / 2) * 0.8,
+                2 + row * 0.4,
+                (row - gridSize / 2) * 0.4
+            );
+        }
+
+        const markerDiv = document.createElement('div');
+        markerDiv.className = 'value-marker set-phase-marker';
+        markerDiv.textContent = `${setNumber}:${phaseNumber}`;
+        markerDiv.style.position = 'absolute';
+        markerDiv.style.color = 'black';
+        markerDiv.style.padding = '2px 5px';
+        markerDiv.style.fontWeight = 'bold';
+        markerDiv.style.pointerEvents = 'auto';
+        markerDiv.dataset.combinedId = uniqueId;
+        markerDiv.dataset.baseCombination = `${setNumber}:${phaseNumber}`;
+        
+        // Make draggable
+        makeMarkerDraggable(markerDiv);
+        
+        document.getElementById('set-markers-container').appendChild(markerDiv);
+
+        setMarkers[uniqueId] = {
+            mesh: sphere,
+            div: markerDiv,
+            setNumber: setNumber,
+            phaseNumber: phaseNumber,
+            baseCombination: `${setNumber}:${phaseNumber}`,
+            uniqueId: uniqueId,
+            combinationId: combination.id,
+            originalScale: scaleFactor || 1,
+            fontSize: 12 * (scaleFactor || 1)
+        };
+
+        scene.add(sphere);
+        updateMarkerPosition(sphere, markerDiv);
+        
+        return uniqueId;
+    }
+
+    const smoothDragStyles = `
+        .value-marker {
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .value-marker:hover {
+            transform: scale(1.15);
+            z-index: 1000;
+        }
+        
+        .value-marker.dragging {
+            transform: scale(1.2);
+            opacity: 0.8;
+            cursor: grabbing !important;
+            z-index: 1001;
+        }
+        
+        #model-canvas {
+            cursor: grab;
+        }
+        
+        #model-canvas.drag-over {
+            background-color: rgba(76, 175, 80, 0.1);
+            cursor: copy;
+        }
+        
+        #model-canvas:active {
+            cursor: grabbing;
+        }
+    `;
+
+    // Add styles to document
+    if (!document.getElementById('smooth-drag-styles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'smooth-drag-styles';
+        styleEl.textContent = smoothDragStyles;
+        document.head.appendChild(styleEl);
     }
 
     // NEW: Handle free placement
@@ -2685,59 +3602,90 @@ function loadDefaultModel() {
         gridHelpers = [];
     }
 
-    // Function to create 3D grid cage
-    function create3DGridCage(boundingBox) {
-        const size = boundingBox.getSize(new THREE.Vector3());
-        const center = boundingBox.getCenter(new THREE.Vector3());
-        
-        // Make grid slightly larger than model
-        const gridSize = Math.max(size.x, size.y, size.z) * 1.2;
-        const gridDivisions = 20;
-        
-        // Clear any existing grids
-        clearAllGrids();
-        
-        // Create grids on different planes
-        
-        // XY Plane (front/back)
-        const gridXY1 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
-        gridXY1.position.set(center.x, center.y, boundingBox.min.z - 1);
-        gridXY1.rotation.x = Math.PI / 2;
-        scene.add(gridXY1);
-        gridHelpers.push(gridXY1);
-        
-        const gridXY2 = new THREE.GridHelper(gridSize, gridDivisions, 0xff4444, 0xff8888);
-        gridXY2.position.set(center.x, center.y, boundingBox.max.z + 1);
-        gridXY2.rotation.x = Math.PI / 2;
-        scene.add(gridXY2);
-        gridHelpers.push(gridXY2);
-        
-        // XZ Plane (ground/top)
-        const gridXZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
-        gridXZ1.position.set(center.x, boundingBox.min.y - 1, center.z);
-        scene.add(gridXZ1);
-        gridHelpers.push(gridXZ1);
-        
-        const gridXZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x44ff44, 0x88ff88);
-        gridXZ2.position.set(center.x, boundingBox.max.y + 1, center.z);
-        scene.add(gridXZ2);
-        gridHelpers.push(gridXZ2);
-        
-        // YZ Plane (left/right)
-        const gridYZ1 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
-        gridYZ1.position.set(boundingBox.min.x - 1, center.y, center.z);
-        gridYZ1.rotation.z = Math.PI / 2;
-        scene.add(gridYZ1);
-        gridHelpers.push(gridYZ1);
-        
-        const gridYZ2 = new THREE.GridHelper(gridSize, gridDivisions, 0x4444ff, 0x8888ff);
-        gridYZ2.position.set(boundingBox.max.x + 1, center.y, center.z);
-        gridYZ2.rotation.z = Math.PI / 2;
-        scene.add(gridYZ2);
-        gridHelpers.push(gridYZ2);
-        
-        isGridVisible = true;
+function create3DGridCage(boundingBox) { 
+    clearAllGrids();
+
+    const size = boundingBox.getSize(new THREE.Vector3());
+    const center = boundingBox.getCenter(new THREE.Vector3());
+
+    const padding = 0.1;
+    const padX = size.x * padding;
+    const padY = size.y * padding;
+    const padZ = size.z * padding;
+
+    const divisionsX = 20;
+    const divisionsY = Math.max(10, Math.floor(size.y));
+    const divisionsZ = 20;
+
+    // 🔹 Balanced grid material (visible but not strong)
+    const gridMaterial = new THREE.LineBasicMaterial({
+        color: 0xaaaaaa,   // medium light gray
+        transparent: true,
+        opacity: 0.35,     // visible but soft
+        linewidth: 1
+    });
+
+    function createGridPlane(width, height, divW, divH) {
+        const geometry = new THREE.PlaneGeometry(width, height, divW, divH);
+        const wireframe = new THREE.WireframeGeometry(geometry);
+        return new THREE.LineSegments(wireframe, gridMaterial);
     }
+
+    // ---------- FRONT & BACK (XY) ----------
+    const front = createGridPlane(
+        size.x + padX * 2,
+        size.y + padY * 2,
+        divisionsX,
+        divisionsY
+    );
+    front.position.set(center.x, center.y, boundingBox.max.z + padZ);
+    scene.add(front);
+    gridHelpers.push(front);
+
+    const back = front.clone();
+    back.position.z = boundingBox.min.z - padZ;
+    scene.add(back);
+    gridHelpers.push(back);
+
+    // ---------- LEFT & RIGHT (YZ) ----------
+    const left = createGridPlane(
+        size.z + padZ * 2,
+        size.y + padY * 2,
+        divisionsZ,
+        divisionsY
+    );
+    left.rotation.y = Math.PI / 2;
+    left.position.set(boundingBox.min.x - padX, center.y, center.z);
+    scene.add(left);
+    gridHelpers.push(left);
+
+    const right = left.clone();
+    right.position.x = boundingBox.max.x + padX;
+    scene.add(right);
+    gridHelpers.push(right);
+
+    // ---------- TOP & BOTTOM (XZ) ----------
+    const top = createGridPlane(
+        size.x + padX * 2,
+        size.z + padZ * 2,
+        divisionsX,
+        divisionsZ
+    );
+    top.rotation.x = -Math.PI / 2;
+    top.position.set(center.x, boundingBox.max.y + padY, center.z);
+    scene.add(top);
+    gridHelpers.push(top);
+
+    const bottom = top.clone();
+    bottom.position.y = boundingBox.min.y - padY;
+    scene.add(bottom);
+    gridHelpers.push(bottom);
+
+    isGridVisible = true;
+}
+
+
+
     
 
         // NEW: Handle clicks on the 3D canvas for assigning labels
@@ -2864,6 +3812,7 @@ function loadDefaultModel() {
         
         transformControls.addEventListener('change', function() {
             updateObjectUI(selectedObject);
+            syncSelectionsWithSession();
         });
         
         showSelectionHighlight(object);
@@ -2890,9 +3839,11 @@ function loadDefaultModel() {
     function addJointMarker(jointLabel, position = null) {
         if (jointMarkers[jointLabel]) return;
 
-        const geometry = new THREE.SphereGeometry(0.06, 16, 16); // Same size as set/phase markers
+        // Use scaled size based on model
+        const markerSize = BASE_MARKER_SIZE * (scaleFactor || 1);
+        const geometry = new THREE.SphereGeometry(markerSize, 16, 16);
         const material = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000, // Red color for joints
+            color: 0xff0000,
             transparent: true,
             opacity: 0.7
         });
@@ -2933,10 +3884,11 @@ function loadDefaultModel() {
             selectObjectForTransform(sphere, jointLabel, 'joint');
         });
 
-        jointMarkers[jointLabel] = {
+            jointMarkers[jointLabel] = {
             mesh: sphere,
             div: markerDiv,
-            originalScale: 1
+            originalScale: scaleFactor || 1,
+            fontSize: 12 * (scaleFactor || 1) // Store scaled font size
         };
 
         scene.add(sphere);
@@ -2954,7 +3906,8 @@ function loadDefaultModel() {
     const uniqueId = `${combination.id}_${Date.now()}`;
     
     // Your existing marker creation code here (keep the same)
-    const geometry = new THREE.SphereGeometry(0.06, 16, 16);
+    const markerSize = BASE_MARKER_SIZE * (scaleFactor || 1);
+    const geometry = new THREE.SphereGeometry(markerSize, 16, 16);
     const material = new THREE.MeshBasicMaterial({ 
         color: 0x0000ff,
         transparent: true,
@@ -3005,7 +3958,8 @@ function loadDefaultModel() {
         baseCombination: `${setNumber}:${phaseNumber}`,
         uniqueId: uniqueId,
         combinationId: combination.id,
-        originalScale: 1
+        originalScale: scaleFactor || 1,
+        fontSize: 12 * (scaleFactor || 1)
     };
 
     scene.add(sphere);
@@ -3140,13 +4094,36 @@ function loadDefaultModel() {
     }
 
 
-    
+    function autoZoomToFit() {
+        if (!modelBoundingBox || !camera || !controls) return;
+        
+        const box = modelBoundingBox;
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        // Calculate camera distance based on model size
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        const distance = Math.abs(maxDim / Math.sin(fov / 2));
+        
+        // Position camera
+        camera.position.set(
+            center.x,
+            center.y + size.y * 0.5,
+            center.z + distance * 1.5
+        );
+        
+        camera.lookAt(center);
+        controls.target.copy(center);
+        controls.update();
+    }
+
+
     // Update HTML marker position based on 3D position
     function updateMarkerPosition(mesh, div) {
-        // Get the marker reference (either joint or set-phase)
         const isJoint = div.classList.contains('joint-marker');
         const markerRef = isJoint ? jointMarkers[div.dataset.jointLabel] : setMarkers[div.dataset.combinedId];
-        if (!markerRef) return;
+        if (!markerRef || !mesh) return;
 
         const vector = mesh.position.clone();
         vector.project(camera);
@@ -3156,23 +4133,34 @@ function loadDefaultModel() {
 
         div.style.left = `${x}px`;
         div.style.top = `${y}px`;
-        div.style.transform = 'translate(-50%, -50%)'; // This is crucial
+        div.style.transform = 'translate(-50%, -50%)';
 
-
-        // NEW: Implement scaling based on distance from camera
+        // Dynamic scaling based on distance AND model size
         const distance = camera.position.distanceTo(mesh.position);
-        // This factor needs tuning based on your scene scale and desired visual
-        // A smaller factor means labels scale less dramatically with distance
-        const scaleFactor = 100 / distance; // Inverse distance for scaling
-        const baseFontSize = markerRef.fontSize || 12; // Use stored fontSize or default
-        div.style.fontSize = `${baseFontSize * scaleFactor}px`;
-
-        // Optional: adjust opacity based on distance or if it's behind the camera
-        // if (vector.z > 1) { // Behind the camera
-        //     div.style.display = 'none';
-        // } else {
-        //     div.style.display = 'block';
-        // }
+        
+        // Base scaling factor from model size
+        const modelScaleFactor = markerRef.originalScale || scaleFactor || 1;
+        
+        // Distance scaling - less aggressive for small models
+        const distanceFactor = Math.max(0.3, Math.min(2, 50 / distance));
+        
+        // Combined scaling
+        const combinedScale = modelScaleFactor * distanceFactor;
+        
+        // Update font size
+        const baseFontSize = 12;
+        div.style.fontSize = `${baseFontSize * combinedScale}px`;
+        
+        // Scale the 3D mesh as well for consistent appearance
+        const targetScale = combinedScale;
+        mesh.scale.setScalar(targetScale);
+        
+        // Handle visibility when behind camera
+        if (vector.z > 1) {
+            div.style.opacity = '0.3';
+        } else {
+            div.style.opacity = '1';
+        }
     }
 
     // Update load display position based on 3D position
@@ -3805,41 +4793,23 @@ function updateActiveCombinationsDisplay() {
 }
 
 async function storeCombinations(status) {
-    if (combinationsToConfirm.length === 0) return;
-
-    try {
-        const response = await fetch('{% url "store_set_phase_combinations" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken 
-            },
-            body: JSON.stringify({
-                combinations: combinationsToConfirm,
-                status: status
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            console.log(result.message);
-            
-            // Use the data returned from the server to update the display
-            updateActiveCombinationsDisplayFromResponse(result.new_combinations);
-            updateTable();
-            
-            // Optionally show success message
-            showSuccessMessage(`Combinations stored as ${status}`);
-        } else {
-            alert('Error storing combinations: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Network or other error:', error);
-        alert('An unexpected error occurred. Check console.');
-    } finally {
-        combinationsToConfirm = [];
-    }
+    // ✅ Send ALL combinations from activeCombinations
+    const allCombinations = Array.from(activeCombinations.values());
+    
+    // Add status to the new ones
+    const combinationsWithStatus = allCombinations.map(combo => {
+        const isNewCombo = combinationsToConfirm.includes(`${combo.set}-${combo.phase}`);
+        return {
+            set: combo.set,
+            phase: combo.phase,
+            status: isNewCombo ? status : combo.status || status
+        };
+    });
+    
+    body: JSON.stringify({
+        combinations: combinationsWithStatus,
+        status: status
+    })
 }
 
 // Update the function that displays combinations to handle "Both" status

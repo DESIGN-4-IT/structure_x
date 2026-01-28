@@ -130,7 +130,7 @@ urlpatterns = [
    path('load-condition/create/', views.create_load_condition, name='create_load_condition'),
    path('load-condition/<int:pk>/edit/', views.edit_load_condition, name='edit_load_condition'),
    path('load-condition/<int:pk>/delete/', views.delete_load_condition, name='delete_load_condition'),
-
+   path('clear-all-selections/', views.clear_all_selections, name='clear_all_selections'),
 
 
    path('hupload/',views.hupload,name='hupload'),

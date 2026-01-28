@@ -613,59 +613,27 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
 
-@require_http_methods(["POST"])
-@csrf_exempt
 def store_set_phase_combinations(request):
-    try:
-        # Load the JSON data sent from the frontend
-        data = json.loads(request.body)
-        
-        # The data should contain the list of combinations and the status
-        combinations_to_add = data.get('combinations', [])
-        status = data.get('status')  # 'Ahead' or 'Back' only now
-        
-        print(f"DEBUG store_set_phase_combinations: Received {len(combinations_to_add)} combinations: {combinations_to_add}")
-        print(f"DEBUG: Status: {status}")
-        
-        # MODIFIED: Remove 'Both' from valid status options
-        if not combinations_to_add or status not in ['Ahead', 'Back']:
-            return JsonResponse({'status': 'error', 'message': 'Invalid data provided.'}, status=400)
-
-        # Get the current active combinations from the session
-        selected_values = request.session.get('selected_values', {})
-        active_combinations = selected_values.get('active_combinations', [])
-        
-        print(f"DEBUG: Existing active_combinations before extend: {len(active_combinations)} items")
-        
-        # Process the new combinations: Add the status
-        new_active_combinations = []
-        for combo in combinations_to_add:
-            combo_with_status = f"{combo}-{status}"
-            if combo_with_status not in active_combinations:  # Prevent duplicates
-                new_active_combinations.append(combo_with_status)
-            else:
-                print(f"DEBUG: Skipped duplicate combination: {combo_with_status}")
-        
-        active_combinations.extend(new_active_combinations)
-        
-        print(f"DEBUG: Added {len(new_active_combinations)} new combinations. Total active_combinations: {len(active_combinations)}")
-        print(f"DEBUG: Final active_combinations: {active_combinations}")
-        
-        # Update the session
-        request.session['selected_values']['active_combinations'] = active_combinations
-        request.session.modified = True
-        
-        return JsonResponse({
-            'status': 'success', 
-            'message': f'Successfully stored {len(new_active_combinations)} new combinations as {status}.',
-            'new_combinations': new_active_combinations
-        })
-    except json.JSONDecodeError:
-        print("DEBUG: JSON decode error")
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON format.'}, status=400)
-    except Exception as e:
-        print(f"Error storing combinations: {e}")
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    # Get existing combinations
+    existing = request.session.get('selected_values', {}).get('active_combinations', [])
+    
+    # Get new combinations from request
+    new_combinations = request.data.get('combinations', [])
+    
+    # MERGE instead of replace
+    all_combinations = existing + new_combinations
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_combinations = []
+    for combo in all_combinations:
+        key = f"{combo['set']}-{combo['phase']}"
+        if key not in seen:
+            seen.add(key)
+            unique_combinations.append(combo)
+    
+    # Store back
+    request.session['selected_values']['active_combinations'] = unique_combinations
 
 def debug_session_selections(session_data):
     """Helper to debug session data"""
@@ -2025,7 +1993,12 @@ def get_imported_load_cases(structure):
 def get_grouped_load_cases(structure):
     """Get grouped load cases from Excel files"""
     latest_file = None
-    file_models = [hUploadedFile1, tUploadedFile6, tUploadedFile1]
+    file_models = [ hUploadedFile1, tUploadedFile6, tUploadedFile1, tUploadedFile2,
+                    tUploadedFile3, tUploadedFile4, tUploadedFile5, hUploadedFile2,
+                    hUploadedFile3, hUploadedFile4, tUploadedFile7, tUploadedFile8,
+                    tUploadedFile9, tUploadedFile10, tUploadedFile11, UploadedFile1,
+                    UploadedFile22, mUploadedFile5, mUploadedFile6, mUploadedFile7,
+                    mUploadedFile8, mUploadedFile9, mUploadedFile10, mUploadedFile11]
     
     for model in file_models:
         if model.objects.filter(structure=structure).exists():
@@ -2550,6 +2523,10 @@ def load_condition_view(request):
                     group_wise_buffered_sums = json.loads(group_wise_buffered_sums_json)
                     request.session['group_wise_buffered_sums'] = group_wise_buffered_sums
                     
+                # **NEW: Clear previous selections when new data arrives**
+                request.session['selected_conditions'] = {}
+                request.session.modified = True
+                    
             except json.JSONDecodeError:
                 calculation_data = request.session.get('calculation_data', [])
                 processed_sums = request.session.get('processed_sums', {})
@@ -2593,39 +2570,39 @@ def load_condition_view(request):
 
         # PRIORITY 1: Use group-wise buffered sums if available (Select Set Max Resultant Within Groups)
         if group_wise_buffered_sums:
-            # Process EACH group separately
+            # Process ALL groups that have selections
             for group_name, group_data in group_wise_buffered_sums.items():
-                group_factored_loads = {}
-                
-                # Get selected conditions for this group (if any)
-                # Handle None case and empty dict
+                # Get selected conditions for this group
                 group_selections = {}
                 if selected_conditions and isinstance(selected_conditions, dict):
                     group_selections = selected_conditions.get(group_name, {})
                 
-                # If no specific selections for this group, use all conditions
+                # Skip groups without any selections
                 if not group_selections:
-                    conditions_to_process = load_conditions
-                else:
-                    # Filter to only selected conditions
-                    conditions_to_process = []
-                    for condition in load_conditions:
-                        # Try both string and integer keys
-                        condition_id_str = str(condition.id)
-                        is_selected = False
-                        
-                        # Check if condition is in selections
-                        if condition_id_str in group_selections:
-                            is_selected = bool(group_selections[condition_id_str])
-                        elif condition.id in group_selections:
-                            is_selected = bool(group_selections[condition.id])
-                        
-                        if is_selected:
-                            conditions_to_process.append(condition)
+                    continue
                 
-                # If no conditions selected after filtering, skip this group
+                # Filter to only selected conditions (those with True value)
+                conditions_to_process = []
+                for condition in load_conditions:
+                    condition_id_str = str(condition.id)
+                    is_selected = False
+                    
+                    # Check if condition is selected (value must be True)
+                    if condition_id_str in group_selections:
+                        is_selected = bool(group_selections[condition_id_str])
+                    elif condition.id in group_selections:
+                        is_selected = bool(group_selections[condition.id])
+                    
+                    # Only add if explicitly selected
+                    if is_selected:
+                        conditions_to_process.append(condition)
+                
+                # Skip group if no conditions are actually selected
                 if not conditions_to_process:
                     continue
+                
+                # Calculate factored loads only for selected conditions
+                group_factored_loads = {}
                 
                 for condition in conditions_to_process:
                     from decimal import Decimal
@@ -2668,7 +2645,7 @@ def load_condition_view(request):
                         'group_name': group_name
                     }
                 
-                # Store factored loads for this group only if we have results
+                # Store factored loads for this group
                 if group_factored_loads:
                     group_wise_factored_loads[group_name] = group_factored_loads
 
@@ -2724,8 +2701,7 @@ def load_condition_view(request):
                     'calculation_type': 'individual_records'
                 }
     
-    # Prepare template data for checkboxes
-    # Create a list of conditions with selection info for each group
+    # Prepare template data for checkboxes with saved selections
     condition_selection_data = {}
     if group_wise_buffered_sums:
         for group_name in group_wise_buffered_sums.keys():
@@ -2765,10 +2741,11 @@ def load_condition_view(request):
         'using_group_wise_sums': bool(group_wise_buffered_sums),
         'has_group_wise_factored_loads': bool(group_wise_factored_loads),
         'selected_conditions': selected_conditions,
-        'condition_selection_data': condition_selection_data,  # New: Pre-processed selection data
+        'condition_selection_data': condition_selection_data,
     }
     
     return render(request, 'app1/load_condition.html', context)
+
 
 from django.http import JsonResponse
 import json
@@ -2778,12 +2755,13 @@ def get_current_selections(request):
     selected_conditions = request.session.get('selected_conditions', {})
     return JsonResponse(selected_conditions)
 
+
 import logging
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
 def save_condition_selections(request):
-    """Save user's condition selections"""
+    """Save user's condition selections and return calculated factored loads"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -2797,8 +2775,32 @@ def save_condition_selections(request):
             if selected_conditions is None:
                 selected_conditions = {}
             
-            # Update selections for this group
-            selected_conditions[group_name] = selections
+            # Check if ALL selections are False (user unchecked everything)
+            all_unchecked = all(not bool(v) for v in selections.values())
+            
+            if all_unchecked:
+                # Remove this group's selections entirely
+                if group_name in selected_conditions:
+                    del selected_conditions[group_name]
+                
+                # Save to session
+                request.session['selected_conditions'] = selected_conditions
+                request.session.modified = True
+                
+                logger.info(f"All conditions unchecked for {group_name}, removing group data")
+                
+                # Return empty factored loads (will remove the display)
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Cleared selections for {group_name}',
+                    'group_name': group_name,
+                    'factored_loads': {},  # Empty to trigger removal
+                    'all_unchecked': True
+                })
+            
+            # Update selections for this group (filter out False values)
+            filtered_selections = {k: v for k, v in selections.items() if v}
+            selected_conditions[group_name] = filtered_selections
             
             # Save to session
             request.session['selected_conditions'] = selected_conditions
@@ -2806,13 +2808,94 @@ def save_condition_selections(request):
             
             logger.info(f"Saved selections to session: {selected_conditions}")
             
+            # Calculate factored loads for this group
+            group_wise_buffered_sums = request.session.get('group_wise_buffered_sums', {})
+            load_conditions = LoadCondition.objects.all().order_by('id')
+            
+            group_factored_loads = {}
+            
+            if group_name in group_wise_buffered_sums:
+                group_data = group_wise_buffered_sums[group_name]
+                
+                # Filter to only selected conditions
+                conditions_to_process = []
+                for condition in load_conditions:
+                    condition_id_str = str(condition.id)
+                    is_selected = selections.get(condition_id_str, False) or selections.get(condition.id, False)
+                    
+                    if is_selected:
+                        conditions_to_process.append(condition)
+                
+                # Calculate factored loads
+                for condition in conditions_to_process:
+                    from decimal import Decimal
+                    
+                    base_vert = Decimal(str(group_data.get('vert', 0)))
+                    base_trans = Decimal(str(group_data.get('trans', 0)))
+                    base_long = Decimal(str(group_data.get('long', 0)))
+                    
+                    factored_vert = base_vert * Decimal(str(condition.vertical_factor))
+                    factored_trans = base_trans * Decimal(str(condition.transverse_factor))
+                    factored_long = base_long * Decimal(str(condition.longitudinal_factor))
+                    
+                    factored_vert = float(factored_vert)
+                    factored_trans = float(factored_trans)
+                    factored_long = float(factored_long)
+                    
+                    factored_resultant = math.sqrt(factored_vert**2 + factored_trans**2 + factored_long**2)
+                    
+                    group_factored_loads[condition.description] = {
+                        'base_loads': {
+                            'vert': float(base_vert),
+                            'trans': float(base_trans),
+                            'long': float(base_long),
+                            'resultant': group_data.get('resultant', 0)
+                        },
+                        'factored_loads': {
+                            'vert': factored_vert,
+                            'trans': factored_trans,
+                            'long': factored_long,
+                            'resultant': factored_resultant
+                        },
+                        'factors': {
+                            'vertical': float(condition.vertical_factor),
+                            'transverse': float(condition.transverse_factor),
+                            'longitudinal': float(condition.longitudinal_factor)
+                        }
+                    }
+            
             return JsonResponse({
                 'success': True,
                 'message': f'Selections saved for {group_name}',
-                'selections_saved': selections
+                'group_name': group_name,
+                'factored_loads': group_factored_loads,
+                'all_unchecked': False
             })
+            
         except Exception as e:
             logger.error(f"Error saving selections: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+# **NEW: Add a clear selections endpoint for user convenience**
+@csrf_exempt
+def clear_all_selections(request):
+    """Clear all load condition selections"""
+    if request.method == 'POST':
+        try:
+            request.session['selected_conditions'] = {}
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'All selections cleared'
+            })
+        except Exception as e:
             return JsonResponse({
                 'success': False,
                 'error': str(e)

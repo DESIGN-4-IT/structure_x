@@ -557,6 +557,26 @@
     border: 1px solid #dee2e6;
     border-radius: 4px;
 }
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #000;
+    border: 1px solid #ffc107;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+}
     </style>
 </head>
 <body>
@@ -572,7 +592,6 @@
     <div class="card">
         <h3><i class="fas fa-cog"></i> Load Condition Parameters</h3>
         
-        <!-- Add Parameter Button -->
         <div class="action-buttons" style="justify-content: flex-start; margin-bottom: 20px;">
             <a href="{% url 'create_load_condition' %}" class="btn btn-primary">
                 <i class="fas fa-plus-circle"></i> Add New Parameter
@@ -662,253 +681,174 @@
     {% endif %}
 
     {% if using_group_wise_sums %}
-<div class="card alert alert-warning">
-    <h3><i class="fas fa-layer-group"></i> Using Group-wise Set Max Resultant Calculations</h3>
-    
-    {% for group_name, group_data in group_wise_buffered_sums.items %}
-    <div class="group-section" style="margin-bottom: 15px;">
-        <h4>Group: {{ group_name }}</h4>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Base Vert</div>
-                <div class="stat-value">{{ group_data.vert|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Trans</div>
-                <div class="stat-value">{{ group_data.trans|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Long</div>
-                <div class="stat-value">{{ group_data.long|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Base Resultant</div>
-                <div class="stat-value">{{ group_data.resultant|floatformat:2 }}</div>
-                <div class="stat-label">(lbs)</div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-
-
-<!-- Add this after the group-wise buffered sums display -->
-{% if using_group_wise_sums %}
-<div class="card">
-    <h3><i class="fas fa-check-circle"></i> Select Load Conditions for Each Group</h3>
-    
-    {% for group_name, group_data in group_wise_buffered_sums.items %}
-    <div class="group-selection-section">
-        <h4>Group: {{ group_name }}</h4>
-        <div class="selection-form" data-group="{{ group_name }}">
-            <div class="checkbox-grid">
-                {% for condition in load_conditions %}
-                <div class="checkbox-item">
-                    <input type="checkbox" 
-                           id="condition_{{ group_name }}_{{ condition.id }}"
-                           class="condition-checkbox"
-                           data-group="{{ group_name }}"
-                           data-condition-id="{{ condition.id }}">
-                    <label for="condition_{{ group_name }}_{{ condition.id }}">
-                        {{ condition.description }}
-                        <small>(×{{ condition.vertical_factor }}, ×{{ condition.transverse_factor }}, ×{{ condition.longitudinal_factor }})</small>
-                    </label>
-                </div>
-                {% endfor %}
-            </div>
-            
-            <button type="button" 
-                    class="btn btn-sm btn-primary apply-selection"
-                    data-group="{{ group_name }}">
-                <i class="fas fa-check"></i> Apply Selection for {{ group_name }}
-            </button>
-            <button type="button" 
-                    class="btn btn-sm btn-outline-secondary select-all"
-                    data-group="{{ group_name }}">
-                <i class="fas fa-check-double"></i> Select All
-            </button>
-            <button type="button" 
-                    class="btn btn-sm btn-outline-secondary clear-all"
-                    data-group="{{ group_name }}">
-                <i class="fas fa-times"></i> Clear All
-            </button>
-        </div>
-    </div>
-    {% if not forloop.last %}<hr>{% endif %}
-    {% endfor %}
-</div>
-{% endif %}
-
-
-
-   <!-- Factored Loads Display - MULTIPLE SECTIONS FOR GROUPS -->
-{% if has_group_wise_factored_loads %}
-    <!-- Display factored loads for EACH group separately -->
-    {% for group_name, group_data in group_wise_factored_loads.items %}
-    <div class="card group-factored-loads-section">
-        <h3><i class="fas fa-calculator"></i> Factored Loads for Group: {{ group_name }}</h3>
+    <div class="card alert alert-warning">
+        <h3><i class="fas fa-layer-group"></i> Using Group-wise Set Max Resultant Calculations</h3>
         
-        {% for condition_name, condition_data in group_data.items %}
-        <div class="factored-loads-group">
-            <h4><i class="fas fa-bolt"></i> {{ condition_name }}</h4>
-            
-            <!-- Show base and factored loads comparison -->
-            <div class="loads-comparison">
-                <div class="base-loads">
-                    <h5>Base Loads (Group: {{ group_name }})</h5>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Vert</div>
-                            <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Trans</div>
-                            <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Long</div>
-                            <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Resultant</div>
-                            <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                    </div>
+        {% for group_name, group_data in group_wise_buffered_sums.items %}
+        <div class="group-section" style="margin-bottom: 15px;">
+            <h4>Group: {{ group_name }}</h4>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Base Vert</div>
+                    <div class="stat-value">{{ group_data.vert|floatformat:2 }}</div>
+                    <div class="stat-label">(lbs)</div>
                 </div>
-                
-                <div class="factored-loads">
-                    <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
-                    <div class="stats-grid">
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Vert</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.vert|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Trans</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.trans|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Long</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.long|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                        <div class="stat-card highlighted">
-                            <div class="stat-label">Resultant</div>
-                            <div class="stat-value">{{ condition_data.factored_loads.resultant|floatformat:2 }}</div>
-                            <div class="stat-label">(lbs)</div>
-                        </div>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-label">Base Trans</div>
+                    <div class="stat-value">{{ group_data.trans|floatformat:2 }}</div>
+                    <div class="stat-label">(lbs)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Base Long</div>
+                    <div class="stat-value">{{ group_data.long|floatformat:2 }}</div>
+                    <div class="stat-label">(lbs)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Base Resultant</div>
+                    <div class="stat-value">{{ group_data.resultant|floatformat:2 }}</div>
+                    <div class="stat-label">(lbs)</div>
                 </div>
             </div>
         </div>
-        {% if not forloop.last %}<hr class="condition-divider">{% endif %}
         {% endfor %}
     </div>
-    {% if not forloop.last %}<hr class="group-divider">{% endif %}
-    {% endfor %}
+    {% endif %}
 
-{% elif has_factored_loads %}
-    <!-- Original single section for processed sums -->
-    {% for condition_name, condition_data in factored_loads_by_condition.items %}
-    <div class="card factored-loads-section">
-        <h3><i class="fas fa-calculator"></i> Factored Loads for {{ condition_name }}</h3>
+    <!-- Selection Interface -->
+    {% if using_group_wise_sums %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3><i class="fas fa-check-circle"></i> Select Load Conditions for Each Group</h3>
+            <!-- NEW: Clear All Button -->
+            <button type="button" 
+                    class="btn btn-sm btn-warning clear-all-groups"
+                    id="clearAllGroupsBtn">
+                <i class="fas fa-broom"></i> Clear All Groups
+            </button>
+        </div>
         
-        <!-- Show base and factored loads comparison -->
-        <div class="loads-comparison">
-            {% if condition_data.calculation_type == 'processed_sums' %}
-            <div class="base-loads">
-                <h5>Base Loads (Processed Sums)</h5>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Vert</div>
-                        <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
+        {% for group_name, group_data in group_wise_buffered_sums.items %}
+        <div class="group-selection-section">
+            <h4>Group: {{ group_name }}</h4>
+            <div class="selection-form" data-group="{{ group_name }}">
+                <div class="checkbox-grid">
+                    {% for condition in load_conditions %}
+                    <div class="checkbox-item">
+                        <input type="checkbox" 
+                               id="condition_{{ group_name }}_{{ condition.id }}"
+                               class="condition-checkbox"
+                               data-group="{{ group_name }}"
+                               data-condition-id="{{ condition.id }}"
+                               {% if condition_selection_data|get_item:group_name|get_item:condition.id|get_item:'is_selected' %}checked{% endif %}>
+                        <label for="condition_{{ group_name }}_{{ condition.id }}">
+                            {{ condition.description }}
+                            <small>(×{{ condition.vertical_factor }}, ×{{ condition.transverse_factor }}, ×{{ condition.longitudinal_factor }})</small>
+                        </label>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Trans</div>
-                        <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Long</div>
-                        <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Resultant</div>
-                        <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endif %}
-            
-            <div class="factored-loads">
-                <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
-                <div class="stats-grid">
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Vert</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.vert|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Trans</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.trans|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Long</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.long|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                    <div class="stat-card highlighted">
-                        <div class="stat-label">Resultant</div>
-                        <div class="stat-value">
-                            {% if condition_data.calculation_type == 'processed_sums' %}
-                                {{ condition_data.factored_loads.resultant|floatformat:2 }}
-                            {% else %}
-                                Calculating...
-                            {% endif %}
-                        </div>
-                        <div class="stat-label">(lbs)</div>
-                    </div>
-                </div>
+                
+                <button type="button" 
+                        class="btn btn-sm btn-primary apply-selection"
+                        data-group="{{ group_name }}">
+                    <i class="fas fa-check"></i> Apply Selection for {{ group_name }}
+                </button>
+                <button type="button" 
+                        class="btn btn-sm btn-outline-secondary select-all"
+                        data-group="{{ group_name }}">
+                    <i class="fas fa-check-double"></i> Select All
+                </button>
+                <button type="button" 
+                        class="btn btn-sm btn-outline-secondary clear-all"
+                        data-group="{{ group_name }}">
+                    <i class="fas fa-times"></i> Clear All
+                </button>
             </div>
         </div>
+        {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
-{% endif %}
+    {% endif %}
 
-    <!-- REMOVED: Custom Selection Results (tied to removed sections) -->
+    <!-- Dynamic Factored Loads Display Container -->
+    <div id="factoredLoadsContainer">
+        <!-- Server-side rendered results (if any) -->
+        {% if has_group_wise_factored_loads %}
+            {% for group_name, group_data in group_wise_factored_loads.items %}
+            <div class="card group-factored-loads-section" id="results_{{ group_name|slugify }}">
+                <h3><i class="fas fa-calculator"></i> Factored Loads for Group: {{ group_name }}</h3>
+                
+                {% for condition_name, condition_data in group_data.items %}
+                <div class="factored-loads-group">
+                    <h4><i class="fas fa-bolt"></i> {{ condition_name }}</h4>
+                    
+                    <div class="loads-comparison">
+                        <div class="base-loads">
+                            <h5>Base Loads (Group: {{ group_name }})</h5>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-label">Vert</div>
+                                    <div class="stat-value">{{ condition_data.base_loads.vert|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Trans</div>
+                                    <div class="stat-value">{{ condition_data.base_loads.trans|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Long</div>
+                                    <div class="stat-value">{{ condition_data.base_loads.long|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Resultant</div>
+                                    <div class="stat-value">{{ condition_data.base_loads.resultant|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="factored-loads">
+                            <h5>Factored Loads (×{{ condition_data.factors.vertical }}, ×{{ condition_data.factors.transverse }}, ×{{ condition_data.factors.longitudinal }})</h5>
+                            <div class="stats-grid">
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Vert</div>
+                                    <div class="stat-value">{{ condition_data.factored_loads.vert|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Trans</div>
+                                    <div class="stat-value">{{ condition_data.factored_loads.trans|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Long</div>
+                                    <div class="stat-value">{{ condition_data.factored_loads.long|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Resultant</div>
+                                    <div class="stat-value">{{ condition_data.factored_loads.resultant|floatformat:2 }}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if not forloop.last %}<hr class="condition-divider">{% endif %}
+                {% endfor %}
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Info message when no results yet -->
+    {% if using_group_wise_sums and not has_group_wise_factored_loads %}
+    <div class="card alert alert-info" id="noResultsMessage">
+        <p><i class="fas fa-info-circle"></i> Please select load conditions for each group above and click "Apply Selection" to view factored loads.</p>
+    </div>
+    {% endif %}
 
     <div class="action-buttons">
         <button class="btn btn-secondary" onclick="window.history.back()">
@@ -922,6 +862,7 @@
         </button>
     </div>
     {% endif %}
+</div>
 
 <footer>
     <p>Generated on {% now "F j, Y, g:i a" %} | Structural Analysis Tool</p>
@@ -930,6 +871,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    
     // Handle "Select All" for each group
     document.querySelectorAll('.select-all').forEach(button => {
         button.addEventListener('click', function() {
@@ -956,7 +898,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Handle "Apply Selection" for each group
+    // **NEW: Handle "Clear All Groups" button**
+    const clearAllGroupsBtn = document.getElementById('clearAllGroupsBtn');
+    if (clearAllGroupsBtn) {
+        clearAllGroupsBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all selections and results for all groups?')) {
+                // Uncheck all checkboxes
+                document.querySelectorAll('.condition-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // Clear all results from display
+                const container = document.getElementById('factoredLoadsContainer');
+                container.innerHTML = '';
+                
+                // Show "no results" message
+                const noResultsMsg = document.getElementById('noResultsMessage');
+                if (noResultsMsg) {
+                    noResultsMsg.style.display = 'block';
+                }
+                
+                // Clear session data on server
+                fetch('{% url "clear_all_selections" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccessMessage('All selections and results cleared');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error clearing selections:', error);
+                });
+            }
+        });
+    }
+    
+    // Handle "Apply Selection" for each group - NO PAGE REFRESH
     document.querySelectorAll('.apply-selection').forEach(button => {
         button.addEventListener('click', function() {
             const groupName = this.dataset.group;
@@ -965,14 +948,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Collect selections
             const selections = {};
+            let hasAnySelected = false;
+            
             checkboxes.forEach(checkbox => {
                 const conditionId = checkbox.dataset.conditionId;
                 const isChecked = checkbox.checked;
                 selections[conditionId] = isChecked;
-                console.log(`Condition ${conditionId}: ${isChecked}`);
+                if (isChecked) {
+                    hasAnySelected = true;
+                }
             });
             
-            console.log('Sending selections:', selections);
+            console.log('Sending selections for group:', groupName, selections);
+            console.log('Has any selected:', hasAnySelected);
             
             // Prepare data to send
             const data = {
@@ -983,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             const originalText = this.innerHTML;
             this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             
             // Send AJAX request to save selections
             fetch('{% url "save_condition_selections" %}', {
@@ -994,17 +982,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 console.log('Response data:', data);
                 if (data.success) {
-                    // Reload the page to show updated calculations
-                    window.location.reload();
+                    // Check if all conditions were unchecked
+                    if (data.all_unchecked || Object.keys(data.factored_loads).length === 0) {
+                        // Remove results for this group
+                        removeGroupResults(data.group_name);
+                        showSuccessMessage(`Results cleared for ${data.group_name}`);
+                        
+                        // Check if there are any results left
+                        const container = document.getElementById('factoredLoadsContainer');
+                        if (container.children.length === 0) {
+                            // Show "no results" message
+                            const noResultsMsg = document.getElementById('noResultsMessage');
+                            if (noResultsMsg) {
+                                noResultsMsg.style.display = 'block';
+                            }
+                        }
+                    } else {
+                        // Hide "no results" message if it exists
+                        const noResultsMsg = document.getElementById('noResultsMessage');
+                        if (noResultsMsg) {
+                            noResultsMsg.style.display = 'none';
+                        }
+                        
+                        // Display or update results for this group
+                        displayGroupResults(data.group_name, data.factored_loads);
+                        
+                        // Show success message
+                        showSuccessMessage(`Calculations completed for ${data.group_name}`);
+                    }
                 } else {
-                    alert('Error saving selections: ' + data.error);
+                    alert('Error: ' + data.error);
                 }
             })
             .catch(error => {
@@ -1018,7 +1029,145 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-
+    
+    /**
+     * Remove group results from display
+     */
+    function removeGroupResults(groupName) {
+        const groupId = 'results_' + groupName.toLowerCase().replace(/\s+/g, '_');
+        const existingCard = document.getElementById(groupId);
+        
+        if (existingCard) {
+            // Fade out animation
+            existingCard.style.animation = 'fadeOut 0.3s';
+            setTimeout(() => {
+                existingCard.remove();
+            }, 300);
+        }
+    }
+    
+    /**
+     * Display group results dynamically without page refresh
+     */
+    function displayGroupResults(groupName, factoredLoads) {
+        const container = document.getElementById('factoredLoadsContainer');
+        const groupId = 'results_' + groupName.toLowerCase().replace(/\s+/g, '_');
+        
+        // Remove existing results for this group if present
+        const existingCard = document.getElementById(groupId);
+        if (existingCard) {
+            existingCard.remove();
+        }
+        
+        // Check if there are any factored loads to display
+        if (!factoredLoads || Object.keys(factoredLoads).length === 0) {
+            console.log('No factored loads to display for group:', groupName);
+            return;
+        }
+        
+        // Create new card for this group
+        const card = document.createElement('div');
+        card.className = 'card group-factored-loads-section';
+        card.id = groupId;
+        card.style.animation = 'fadeIn 0.5s';
+        
+        let cardHTML = `
+            <h3><i class="fas fa-calculator"></i> Factored Loads for Group: ${groupName}</h3>
+        `;
+        
+        // Add each condition's results
+        let conditionCount = 0;
+        for (const [conditionName, conditionData] of Object.entries(factoredLoads)) {
+            if (conditionCount > 0) {
+                cardHTML += '<hr class="condition-divider">';
+            }
+            
+            cardHTML += `
+                <div class="factored-loads-group">
+                    <h4><i class="fas fa-bolt"></i> ${conditionName}</h4>
+                    
+                    <div class="loads-comparison">
+                        <div class="base-loads">
+                            <h5>Base Loads (Group: ${groupName})</h5>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-label">Vert</div>
+                                    <div class="stat-value">${conditionData.base_loads.vert.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Trans</div>
+                                    <div class="stat-value">${conditionData.base_loads.trans.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Long</div>
+                                    <div class="stat-value">${conditionData.base_loads.long.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Resultant</div>
+                                    <div class="stat-value">${conditionData.base_loads.resultant.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="factored-loads">
+                            <h5>Factored Loads (×${conditionData.factors.vertical}, ×${conditionData.factors.transverse}, ×${conditionData.factors.longitudinal})</h5>
+                            <div class="stats-grid">
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Vert</div>
+                                    <div class="stat-value">${conditionData.factored_loads.vert.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Trans</div>
+                                    <div class="stat-value">${conditionData.factored_loads.trans.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Long</div>
+                                    <div class="stat-value">${conditionData.factored_loads.long.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                                <div class="stat-card highlighted">
+                                    <div class="stat-label">Resultant</div>
+                                    <div class="stat-value">${conditionData.factored_loads.resultant.toFixed(2)}</div>
+                                    <div class="stat-label">(lbs)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            conditionCount++;
+        }
+        
+        card.innerHTML = cardHTML;
+        container.appendChild(card);
+        
+        // Scroll to the new results
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    /**
+     * Show success message
+     */
+    function showSuccessMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'alert alert-success';
+        messageDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s;';
+        messageDiv.innerHTML = `
+            <i class="fas fa-check-circle"></i> ${message}
+        `;
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.style.animation = 'fadeOut 0.3s';
+            setTimeout(() => messageDiv.remove(), 300);
+        }, 3000);
+    }
     
     // Helper function to get CSRF token
     function getCookie(name) {
@@ -1036,134 +1185,37 @@ document.addEventListener('DOMContentLoaded', function() {
         return cookieValue;
     }
 });
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle buffer settings visibility
-    const applyBufferCheckbox = document.getElementById('applyBuffer');
-    const bufferSettings = document.getElementById('bufferSettings');
-    
-    applyBufferCheckbox.addEventListener('change', function() {
-        bufferSettings.style.display = this.checked ? 'block' : 'none';
-    });
-    
-    // Handle final calculation
-    const calculateButton = document.getElementById('calculateFinalLoads');
-    calculateButton.addEventListener('click', function() {
-        // Get calculation data from previous step (you'll need to pass this from the previous view)
-        const calculationData = JSON.parse('{{ calculation_data_json|escapejs }}' || '[]');
-        
-        // Get form data
-        const formData = new FormData(document.getElementById('finalCalculationForm'));
-        
-        // Add calculation data to form data
-        formData.append('calculation_data', JSON.stringify(calculationData));
-        
-        // Show loading indicator
-        calculateButton.disabled = true;
-        calculateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
-        
-        // Send AJAX request
-        fetch('{% url "calculate_final_loads" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Display results
-                displayFinalResults(data.max_resultant_values);
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        })
-        .finally(() => {
-            // Reset button
-            calculateButton.disabled = false;
-            calculateButton.innerHTML = '<i class="fas fa-calculator"></i> Calculate Final Loads';
-        });
-    });
-    
-    function displayFinalResults(results) {
-        const tableBody = document.querySelector('#finalLoadsTable tbody');
-        tableBody.innerHTML = '';
-        
-        let totalVert = 0;
-        let totalTrans = 0;
-        let totalLong = 0;
-        
-        for (const [setNo, values] of Object.entries(results)) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${setNo}</td>
-                <td>${values.vert.toFixed(2)}</td>
-                <td>${values.trans.toFixed(2)}</td>
-                <td>${values.long.toFixed(2)}</td>
-                <td>${values.resultant.toFixed(2)}</td>
-            `;
-            tableBody.appendChild(row);
-            
-            totalVert += values.vert;
-            totalTrans += values.trans;
-            totalLong += values.long;
-        }
-        
-        // Add total row
-        const totalResultant = Math.sqrt(totalVert**2 + totalTrans**2 + totalLong**2);
-        const totalRow = document.createElement('tr');
-        totalRow.classList.add('highlight');
-        totalRow.innerHTML = `
-            <td><strong>Total</strong></td>
-            <td><strong>${totalVert.toFixed(2)}</strong></td>
-            <td><strong>${totalTrans.toFixed(2)}</strong></td>
-            <td><strong>${totalLong.toFixed(2)}</strong></td>
-            <td><strong>${totalResultant.toFixed(2)}</strong></td>
-        `;
-        tableBody.appendChild(totalRow);
-        
-        // Show results section
-        document.getElementById('finalResults').style.display = 'block';
-    }
-});
-</script>
-
-<script>
-
-
-// Custom Selection Logic for Load Conditions Page
-document.addEventListener('DOMContentLoaded', function() {
-    initializeSelection();
-});
-
-
 
 function deleteLoadCondition(pk) {
     if (confirm('Are you sure you want to delete this load condition?')) {
-        // Create a form and submit it via POST
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/load-condition/${pk}/delete/`;
         
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfToken) {
-            form.appendChild(csrfToken.cloneNode(true));
-        } else {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = '{{ csrf_token }}';
-            form.appendChild(csrfInput);
-        }
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = getCookie('csrftoken');
+        form.appendChild(csrfInput);
         
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 </script>
 
